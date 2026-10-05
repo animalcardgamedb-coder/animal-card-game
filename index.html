@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- スマートフォンでも画面幅に合わせて表示する -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>アニマルカードゲーム カード検索</title>
+</head>
+
+<body>
+
+  <h1>アニマルカードゲーム カード検索</h1>
+
+  <!-- ここにカード一覧を表示する -->
+  <div id="card-list">
+    読み込み中……
+  </div>
+
+
+  <script>
+
+    // ========================================
+    // Google Apps ScriptのAPI URL
+    // ========================================
+
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbwvFRsrFEnoZOE2GAEtv6Ihf51tb61B8Uqk_VaolPgkcH0nHC8dqY3436h7Y5L8EoRd/exec";
+
+
+    // ========================================
+    // APIからカードデータを取得する
+    // ========================================
+
+    async function loadCards() {
+
+      // APIにアクセスしてデータを取得
+      const response = await fetch(API_URL);
+
+      // JSON形式のデータに変換
+      const data = await response.json();
+
+      // Cardsシートのデータだけを取得
+      const cards = data.cards;
+
+
+      // カード一覧を表示する場所
+      const cardList = document.getElementById("card-list");
+
+
+      // 取得したカードを1枚ずつ表示
+      cards.forEach(card => {
+
+        // 1枚分の表示用HTMLを作る
+        const cardElement = document.createElement("div");
+
+        cardElement.innerHTML = `
+          <h2>${card.card_name}</h2>
+          <p>カードID：${card.card_id}</p>
+          <p>読み：${card.reading}</p>
+          <p>コスト：${card.cost}</p>
+          <p>タイプ：${card.card_type}</p>
+          <p>種属：${card.species}</p>
+          <p>ATK：${card.atk}</p>
+          <p>DEF：${card.def}</p>
+          <p>${card.effect_text}</p>
+          <hr>
+        `;
+
+
+        // 作ったカードを一覧に追加
+        cardList.appendChild(cardElement);
+
+      });
+
+    }
+
+
+    // ========================================
+    // ページを開いたらカードを読み込む
+    // ========================================
+
+    loadCards();
+
+  </script>
+
+</body>
+</html>
