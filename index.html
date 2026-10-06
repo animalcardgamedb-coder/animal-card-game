@@ -6,19 +6,41 @@
   <title>アニマルカードゲーム</title>
 
   <style>
-    /* カード画像の大きさ */
+    /* 検索欄 */
+    #search-box {
+      width: 100%;
+      max-width: 500px;
+      padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+    }
+
+    /* カード画像 */
     .card-image {
       max-width: 300px;
       height: auto;
       display: block;
       margin-bottom: 10px;
     }
+
+    /* カード */
+    .card {
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 
 <body>
 
-  <h1>アニマルカードゲーム</h1>
+  <h1>アニマルカードゲーム カード検索</h1>
+
+  <!-- 検索欄 -->
+  <input
+    type="text"
+    id="search-box"
+    placeholder="カード名・読み・効果テキストを検索"
+  >
 
   <div id="card-list">
     読み込み中……
@@ -34,68 +56,133 @@
 
 
     // ========================================
+    // 取得したカードデータを保存しておく
+    // ========================================
+    let allCards = [];
+
+
+    // ========================================
+    // カードを表示する
+    // ========================================
+    function displayCards(cards) {
+
+      const cardList = document.getElementById("card-list");
+
+      // 一度一覧を消す
+      cardList.innerHTML = "";
+
+      // 該当カードがない場合
+      if (cards.length === 0) {
+        cardList.innerHTML = "<p>該当するカードがありません。</p>";
+        return;
+      }
+
+      // カードを1枚ずつ表示
+      cards.forEach(card => {
+
+        const cardElement = document.createElement("div");
+
+        cardElement.className = "card";
+
+        cardElement.innerHTML = `
+
+          ${
+            card.image_url
+              ? `<img
+                  src="${card.image_url}"
+                  alt="${card.card_name}"
+                  class="card-image"
+                >`
+              : ""
+          }
+
+          <h2>${card.card_name}</h2>
+
+          <p>カードID：${card.card_id}</p>
+          <p>読み：${card.reading}</p>
+          <p>コスト：${card.cost}</p>
+          <p>タイプ：${card.card_type}</p>
+          <p>種属：${card.species}</p>
+          <p>ATK：${card.atk}</p>
+          <p>DEF：${card.def}</p>
+          <p>${card.effect_text}</p>
+
+          <hr>
+        `;
+
+        cardList.appendChild(cardElement);
+      });
+    }
+
+
+    // ========================================
     // GASからカードデータを取得する
-    // JSONPを使用するため、fetch()は使わない
+    // JSONPを使用
     // ========================================
     function loadCards() {
 
-      // JSONPから呼び出される関数を作成
       window.loadCardData = function(data) {
 
-        // 取得したカードデータ
-        const cards = data.cards;
+        // 取得したカードを保存
+        allCards = data.cards;
 
-        // カード一覧を表示する場所
-        const cardList = document.getElementById("card-list");
-
-        // 「読み込み中……」を消す
-        cardList.innerHTML = "";
-
-        // カードを1枚ずつ表示
-        cards.forEach(card => {
-
-          const cardElement = document.createElement("div");
-
-          cardElement.innerHTML = `
-
-            ${
-              card.image_url
-                ? `<img
-                    src="${card.image_url}"
-                    alt="${card.card_name}"
-                    class="card-image"
-                  >`
-                : ""
-            }
-
-            <h2>${card.card_name}</h2>
-            <p>カードID：${card.card_id}</p>
-            <p>読み：${card.reading}</p>
-            <p>コスト：${card.cost}</p>
-            <p>タイプ：${card.card_type}</p>
-            <p>種属：${card.species}</p>
-            <p>ATK：${card.atk}</p>
-            <p>DEF：${card.def}</p>
-            <p>${card.effect_text}</p>
-            <hr>
-          `;
-
-          cardList.appendChild(cardElement);
-        });
+        // 最初は全部表示
+        displayCards(allCards);
       };
 
 
-      // ========================================
-      // JSONP用のscriptタグを作成
-      // ========================================
+      // JSONP用のscriptタグ
       const script = document.createElement("script");
 
       script.src = API_URL + "?prefix=loadCardData";
 
-      // HTMLにscriptタグを追加すると
-      // GASからデータが読み込まれる
       document.body.appendChild(script);
     }
+
+
+    // ========================================
+    // 検索処理
+    // ========================================
+    function searchCards() {
+
+      // 検索欄の文字を取得
+      const keyword = document
+        .getElementById("search-box")
+        .value
+        .trim()
+        .toLowerCase();
+
+      // 検索欄が空なら全部表示
+      if (keyword === "") {
+        displayCards(allCards);
+        return;
+      }
+
+      // 検索対象を確認
+      const filteredCards = allCards.filter(card => {
+
+        const cardName = String(card.card_name || "").toLowerCase();
+        const reading = String(card.reading || "").toLowerCase();
+        const effectText = String(card.effect_text || "").toLowerCase();
+
+        return (
+          cardName.includes(keyword) ||
+          reading.includes(keyword) ||
+          effectText.includes(keyword)
+        );
+      });
+
+      // 検索結果を表示
+      displayCards(filteredCards);
+    }
+
+
+    // ========================================
+    // 検索欄に入力されたら検索
+    // ========================================
+    document
+      .getElementById("search-box")
+      .addEventListener("input", searchCards);
 
 
     // ========================================
