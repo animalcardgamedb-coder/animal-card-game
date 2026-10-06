@@ -17,905 +17,7 @@
     アニマルカードゲーム カード検索
   </title>
 
-
-  <style>
-
-    /*
-      ========================================
-      ページ全体
-      ========================================
-    */
-
-    body {
-
-      /*
-        使用する文字。
-        基本的には端末に入っている標準フォントを使います。
-      */
-      font-family: sans-serif;
-
-      /*
-        ページの左右に20pxの余白を作ります。
-      */
-      margin: 20px;
-
-      /*
-        右上に固定している検索ボタンと
-        ページの内容が重ならないように、
-        上側に55pxの余白を作ります。
-      */
-      padding-top: 55px;
-
-    }
-
-
-    /*
-      ========================================
-      右上の検索ボタン
-      ========================================
-    */
-
-    #search-open-button {
-
-      /*
-        画面をスクロールしても
-        常に右上に表示します。
-      */
-      position: fixed;
-
-      top: 15px;
-
-      right: 15px;
-
-      /*
-        他の表示より手前に出します。
-      */
-      z-index: 900;
-
-      /*
-        ボタンの大きさです。
-      */
-      width: 44px;
-
-      height: 44px;
-
-      /*
-        枠線。
-      */
-      border: 1px solid #aaa;
-
-      /*
-        完全な丸にします。
-      */
-      border-radius: 50%;
-
-      /*
-        背景色。
-      */
-      background: #fff;
-
-      /*
-        虫眼鏡の大きさ。
-      */
-      font-size: 22px;
-
-      line-height: 1;
-
-      /*
-        マウスカーソルを指にします。
-      */
-      cursor: pointer;
-
-      /*
-        少し影を付けます。
-      */
-      box-shadow:
-        0 2px 6px rgba(0, 0, 0, 0.15);
-
-    }
-
-
-    /*
-      検索ボタンにマウスを乗せたとき。
-    */
-    #search-open-button:hover {
-
-      background: #f5f5f5;
-
-    }
-
-
-    /*
-      ========================================
-      検索モーダル
-      ========================================
-    */
-
-    /*
-      検索画面を覆う黒い半透明の背景です。
-
-      最初は display:none なので、
-      検索ボタンを押すまで表示されません。
-    */
-    #search-modal {
-
-      display: none;
-
-      position: fixed;
-
-      top: 0;
-
-      left: 0;
-
-      width: 100%;
-
-      height: 100%;
-
-      /*
-        カード詳細画面よりも手前に表示します。
-      */
-      z-index: 2000;
-
-      /*
-        背景を黒く半透明にします。
-      */
-      background:
-        rgba(0, 0, 0, 0.7);
-
-      /*
-        画面の端に検索欄がくっつかないようにします。
-      */
-      box-sizing: border-box;
-
-      padding: 30px 20px;
-
-      /*
-        検索内容が画面より長くなった場合、
-        縦にスクロールできるようにします。
-      */
-      overflow-y: auto;
-
-    }
-
-
-    /*
-      検索モーダルの白い部分。
-    */
-    #search-modal-content {
-
-      position: relative;
-
-      width: 100%;
-
-      /*
-        PCで横に広がりすぎないようにします。
-      */
-      max-width: 800px;
-
-      /*
-        画面中央に配置します。
-      */
-      margin: 0 auto;
-
-      background: #fff;
-
-      border-radius: 8px;
-
-      padding: 25px;
-
-      box-sizing: border-box;
-
-    }
-
-
-    /*
-      検索モーダルのタイトル。
-
-      右側に閉じるボタンがあるため、
-      タイトルが重ならないようにします。
-    */
-    #search-modal-title {
-
-      margin-top: 0;
-
-      padding-right: 45px;
-
-    }
-
-
-    /*
-      検索モーダルの「×」ボタン。
-    */
-    #search-close-button {
-
-      position: absolute;
-
-      top: 10px;
-
-      right: 15px;
-
-      width: 40px;
-
-      height: 40px;
-
-      border: none;
-
-      background: transparent;
-
-      font-size: 30px;
-
-      line-height: 1;
-
-      cursor: pointer;
-
-    }
-
-
-    /*
-      「×」にマウスを乗せたとき。
-    */
-    #search-close-button:hover {
-
-      opacity: 0.6;
-
-    }
-
-
-    /*
-      ========================================
-      文字検索欄
-      ========================================
-    */
-
-    #search-box {
-
-      width: 100%;
-
-      max-width: 600px;
-
-      padding: 10px;
-
-      font-size: 16px;
-
-      box-sizing: border-box;
-
-      margin-bottom: 5px;
-
-    }
-
-
-    /*
-      検索欄の下に表示する説明文。
-
-      例：
-      スペース：AND検索　　-：マイナス検索
-    */
-    #search-help {
-
-      margin-top: 0;
-
-      margin-bottom: 15px;
-
-      color: #777;
-
-      font-size: 12px;
-
-    }
-
-
-    /*
-      ========================================
-      各検索条件
-      ========================================
-    */
-
-    .filter {
-
-      margin-bottom: 15px;
-
-    }
-
-
-    /*
-      「カードタイプ」「種属」などの見出し。
-    */
-    .filter-title {
-
-      font-weight: bold;
-
-      margin-bottom: 5px;
-
-    }
-
-
-    /*
-      チェックボックスを並べる場所。
-
-      横幅が足りなくなったら、
-      自動的に次の行へ折り返します。
-    */
-    .multi-select {
-
-      display: flex;
-
-      flex-wrap: wrap;
-
-      gap: 6px;
-
-      max-width: 800px;
-
-    }
-
-
-    /*
-      チェックボックスと文字をひとまとめにします。
-    */
-    .multi-select label {
-
-      display: inline-flex;
-
-      align-items: center;
-
-      gap: 3px;
-
-      padding: 4px 8px;
-
-      border: 1px solid #ccc;
-
-      border-radius: 4px;
-
-      cursor: pointer;
-
-    }
-
-
-    /*
-      ATK・DEFの条件入力部分。
-    */
-    .number-filter {
-
-      display: flex;
-
-      gap: 8px;
-
-      align-items: center;
-
-      flex-wrap: wrap;
-
-    }
-
-
-    /*
-      ATK・DEFの「以上」「以下」の選択欄。
-    */
-    .number-filter select,
-    .number-filter input {
-
-      padding: 7px;
-
-      font-size: 16px;
-
-    }
-
-
-    /*
-      数値入力欄の横幅。
-    */
-    .number-filter input {
-
-      width: 100px;
-
-    }
-
-
-    /*
-      ========================================
-      ボタン全般
-      ========================================
-    */
-
-    button {
-
-      cursor: pointer;
-
-    }
-
-
-    /*
-      検索条件リセットボタン。
-    */
-    #reset-button {
-
-      padding: 8px 16px;
-
-      font-size: 16px;
-
-      margin-bottom: 5px;
-
-    }
-
-
-    /*
-      ========================================
-      表示方法の切り替え
-      ========================================
-    */
-
-    #display-controls {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 8px;
-
-      flex-wrap: wrap;
-
-      margin-bottom: 20px;
-
-    }
-
-
-    /*
-      「表示：リスト アイコン」
-      「サイズ：小 中 大」
-      のそれぞれのまとまり。
-    */
-    .display-control-group {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 4px;
-
-    }
-
-
-    /*
-      リスト・アイコン・サイズのボタン。
-    */
-    .display-button {
-
-      padding: 6px 12px;
-
-      font-size: 14px;
-
-      border: 1px solid #aaa;
-
-      background: #fff;
-
-      border-radius: 4px;
-
-    }
-
-
-    /*
-      現在選択されているボタン。
-    */
-    .display-button.active {
-
-      background: #333;
-
-      color: #fff;
-
-    }
-
-
-    /*
-      ========================================
-      検索結果件数
-      ========================================
-    */
-
-    #result-count {
-
-      margin-bottom: 15px;
-
-      font-weight: bold;
-
-    }
-
-
-    /*
-      ========================================
-      リスト表示
-      ========================================
-    */
-
-    /*
-      リスト表示では、
-      カードを縦に1枚ずつ並べます。
-    */
-    #card-list.list-mode {
-
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 12px;
-
-    }
-
-
-    /*
-      リスト表示時の1枚分。
-    */
-    .card.list-card {
-
-      display: flex;
-
-      align-items: flex-start;
-
-      gap: 15px;
-
-      padding: 10px;
-
-      border: 1px solid #ddd;
-
-      border-radius: 6px;
-
-      /*
-        カード全体を押せるようにします。
-      */
-      cursor: pointer;
-
-      box-sizing: border-box;
-
-    }
-
-
-    /*
-      カードにマウスを乗せたとき。
-    */
-    .card.list-card:hover {
-
-      background: #f5f5f5;
-
-    }
-
-
-    /*
-      リスト表示時のカード画像。
-    */
-    .list-card-image {
-
-      width: 120px;
-
-      height: auto;
-
-      flex-shrink: 0;
-
-      display: block;
-
-    }
-
-
-    /*
-      リスト表示時の文字部分。
-    */
-    .list-card-info {
-
-      min-width: 0;
-
-    }
-
-
-    .list-card-info h2 {
-
-      margin-top: 0;
-
-      margin-bottom: 8px;
-
-    }
-
-
-    .list-card-info p {
-
-      margin: 4px 0;
-
-    }
-
-
-    /*
-      ========================================
-      アイコン表示
-      ========================================
-    */
-
-    /*
-      アイコン表示では、
-      JavaScriptで決めた列数を使います。
-
-      例えば、
-
-      3列なら
-      [カード][カード][カード]
-
-      5列なら
-      [カード][カード][カード][カード][カード]
-
-      7列なら
-      [カード][カード][カード][カード][カード][カード][カード]
-
-      という並びになります。
-    */
-    #card-list.icon-mode {
-
-      display: grid;
-
-      gap: 8px;
-
-      align-items: start;
-
-    }
-
-
-    /*
-      アイコン1枚分。
-
-      min-width:0 にすることで、
-      画面が狭い場合でもカードが
-      グリッドから飛び出さないようにします。
-    */
-    .card.icon-card {
-
-      cursor: pointer;
-
-      min-width: 0;
-
-    }
-
-
-    /*
-      アイコン表示の画像。
-
-      幅は、そのとき決まった列幅いっぱいになります。
-    */
-    .icon-card-image {
-
-      width: 100%;
-
-      height: auto;
-
-      display: block;
-
-    }
-
-
-    /*
-      アイコンにマウスを乗せたとき。
-    */
-    .card.icon-card:hover {
-
-      opacity: 0.75;
-
-    }
-
-
-    /*
-      ========================================
-      カード詳細ポップアップ
-      ========================================
-    */
-
-    /*
-      カードをクリックしたときに表示する
-      黒い半透明の背景です。
-
-      最初は非表示です。
-    */
-    #card-modal {
-
-      display: none;
-
-      position: fixed;
-
-      z-index: 1000;
-
-      top: 0;
-
-      left: 0;
-
-      width: 100%;
-
-      height: 100%;
-
-      background:
-        rgba(0, 0, 0, 0.7);
-
-      box-sizing: border-box;
-
-      padding: 30px 20px;
-
-      overflow-y: auto;
-
-    }
-
-
-    /*
-      カード詳細の白い部分。
-    */
-    #card-modal-content {
-
-      position: relative;
-
-      width: 100%;
-
-      max-width: 800px;
-
-      margin: 0 auto;
-
-      background: #fff;
-
-      border-radius: 8px;
-
-      padding: 25px;
-
-      box-sizing: border-box;
-
-    }
-
-
-    /*
-      カード詳細の「×」ボタン。
-    */
-    #modal-close-button {
-
-      position: absolute;
-
-      top: 10px;
-
-      right: 15px;
-
-      width: 40px;
-
-      height: 40px;
-
-      border: none;
-
-      background: transparent;
-
-      font-size: 30px;
-
-      line-height: 1;
-
-      cursor: pointer;
-
-    }
-
-
-    #modal-close-button:hover {
-
-      opacity: 0.6;
-
-    }
-
-
-    /*
-      詳細画面のカード画像。
-    */
-    #detail-image {
-
-      max-width: 500px;
-
-      width: 100%;
-
-      height: auto;
-
-      display: block;
-
-      margin: 0 auto 20px;
-
-    }
-
-
-    /*
-      カード名。
-    */
-    #detail-name {
-
-      margin-top: 0;
-
-    }
-
-
-    /*
-      カード詳細の各項目。
-    */
-    .detail-row {
-
-      margin-bottom: 10px;
-
-    }
-
-
-    /*
-      「カードID：」「コスト：」などの項目名。
-    */
-    .detail-label {
-
-      font-weight: bold;
-
-    }
-
-
-    /*
-      効果テキストの改行を維持します。
-    */
-    #detail-effect {
-
-      white-space: pre-wrap;
-
-    }
-
-
-    /*
-      ========================================
-      スマートフォン用
-      ========================================
-    */
-
-    @media (max-width: 600px) {
-
-      /*
-        スマホではページ左右の余白を小さくします。
-      */
-      body {
-
-        margin: 10px;
-
-        padding-top: 55px;
-
-      }
-
-
-      /*
-        リスト表示時の画像を少し小さくします。
-      */
-      .list-card-image {
-
-        width: 90px;
-
-      }
-
-
-      /*
-        検索モーダルの余白を小さくします。
-      */
-      #search-modal {
-
-        padding: 15px 10px;
-
-      }
-
-
-      #search-modal-content {
-
-        padding: 20px 15px;
-
-      }
-
-
-      /*
-        カード詳細モーダルの余白を小さくします。
-      */
-      #card-modal {
-
-        padding: 15px 10px;
-
-      }
-
-
-      #card-modal-content {
-
-        padding: 20px 15px;
-
-      }
-
-    }
-
-  </style>
+  <link rel="stylesheet" href="css/style.css">
 
 </head>
 
@@ -998,23 +100,11 @@
       </div>
 
 
-      <!--
-        アイコンサイズ。
-
-        最初はアイコン表示ではないので
-        display:none になっています。
-      -->
-
-      <div
-        id="icon-size-controls"
-        class="display-control-group"
-        style="display: none;"
-      >
+      <div id="icon-size-controls" class="display-control-group" style="display: none;">
 
         <span>
           サイズ：
         </span>
-
 
         <button
           id="icon-small-button"
@@ -1023,14 +113,12 @@
           小
         </button>
 
-
         <button
           id="icon-medium-button"
           class="display-button active"
         >
           中
         </button>
-
 
         <button
           id="icon-large-button"
@@ -1044,15 +132,7 @@
     </div>
 
 
-    <!--
-      検索結果の件数。
-    -->
-
-    <div id="result-count">
-
-      読み込み中……
-
-    </div>
+    <div id="result-count"></div>
 
 
     <!--
@@ -1116,164 +196,115 @@
         → 猫を含むカード
 
         猫 犬
-        → 猫と犬の両方を含むカード
+        → 猫「かつ」犬を含むカード
 
         猫 -犬
-        → 猫を含み、犬を含まないカード
+        → 猫を含む「かつ」犬を含まないカード
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
-          文字検索
-
+          検索
         </div>
-
 
         <input
           type="text"
           id="search-box"
-          placeholder="カード名・読み・効果テキストを検索"
+          placeholder="例：火 竜 -ドラゴン"
         >
 
-
-        <!--
-          検索方法をユーザーに説明します。
-        -->
-
-        <div id="search-help">
-
+        <p id="search-help">
           スペース：AND検索　　-：マイナス検索
-
-        </div>
+        </p>
 
       </div>
 
 
       <!--
         ======================================
-        カードタイプ
+        カードタイプフィルター
         ======================================
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
           カードタイプ
-
         </div>
 
-
-        <div
-          id="card-type-filter"
-          class="multi-select"
-        ></div>
+        <div id="card-type-filter" class="multi-select">
+        </div>
 
       </div>
 
 
       <!--
         ======================================
-        種属
+        種属フィルター
         ======================================
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
           種属
-
         </div>
 
-
-        <div
-          id="species-filter"
-          class="multi-select"
-        ></div>
+        <div id="species-filter" class="multi-select">
+        </div>
 
       </div>
 
 
       <!--
         ======================================
-        コスト
+        コストフィルター
         ======================================
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
           コスト
-
         </div>
 
-
-        <div
-          id="cost-filter"
-          class="multi-select"
-        ></div>
+        <div id="cost-filter" class="multi-select">
+        </div>
 
       </div>
 
 
       <!--
         ======================================
-        ATK
+        ATKフィルター
         ======================================
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
           ATK
-
         </div>
-
 
         <div class="number-filter">
 
-
           <select id="atk-condition">
-
-
             <option value="">
-
               指定なし
-
             </option>
-
-
             <option value="gte">
-
               以上
-
             </option>
-
-
             <option value="lte">
-
               以下
-
             </option>
-
-
           </select>
-
 
           <input
             type="number"
             id="atk-value"
-            placeholder="数値"
+            placeholder="ATK"
           >
 
         </div>
@@ -1283,54 +314,34 @@
 
       <!--
         ======================================
-        DEF
+        DEFフィルター
         ======================================
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
           DEF
-
         </div>
-
 
         <div class="number-filter">
 
-
           <select id="def-condition">
-
-
             <option value="">
-
               指定なし
-
             </option>
-
-
             <option value="gte">
-
               以上
-
             </option>
-
-
             <option value="lte">
-
               以下
-
             </option>
-
-
           </select>
-
 
           <input
             type="number"
             id="def-value"
-            placeholder="数値"
+            placeholder="DEF"
           >
 
         </div>
@@ -1340,63 +351,48 @@
 
       <!--
         ======================================
-        公式キーワード
+        公式キーワードフィルター
         ======================================
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
           公式キーワード
-
         </div>
 
-
-        <div
-          id="official-keyword-filter"
-          class="multi-select"
-        ></div>
+        <div id="official-keyword-filter" class="multi-select">
+        </div>
 
       </div>
 
 
       <!--
         ======================================
-        公式効果
+        公式効果フィルター
         ======================================
       -->
 
       <div class="filter">
 
-
         <div class="filter-title">
-
           公式効果
-
         </div>
 
-
-        <div
-          id="official-effect-filter"
-          class="multi-select"
-        ></div>
+        <div id="official-effect-filter" class="multi-select">
+        </div>
 
       </div>
 
 
       <!--
-        ======================================
-        検索条件リセット
-        ======================================
+        検索条件をリセット
       -->
 
-      <button id="reset-button">
-
+      <button id="reset-button" type="button">
         検索条件をリセット
-
       </button>
+
 
     </div>
 
@@ -1405,15 +401,13 @@
 
   <!--
     ========================================
-    カード詳細ポップアップ
+    カード詳細モーダル
     ========================================
   -->
 
   <div id="card-modal">
 
-
     <div id="card-modal-content">
-
 
       <!--
         詳細画面を閉じる「×」。
@@ -1421,16 +415,14 @@
 
       <button
         id="modal-close-button"
-        aria-label="閉じる"
+        aria-label="詳細を閉じる"
       >
-
         ×
-
       </button>
 
 
       <!--
-        カード画像。
+        カードの画像。
       -->
 
       <img
@@ -1441,194 +433,121 @@
 
 
       <!--
-        カード名。
+        カードの名前。
       -->
 
       <h2 id="detail-name"></h2>
 
 
       <!--
-        カードID。
+        カード情報。
       -->
 
       <div class="detail-row">
 
         <span class="detail-label">
-
           カードID：
-
         </span>
 
         <span id="detail-id"></span>
 
       </div>
 
-
-      <!--
-        読み。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           読み：
-
         </span>
 
         <span id="detail-reading"></span>
 
       </div>
 
-
-      <!--
-        コスト。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           コスト：
-
         </span>
 
         <span id="detail-cost"></span>
 
       </div>
 
-
-      <!--
-        カードタイプ。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           カードタイプ：
-
         </span>
 
         <span id="detail-type"></span>
 
       </div>
 
-
-      <!--
-        種属。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           種属：
-
         </span>
 
         <span id="detail-species"></span>
 
       </div>
 
-
-      <!--
-        ATK。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           ATK：
-
         </span>
 
         <span id="detail-atk"></span>
 
       </div>
 
-
-      <!--
-        DEF。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           DEF：
-
         </span>
 
         <span id="detail-def"></span>
 
       </div>
 
-
-      <!--
-        効果テキスト。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           効果：
-
         </span>
 
         <div id="detail-effect"></div>
 
       </div>
 
-
-      <!--
-        公式キーワード。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           公式キーワード：
-
         </span>
 
         <span id="detail-keywords"></span>
 
       </div>
 
-
-      <!--
-        公式効果。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           公式効果：
-
         </span>
 
         <span id="detail-effects"></span>
 
       </div>
 
-
-      <!--
-        公式ページへのリンク。
-      -->
-
       <div class="detail-row">
 
         <span class="detail-label">
-
           出典：
-
         </span>
-
 
         <a
           id="detail-source"
@@ -1636,9 +555,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >
-
           公式ページを開く
-
         </a>
 
       </div>
@@ -1648,2456 +565,10 @@
   </div>
 
 
-  <script>
-
-
-    /*
-      ========================================
-      GAS API
-      ========================================
-
-      Google Apps Scriptから
-      カードデータを取得するためのURLです。
-    */
-
-    const API_URL =
-      "https://script.google.com/macros/s/AKfycbwvFRsrFEnoZOE2GAEtv6Ihf51tb61B8Uqk_VaolPgkcH0nHC8dqY3436h7Y5L8EoRd/exec";
-
-
-    /*
-      ========================================
-      カードデータを入れる場所
-      ========================================
-
-      GASからデータを取得すると、
-      この配列にカード情報が入ります。
-    */
-
-    let allCards = [];
-
-
-    /*
-      ========================================
-      現在の表示方法
-      ========================================
-
-      最初は「リスト」です。
-
-      "list"
-      → リスト表示
-
-      "icon"
-      → アイコン表示
-    */
-
-    let currentDisplayMode =
-      "list";
-
-
-    /*
-      ========================================
-      現在のアイコンサイズ
-      ========================================
-
-      最初は「中」です。
-
-      "small"
-      → 小
-
-      "medium"
-      → 中
-
-      "large"
-      → 大
-    */
-
-    let currentIconSize =
-      "medium";
-
-
-    /*
-      ========================================
-      文字を検索しやすい形にする
-      ========================================
-
-      大文字・小文字などの違いを
-      できるだけ無視して検索するための処理です。
-    */
-
-    function normalize(value) {
-
-      return String(value || "")
-        .trim()
-        .toLowerCase();
-
-    }
-
-
-    /*
-      ========================================
-      複数の値を分割する
-      ========================================
-
-      スプレッドシートのセルに、
-
-      A,B,C
-
-      のように複数の値が入っている場合、
-      A・B・Cに分けます。
-
-      「、」
-      「|」
-      「｜」
-      「改行」
-
-      による区切りにも対応しています。
-    */
-
-    function splitValues(value) {
-
-      return String(value || "")
-        .split(/[,、|｜\n]/)
-        .map(
-          value =>
-            value.trim()
-        )
-        .filter(
-          value =>
-            value !== ""
-        );
-
-    }
-
-
-    /*
-      ========================================
-      フィルターの選択肢を作る
-      ========================================
-
-      カードデータから、
-
-      カードタイプ
-      種属
-      コスト
-      公式キーワード
-      公式効果
-
-      の重複しない一覧を作ります。
-    */
-
-    function getUniqueValues(
-      cards,
-      field
-    ) {
-
-      const values = [];
-
-
-      cards.forEach(
-        card => {
-
-          splitValues(
-            card[field]
-          ).forEach(
-            value => {
-
-              if (
-                !values.includes(
-                  value
-                )
-              ) {
-
-                values.push(
-                  value
-                );
-
-              }
-
-            }
-          );
-
-        }
-      );
-
-
-      /*
-        日本語として自然な順番で並べます。
-      */
-
-      return values.sort(
-        (a, b) =>
-          a.localeCompare(
-            b,
-            "ja"
-          )
-      );
-
-    }
-
-
-    /*
-      ========================================
-      チェックボックスを作る
-      ========================================
-
-      例えば、
-
-      猫
-      犬
-      鳥
-
-      という選択肢を作ります。
-    */
-
-    function createMultiFilter(
-      elementId,
-      values
-    ) {
-
-      const container =
-        document.getElementById(
-          elementId
-        );
-
-
-      /*
-        以前作った選択肢を一度消します。
-      */
-
-      container.innerHTML =
-        "";
-
-
-      /*
-        選択肢を1つずつ作ります。
-      */
-
-      values.forEach(
-        value => {
-
-          const label =
-            document.createElement(
-              "label"
-            );
-
-
-          const checkbox =
-            document.createElement(
-              "input"
-            );
-
-
-          /*
-            チェックボックスにします。
-          */
-
-          checkbox.type =
-            "checkbox";
-
-
-          /*
-            チェックされたときに
-            検索をやり直します。
-          */
-
-          checkbox.value =
-            value;
-
-
-          checkbox.addEventListener(
-            "change",
-            searchCards
-          );
-
-
-          label.appendChild(
-            checkbox
-          );
-
-
-          label.appendChild(
-            document.createTextNode(
-              value
-            )
-          );
-
-
-          container.appendChild(
-            label
-          );
-
-        }
-      );
-
-    }
-
-
-    /*
-      ========================================
-      選択されたチェックボックスを取得
-      ========================================
-    */
-
-    function getSelectedValues(
-      elementId
-    ) {
-
-      return [
-        ...document.querySelectorAll(
-          `#${elementId} input[type="checkbox"]:checked`
-        )
-      ].map(
-        checkbox =>
-          checkbox.value
-      );
-
-    }
-
-
-    /*
-      ========================================
-      アイコン表示の列数を決める
-      ========================================
-
-      ★今回ここを変更しました。
-
-      スマートフォンでは、
-
-        大 → 3列
-        中 → 5列
-        小 → 7列
-
-      にします。
-
-
-      つまりスマホで「アイコン」を選んだ場合、
-
-        大
-        [カード][カード][カード]
-
-        中
-        [カード][カード][カード][カード][カード]
-
-        小
-        [カード][カード][カード][カード][カード][カード][カード]
-
-      という表示になります。
-
-
-      画面が800pxより広い場合は、
-      PCとして扱います。
-
-      PCでは画面の横幅から
-      何列置けるかを自動計算します。
-
-
-      なお、最大列数は7列です。
-    */
-
-    function calculateIconColumns() {
-
-
-      /*
-        現在の画面の横幅を取得します。
-      */
-
-      const width =
-        window.innerWidth;
-
-
-      /*
-        ======================================
-        スマートフォン・小さい画面
-        ======================================
-
-        画面幅が800px以下なら、
-        スマートフォンなどの小さい画面として扱います。
-      */
-
-      if (
-        width <= 800
-      ) {
-
-
-        /*
-          「大」が選択されている場合。
-
-          大きな画像を見せたいので、
-          1行3枚にします。
-        */
-
-        if (
-          currentIconSize ===
-          "large"
-        ) {
-
-          return 3;
-
-        }
-
-
-        /*
-          「中」が選択されている場合。
-
-          1行5枚にします。
-        */
-
-        if (
-          currentIconSize ===
-          "medium"
-        ) {
-
-          return 5;
-
-        }
-
-
-        /*
-          「小」が選択されている場合。
-
-          小さく表示して、
-          1行7枚にします。
-        */
-
-        if (
-          currentIconSize ===
-          "small"
-        ) {
-
-          return 7;
-
-        }
-
-      }
-
-
-      /*
-        ======================================
-        PCなどの大きな画面
-        ======================================
-
-        画面幅を160pxで割って、
-        基本的な列数を計算します。
-      */
-
-      let columns =
-        Math.floor(
-          width / 160
-        );
-
-
-      /*
-        PCでも最大7列にします。
-
-        例えば計算結果が10列でも、
-        7列までに抑えます。
-      */
-
-      columns =
-        Math.max(
-          1,
-          Math.min(
-            7,
-            columns
-          )
-        );
-
-
-      /*
-        ======================================
-        PCで「大」を選んだ場合
-        ======================================
-
-        大きな画像を表示するため、
-        列数を1つ減らします。
-      */
-
-      if (
-        currentIconSize ===
-        "large"
-      ) {
-
-        columns =
-          Math.max(
-            1,
-            columns - 1
-          );
-
-      }
-
-
-      /*
-        ======================================
-        PCで「小」を選んだ場合
-        ======================================
-
-        小さな画像を表示するため、
-        列数を1つ増やします。
-
-        ただし最大7列です。
-      */
-
-      if (
-        currentIconSize ===
-        "small"
-      ) {
-
-        columns =
-          Math.min(
-            7,
-            columns + 1
-          );
-
-      }
-
-
-      /*
-        最終的に決まった列数を返します。
-      */
-
-      return columns;
-
-    }
-
-
-    /*
-      ========================================
-      アイコン表示のグリッドを設定
-      ========================================
-
-      calculateIconColumns()で決めた列数を
-      実際のカード一覧に適用します。
-    */
-
-    function applyIconGrid() {
-
-
-      /*
-        現在アイコン表示でなければ、
-        この処理は必要ありません。
-      */
-
-      if (
-        currentDisplayMode !==
-        "icon"
-      ) {
-
-        return;
-
-      }
-
-
-      /*
-        カード一覧の場所を取得します。
-      */
-
-      const cardList =
-        document.getElementById(
-          "card-list"
-        );
-
-
-      /*
-        何列にするか計算します。
-      */
-
-      const columns =
-        calculateIconColumns();
-
-
-      /*
-        CSSのグリッドを、
-
-        repeat(5, ...)
-
-        のように設定します。
-
-        例えば5なら5列になります。
-      */
-
-      cardList.style.gridTemplateColumns =
-        `repeat(${columns}, minmax(0, 1fr))`;
-
-    }
-
-
-    /*
-      ========================================
-      カード一覧を表示する
-      ========================================
-
-      検索結果を画面に表示します。
-    */
-
-    function displayCards(
-      cards
-    ) {
-
-
-      /*
-        カードを並べる場所。
-      */
-
-      const cardList =
-        document.getElementById(
-          "card-list"
-        );
-
-
-      /*
-        「検索結果：○件」
-        と表示する場所。
-      */
-
-      const resultCount =
-        document.getElementById(
-          "result-count"
-        );
-
-
-      /*
-        現在表示されているカードを消します。
-      */
-
-      cardList.innerHTML =
-        "";
-
-
-      /*
-        検索結果の件数を表示します。
-      */
-
-      resultCount.textContent =
-        `検索結果：${cards.length}件`;
-
-
-      /*
-        該当カードが0枚だった場合。
-      */
-
-      if (
-        cards.length === 0
-      ) {
-
-        cardList.innerHTML =
-          "<p>該当するカードがありません。</p>";
-
-        return;
-
-      }
-
-
-      /*
-        ======================================
-        リスト表示
-        ======================================
-      */
-
-      if (
-        currentDisplayMode ===
-        "list"
-      ) {
-
-
-        /*
-          リスト表示用のCSSを適用します。
-        */
-
-        cardList.className =
-          "list-mode";
-
-
-        /*
-          アイコン表示で使っていた
-          列数の設定を消します。
-        */
-
-        cardList.style.gridTemplateColumns =
-          "";
-
-
-        /*
-          カードを1枚ずつ作ります。
-        */
-
-        cards.forEach(
-          card => {
-
-
-            const cardElement =
-              document.createElement(
-                "div"
-              );
-
-
-            cardElement.className =
-              "card list-card";
-
-
-            /*
-              カード画像とカード情報を作ります。
-            */
-
-            cardElement.innerHTML = `
-
-              ${
-                card.image_url
-                  ? `
-                    <img
-                      src="${card.image_url}"
-                      alt="${card.card_name}"
-                      class="list-card-image"
-                    >
-                  `
-                  : ""
-              }
-
-              <div class="list-card-info">
-
-                <h2>
-                  ${card.card_name}
-                </h2>
-
-                <p>
-                  読み：
-                  ${card.reading}
-                </p>
-
-                <p>
-                  コスト：
-                  ${card.cost}
-                  ／
-                  タイプ：
-                  ${card.card_type}
-                </p>
-
-                <p>
-                  種属：
-                  ${card.species}
-                </p>
-
-                <p>
-                  ATK：
-                  ${card.atk}
-                  ／
-                  DEF：
-                  ${card.def}
-                </p>
-
-                <p>
-                  ${card.effect_text}
-                </p>
-
-              </div>
-
-            `;
-
-
-            /*
-              カードをクリックすると
-              詳細画面を開きます。
-            */
-
-            cardElement.addEventListener(
-              "click",
-              () =>
-                showCardDetail(
-                  card
-                )
-            );
-
-
-            cardList.appendChild(
-              cardElement
-            );
-
-          }
-        );
-
-
-      } else {
-
-
-        /*
-          ====================================
-          アイコン表示
-          ====================================
-        */
-
-        cardList.className =
-          "icon-mode";
-
-
-        /*
-          カードを1枚ずつ作ります。
-        */
-
-        cards.forEach(
-          card => {
-
-
-            const cardElement =
-              document.createElement(
-                "div"
-              );
-
-
-            cardElement.className =
-              "card icon-card";
-
-
-            /*
-              画像があるカードなら画像を表示します。
-            */
-
-            if (
-              card.image_url
-            ) {
-
-              cardElement.innerHTML = `
-
-                <img
-                  src="${card.image_url}"
-                  alt="${card.card_name}"
-                  class="icon-card-image"
-                >
-
-              `;
-
-            } else {
-
-
-              /*
-                画像URLがない場合。
-              */
-
-              cardElement.innerHTML =
-                "<div>画像なし</div>";
-
-            }
-
-
-            /*
-              アイコンをクリックすると
-              カード詳細を表示します。
-            */
-
-            cardElement.addEventListener(
-              "click",
-              () =>
-                showCardDetail(
-                  card
-                )
-            );
-
-
-            cardList.appendChild(
-              cardElement
-            );
-
-          }
-        );
-
-
-        /*
-          最後に、
-          3列・5列・7列などの設定を適用します。
-        */
-
-        applyIconGrid();
-
-      }
-
-    }
-
-
-    /*
-      ========================================
-      カード詳細を表示
-      ========================================
-    */
-
-    function showCardDetail(
-      card
-    ) {
-
-
-      /*
-        詳細画面。
-      */
-
-      const modal =
-        document.getElementById(
-          "card-modal"
-        );
-
-
-      /*
-        詳細画面のカード画像。
-      */
-
-      const image =
-        document.getElementById(
-          "detail-image"
-        );
-
-
-      /*
-        画像URLがある場合。
-      */
-
-      if (
-        card.image_url
-      ) {
-
-        image.src =
-          card.image_url;
-
-        image.alt =
-          card.card_name;
-
-        image.style.display =
-          "block";
-
-      } else {
-
-
-        /*
-          画像URLがない場合は
-          画像自体を隠します。
-        */
-
-        image.style.display =
-          "none";
-
-      }
-
-
-      /*
-        カード情報をそれぞれ表示します。
-      */
-
-      document.getElementById(
-        "detail-name"
-      ).textContent =
-        card.card_name || "";
-
-
-      document.getElementById(
-        "detail-id"
-      ).textContent =
-        card.card_id || "";
-
-
-      document.getElementById(
-        "detail-reading"
-      ).textContent =
-        card.reading || "";
-
-
-      document.getElementById(
-        "detail-cost"
-      ).textContent =
-        card.cost || "";
-
-
-      document.getElementById(
-        "detail-type"
-      ).textContent =
-        card.card_type || "";
-
-
-      document.getElementById(
-        "detail-species"
-      ).textContent =
-        card.species || "";
-
-
-      document.getElementById(
-        "detail-atk"
-      ).textContent =
-        card.atk || "";
-
-
-      document.getElementById(
-        "detail-def"
-      ).textContent =
-        card.def || "";
-
-
-      document.getElementById(
-        "detail-effect"
-      ).textContent =
-        card.effect_text || "";
-
-
-      document.getElementById(
-        "detail-keywords"
-      ).textContent =
-        card.official_keywords ||
-        "なし";
-
-
-      document.getElementById(
-        "detail-effects"
-      ).textContent =
-        card.official_effects ||
-        "なし";
-
-
-      /*
-        公式ページのリンク。
-      */
-
-      const source =
-        document.getElementById(
-          "detail-source"
-        );
-
-
-      if (
-        card.source_url
-      ) {
-
-        source.href =
-          card.source_url;
-
-        source.style.display =
-          "inline";
-
-      } else {
-
-        source.style.display =
-          "none";
-
-      }
-
-
-      /*
-        詳細画面を表示します。
-      */
-
-      modal.style.display =
-        "block";
-
-
-      /*
-        詳細画面を開いている間は、
-        背景のページをスクロールできないようにします。
-      */
-
-      document.body.style.overflow =
-        "hidden";
-
-    }
-
-
-    /*
-      ========================================
-      カード詳細を閉じる
-      ========================================
-    */
-
-    function closeCardDetail() {
-
-
-      document.getElementById(
-        "card-modal"
-      ).style.display =
-        "none";
-
-
-      /*
-        背景ページのスクロールを元に戻します。
-      */
-
-      document.body.style.overflow =
-        "";
-
-    }
-
-
-    /*
-      詳細画面の「×」ボタン。
-    */
-
-    document
-      .getElementById(
-        "modal-close-button"
-      )
-      .addEventListener(
-        "click",
-        closeCardDetail
-      );
-
-
-    /*
-      詳細画面の黒い部分をクリックした場合も
-      詳細画面を閉じます。
-
-      白いカード部分をクリックした場合は閉じません。
-    */
-
-    document
-      .getElementById(
-        "card-modal"
-      )
-      .addEventListener(
-        "click",
-        event => {
-
-          if (
-            event.target.id ===
-            "card-modal"
-          ) {
-
-            closeCardDetail();
-
-          }
-
-        }
-      );
-
-
-    /*
-      ========================================
-      検索モーダルを開く
-      ========================================
-    */
-
-    function openSearchModal() {
-
-
-      document.getElementById(
-        "search-modal"
-      ).style.display =
-        "block";
-
-
-      document.body.style.overflow =
-        "hidden";
-
-    }
-
-
-    /*
-      ========================================
-      検索モーダルを閉じる
-      ========================================
-    */
-
-    function closeSearchModal() {
-
-
-      document.getElementById(
-        "search-modal"
-      ).style.display =
-        "none";
-
-
-      document.body.style.overflow =
-        "";
-
-    }
-
-
-    /*
-      右上の虫眼鏡を押したら
-      検索画面を開きます。
-    */
-
-    document
-      .getElementById(
-        "search-open-button"
-      )
-      .addEventListener(
-        "click",
-        openSearchModal
-      );
-
-
-    /*
-      検索画面の「×」。
-    */
-
-    document
-      .getElementById(
-        "search-close-button"
-      )
-      .addEventListener(
-        "click",
-        closeSearchModal
-      );
-
-
-    /*
-      検索画面の黒い部分をクリックした場合も
-      検索画面を閉じます。
-    */
-
-    document
-      .getElementById(
-        "search-modal"
-      )
-      .addEventListener(
-        "click",
-        event => {
-
-          if (
-            event.target.id ===
-            "search-modal"
-          ) {
-
-            closeSearchModal();
-
-          }
-
-        }
-      );
-
-
-    /*
-      ========================================
-      ESCキーで閉じる
-      ========================================
-
-      キーボードのEscapeキーを押したとき、
-
-      検索画面が開いていれば検索画面を閉じる。
-
-      そうでなければカード詳細が開いていれば
-      カード詳細を閉じる。
-
-      という動きです。
-    */
-
-    document.addEventListener(
-      "keydown",
-      event => {
-
-
-        if (
-          event.key !==
-          "Escape"
-        ) {
-
-          return;
-
-        }
-
-
-        const searchModal =
-          document.getElementById(
-            "search-modal"
-          );
-
-
-        const cardModal =
-          document.getElementById(
-            "card-modal"
-          );
-
-
-        if (
-          searchModal.style.display ===
-          "block"
-        ) {
-
-          closeSearchModal();
-
-          return;
-
-        }
-
-
-        if (
-          cardModal.style.display ===
-          "block"
-        ) {
-
-          closeCardDetail();
-
-        }
-
-      }
-    );
-
-
-    /*
-      ========================================
-      表示方法を変更
-      ========================================
-    */
-
-    function setDisplayMode(
-      mode
-    ) {
-
-
-      /*
-        現在の表示方法を保存します。
-      */
-
-      currentDisplayMode =
-        mode;
-
-
-      /*
-        リストボタン。
-      */
-
-      const listButton =
-        document.getElementById(
-          "list-mode-button"
-        );
-
-
-      /*
-        アイコンボタン。
-      */
-
-      const iconButton =
-        document.getElementById(
-          "icon-mode-button"
-        );
-
-
-      /*
-        サイズ変更ボタンのまとまり。
-      */
-
-      const sizeControls =
-        document.getElementById(
-          "icon-size-controls"
-        );
-
-
-      /*
-        現在選択されている表示方法に
-        activeクラスを付けます。
-      */
-
-      listButton.classList.toggle(
-        "active",
-        mode === "list"
-      );
-
-
-      iconButton.classList.toggle(
-        "active",
-        mode === "icon"
-      );
-
-
-      /*
-        アイコン表示の場合だけ、
-        「小・中・大」を表示します。
-      */
-
-      if (
-        mode === "icon"
-      ) {
-
-        sizeControls.style.display =
-          "flex";
-
-      } else {
-
-        sizeControls.style.display =
-          "none";
-
-      }
-
-
-      /*
-        表示方法を変更したので、
-        カード一覧を作り直します。
-      */
-
-      searchCards();
-
-    }
-
-
-    /*
-      ========================================
-      アイコンサイズを変更
-      ========================================
-    */
-
-    function setIconSize(
-      size
-    ) {
-
-
-      /*
-        現在のサイズを保存します。
-      */
-
-      currentIconSize =
-        size;
-
-
-      /*
-        「小」ボタンが選択中かどうか。
-      */
-
-      document
-        .getElementById(
-          "icon-small-button"
-        )
-        .classList.toggle(
-          "active",
-          size === "small"
-        );
-
-
-      /*
-        「中」ボタンが選択中かどうか。
-      */
-
-      document
-        .getElementById(
-          "icon-medium-button"
-        )
-        .classList.toggle(
-          "active",
-          size === "medium"
-        );
-
-
-      /*
-        「大」ボタンが選択中かどうか。
-      */
-
-      document
-        .getElementById(
-          "icon-large-button"
-        )
-        .classList.toggle(
-          "active",
-          size === "large"
-        );
-
-
-      /*
-        アイコン表示中なら、
-        新しいサイズでカードを並べ直します。
-      */
-
-      if (
-        currentDisplayMode ===
-        "icon"
-      ) {
-
-        searchCards();
-
-      }
-
-    }
-
-
-    /*
-      ========================================
-      表示方法ボタン
-      ========================================
-    */
-
-    document
-      .getElementById(
-        "list-mode-button"
-      )
-      .addEventListener(
-        "click",
-        () =>
-          setDisplayMode(
-            "list"
-          )
-      );
-
-
-    document
-      .getElementById(
-        "icon-mode-button"
-      )
-      .addEventListener(
-        "click",
-        () =>
-          setDisplayMode(
-            "icon"
-          )
-      );
-
-
-    /*
-      ========================================
-      アイコンサイズボタン
-      ========================================
-    */
-
-    document
-      .getElementById(
-        "icon-small-button"
-      )
-      .addEventListener(
-        "click",
-        () =>
-          setIconSize(
-            "small"
-          )
-      );
-
-
-    document
-      .getElementById(
-        "icon-medium-button"
-      )
-      .addEventListener(
-        "click",
-        () =>
-          setIconSize(
-            "medium"
-          )
-      );
-
-
-    document
-      .getElementById(
-        "icon-large-button"
-      )
-      .addEventListener(
-        "click",
-        () =>
-          setIconSize(
-            "large"
-          )
-      );
-
-
-    /*
-      ========================================
-      画面サイズが変わったとき
-      ========================================
-
-      スマホを横向きにしたり、
-      PCのブラウザ幅を変更した場合に
-      アイコンの列数を計算し直します。
-    */
-
-    window.addEventListener(
-      "resize",
-      () => {
-
-        applyIconGrid();
-
-      }
-    );
-
-
-    /*
-      ========================================
-      カード検索
-      ========================================
-    */
-
-    function searchCards() {
-
-
-      /*
-        ======================================
-        文字検索の入力を取得
-        ======================================
-
-        全角スペースを半角スペースに変換します。
-
-        これによって、
-
-        猫　犬
-
-        と入力しても、
-
-        猫 犬
-
-        と同じように検索できます。
-      */
-
-      const rawKeyword =
-        document.getElementById(
-          "search-box"
-        ).value
-          .trim()
-          .replace(
-            /\u3000/g,
-            " "
-          );
-
-
-      /*
-        スペースで検索語を分けます。
-
-        例えば、
-
-        猫 犬 -鳥
-
-        は、
-
-        猫
-        犬
-        -鳥
-
-        の3つになります。
-      */
-
-      const searchTerms =
-        rawKeyword
-          .split(/\s+/)
-          .filter(
-            term =>
-              term !== ""
-          );
-
-
-      /*
-        ======================================
-        通常の検索語
-        ======================================
-
-        「-」で始まっていないもの。
-
-        猫 犬
-
-        なら、
-
-        猫
-        犬
-
-        がここに入ります。
-      */
-
-      const includeTerms =
-        searchTerms
-          .filter(
-            term =>
-              !term.startsWith(
-                "-"
-              )
-          )
-          .map(
-            term =>
-              normalize(
-                term
-              )
-          );
-
-
-      /*
-        ======================================
-        マイナス検索
-        ======================================
-
-        「-」で始まるもの。
-
-        猫 -犬
-
-        なら、
-
-        犬
-
-        がここに入ります。
-      */
-
-      const excludeTerms =
-        searchTerms
-          .filter(
-            term =>
-              term.startsWith(
-                "-"
-              ) &&
-              term.length > 1
-          )
-          .map(
-            term =>
-              normalize(
-                term.slice(1)
-              )
-          );
-
-
-      /*
-        ======================================
-        その他の検索条件を取得
-        ======================================
-      */
-
-      const selectedCardTypes =
-        getSelectedValues(
-          "card-type-filter"
-        );
-
-
-      const selectedSpecies =
-        getSelectedValues(
-          "species-filter"
-        );
-
-
-      const selectedCosts =
-        getSelectedValues(
-          "cost-filter"
-        );
-
-
-      const selectedKeywords =
-        getSelectedValues(
-          "official-keyword-filter"
-        );
-
-
-      const selectedEffects =
-        getSelectedValues(
-          "official-effect-filter"
-        );
-
-
-      /*
-        ATKの条件。
-      */
-
-      const atkCondition =
-        document.getElementById(
-          "atk-condition"
-        ).value;
-
-
-      const atkValue =
-        document.getElementById(
-          "atk-value"
-        ).value;
-
-
-      /*
-        DEFの条件。
-      */
-
-      const defCondition =
-        document.getElementById(
-          "def-condition"
-        ).value;
-
-
-      const defValue =
-        document.getElementById(
-          "def-value"
-        ).value;
-
-
-      /*
-        ======================================
-        カードを1枚ずつ調べる
-        ======================================
-      */
-
-      const filteredCards =
-        allCards.filter(
-          card => {
-
-
-            /*
-              =================================
-              文字検索
-              =================================
-
-              検索対象は、
-
-              カード名
-              読み
-              効果テキスト
-
-              です。
-            */
-
-            const cardName =
-              normalize(
-                card.card_name
-              );
-
-
-            const reading =
-              normalize(
-                card.reading
-              );
-
-
-            const effectText =
-              normalize(
-                card.effect_text
-              );
-
-
-            /*
-              3つを1つの検索対象にまとめます。
-            */
-
-            const searchableText =
-              cardName +
-              " " +
-              reading +
-              " " +
-              effectText;
-
-
-            /*
-              =================================
-              AND検索
-              =================================
-
-              「猫 犬」と入力した場合、
-
-              猫も含む
-              AND
-              犬も含む
-
-              の両方を満たす必要があります。
-            */
-
-            const matchesInclude =
-              includeTerms.every(
-                term =>
-                  searchableText.includes(
-                    term
-                  )
-              );
-
-
-            /*
-              =================================
-              マイナス検索
-              =================================
-
-              「猫 -犬」と入力した場合、
-
-              猫は含む
-              AND
-              犬は含まない
-
-              という条件になります。
-            */
-
-            const matchesExclude =
-              excludeTerms.every(
-                term =>
-                  !searchableText.includes(
-                    term
-                  )
-              );
-
-
-            /*
-              通常検索とマイナス検索の
-              両方を満たしているか。
-            */
-
-            const matchesKeyword =
-              matchesInclude &&
-              matchesExclude;
-
-
-            /*
-              =================================
-              カードタイプ
-              =================================
-
-              何も選んでいなければ全てOK。
-
-              何か選んだ場合は、
-              選択されたもののどれかに
-              一致すればOKです。
-            */
-
-            const matchesCardType =
-              selectedCardTypes.length === 0 ||
-              selectedCardTypes.includes(
-                String(
-                  card.card_type
-                )
-              );
-
-
-            /*
-              =================================
-              種属
-              =================================
-            */
-
-            const matchesSpecies =
-              selectedSpecies.length === 0 ||
-              selectedSpecies.some(
-                selected =>
-                  splitValues(
-                    card.species
-                  ).includes(
-                    selected
-                  )
-              );
-
-
-            /*
-              =================================
-              コスト
-              =================================
-            */
-
-            const matchesCost =
-              selectedCosts.length === 0 ||
-              selectedCosts.includes(
-                String(
-                  card.cost
-                )
-              );
-
-
-            /*
-              =================================
-              ATK
-              =================================
-
-              条件が指定されていない場合は
-              自動的にOKにします。
-            */
-
-            let matchesAtk =
-              true;
-
-
-            if (
-              atkCondition !== "" &&
-              atkValue !== ""
-            ) {
-
-
-              const atk =
-                Number(
-                  card.atk
-                );
-
-
-              const value =
-                Number(
-                  atkValue
-                );
-
-
-              /*
-                「以上」
-              */
-
-              if (
-                atkCondition ===
-                "gte"
-              ) {
-
-                matchesAtk =
-                  atk >= value;
-
-              }
-
-
-              /*
-                「以下」
-              */
-
-              if (
-                atkCondition ===
-                "lte"
-              ) {
-
-                matchesAtk =
-                  atk <= value;
-
-              }
-
-            }
-
-
-            /*
-              =================================
-              DEF
-              =================================
-            */
-
-            let matchesDef =
-              true;
-
-
-            if (
-              defCondition !== "" &&
-              defValue !== ""
-            ) {
-
-
-              const def =
-                Number(
-                  card.def
-                );
-
-
-              const value =
-                Number(
-                  defValue
-                );
-
-
-              /*
-                「以上」
-              */
-
-              if (
-                defCondition ===
-                "gte"
-              ) {
-
-                matchesDef =
-                  def >= value;
-
-              }
-
-
-              /*
-                「以下」
-              */
-
-              if (
-                defCondition ===
-                "lte"
-              ) {
-
-                matchesDef =
-                  def <= value;
-
-              }
-
-            }
-
-
-            /*
-              =================================
-              公式キーワード
-              =================================
-            */
-
-            const matchesOfficialKeyword =
-              selectedKeywords.length === 0 ||
-              selectedKeywords.some(
-                selected =>
-                  splitValues(
-                    card.official_keywords
-                  ).includes(
-                    selected
-                  )
-              );
-
-
-            /*
-              =================================
-              公式効果
-              =================================
-            */
-
-            const matchesOfficialEffect =
-              selectedEffects.length === 0 ||
-              selectedEffects.some(
-                selected =>
-                  splitValues(
-                    card.official_effects
-                  ).includes(
-                    selected
-                  )
-              );
-
-
-            /*
-              =================================
-              最終判定
-              =================================
-
-              すべての検索条件を満たしたカードだけ
-              検索結果に残します。
-            */
-
-            return (
-
-              matchesKeyword &&
-
-              matchesCardType &&
-
-              matchesSpecies &&
-
-              matchesCost &&
-
-              matchesAtk &&
-
-              matchesDef &&
-
-              matchesOfficialKeyword &&
-
-              matchesOfficialEffect
-
-            );
-
-          }
-        );
-
-
-      /*
-        検索結果を画面に表示します。
-      */
-
-      displayCards(
-        filteredCards
-      );
-
-    }
-
-
-    /*
-      ========================================
-      検索条件の選択肢を作る
-      ========================================
-    */
-
-    function createFilterOptions() {
-
-
-      /*
-        カードタイプ。
-      */
-
-      createMultiFilter(
-        "card-type-filter",
-        getUniqueValues(
-          allCards,
-          "card_type"
-        )
-      );
-
-
-      /*
-        種属。
-      */
-
-      createMultiFilter(
-        "species-filter",
-        getUniqueValues(
-          allCards,
-          "species"
-        )
-      );
-
-
-      /*
-        コスト。
-
-        数字なので、
-        1 → 2 → 3 → 4……
-        の順番に並べます。
-      */
-
-      const costs =
-        getUniqueValues(
-          allCards,
-          "cost"
-        ).sort(
-          (a, b) =>
-            Number(a) -
-            Number(b)
-        );
-
-
-      createMultiFilter(
-        "cost-filter",
-        costs
-      );
-
-
-      /*
-        公式キーワード。
-      */
-
-      createMultiFilter(
-        "official-keyword-filter",
-        getUniqueValues(
-          allCards,
-          "official_keywords"
-        )
-      );
-
-
-      /*
-        公式効果。
-      */
-
-      createMultiFilter(
-        "official-effect-filter",
-        getUniqueValues(
-          allCards,
-          "official_effects"
-        )
-      );
-
-    }
-
-
-    /*
-      ========================================
-      文字検索欄
-      ========================================
-
-      入力するたびに検索します。
-    */
-
-    document
-      .getElementById(
-        "search-box"
-      )
-      .addEventListener(
-        "input",
-        searchCards
-      );
-
-
-    /*
-      ========================================
-      ATK検索
-      ========================================
-    */
-
-    document
-      .getElementById(
-        "atk-condition"
-      )
-      .addEventListener(
-        "change",
-        searchCards
-      );
-
-
-    document
-      .getElementById(
-        "atk-value"
-      )
-      .addEventListener(
-        "input",
-        searchCards
-      );
-
-
-    /*
-      ========================================
-      DEF検索
-      ========================================
-    */
-
-    document
-      .getElementById(
-        "def-condition"
-      )
-      .addEventListener(
-        "change",
-        searchCards
-      );
-
-
-    document
-      .getElementById(
-        "def-value"
-      )
-      .addEventListener(
-        "input",
-        searchCards
-      );
-
-
-    /*
-      ========================================
-      検索条件リセット
-      ========================================
-
-      検索欄、チェックボックス、
-      ATK、DEFをすべて元に戻します。
-    */
-
-    document
-      .getElementById(
-        "reset-button"
-      )
-      .addEventListener(
-        "click",
-        () => {
-
-
-          /*
-            文字検索を空にします。
-          */
-
-          document.getElementById(
-            "search-box"
-          ).value =
-            "";
-
-
-          /*
-            全チェックボックスの
-            チェックを外します。
-          */
-
-          document
-            .querySelectorAll(
-              ".multi-select input[type='checkbox']"
-            )
-            .forEach(
-              checkbox => {
-
-                checkbox.checked =
-                  false;
-
-              }
-            );
-
-
-          /*
-            ATKをリセット。
-          */
-
-          document.getElementById(
-            "atk-condition"
-          ).value =
-            "";
-
-
-          document.getElementById(
-            "atk-value"
-          ).value =
-            "";
-
-
-          /*
-            DEFをリセット。
-          */
-
-          document.getElementById(
-            "def-condition"
-          ).value =
-            "";
-
-
-          document.getElementById(
-            "def-value"
-          ).value =
-            "";
-
-
-          /*
-            全カードを表示します。
-          */
-
-          displayCards(
-            allCards
-          );
-
-        }
-      );
-
-
-    /*
-      ========================================
-      GASからカードデータを取得
-      ========================================
-    */
-
-    function loadCards() {
-
-
-      /*
-        GASから返ってきたデータを受け取る
-        関数を作ります。
-
-        GAS側では、
-
-        loadCardData({...});
-
-        という形で返してもらいます。
-      */
-
-      window.loadCardData =
-        function(data) {
-
-
-          /*
-            カード一覧を保存します。
-          */
-
-          allCards =
-            data.cards;
-
-
-          /*
-            検索条件の選択肢を作ります。
-          */
-
-          createFilterOptions();
-
-
-          /*
-            最初は全カードを表示します。
-          */
-
-          displayCards(
-            allCards
-          );
-
-        };
-
-
-      /*
-        JavaScriptファイルとして
-        GASを読み込みます。
-
-        これがJSONPを使った
-        データ取得処理です。
-      */
-
-      const script =
-        document.createElement(
-          "script"
-        );
-
-
-      script.src =
-        API_URL +
-        "?prefix=loadCardData";
-
-
-      document.body.appendChild(
-        script
-      );
-
-    }
-
-
-    /*
-      ========================================
-      アプリ起動
-      ========================================
-
-      ページを開いたら、
-      Googleスプレッドシートから
-      カードデータを取得します。
-    */
-
-    loadCards();
-
-
-  </script>
+  <script src="js/api.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/display.js"></script>
+  <script src="js/main.js"></script>
 
 </body>
 
