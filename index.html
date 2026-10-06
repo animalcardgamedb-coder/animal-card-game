@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>アニマルカードゲーム</title>
+
+  <style>
+    /* カード画像の大きさ */
+    .card-image {
+      max-width: 300px;
+      height: auto;
+      display: block;
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 
 <body>
@@ -47,6 +57,17 @@
           const cardElement = document.createElement("div");
 
           cardElement.innerHTML = `
+
+            ${
+              card.image_url
+                ? `<img
+                    src="${card.image_url}"
+                    alt="${card.card_name}"
+                    class="card-image"
+                  >`
+                : ""
+            }
+
             <h2>${card.card_name}</h2>
             <p>カードID：${card.card_id}</p>
             <p>読み：${card.reading}</p>
