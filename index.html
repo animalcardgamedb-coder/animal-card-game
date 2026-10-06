@@ -75,8 +75,7 @@
       cursor: pointer;
     }
 
-    #reset-button,
-    #back-button {
+    #reset-button {
       padding: 8px 16px;
       font-size: 16px;
       margin-bottom: 20px;
@@ -176,19 +175,19 @@
       gap: 12px;
     }
 
-    /* 小 */
-    #card-list.icon-mode.size-small {
-      grid-template-columns: repeat(7, 1fr);
+    /* 大 = 横3枚 */
+    #card-list.icon-mode.size-large {
+      grid-template-columns: repeat(3, 1fr);
     }
 
-    /* 中 */
+    /* 中 = 横5枚 */
     #card-list.icon-mode.size-medium {
       grid-template-columns: repeat(5, 1fr);
     }
 
-    /* 大 */
-    #card-list.icon-mode.size-large {
-      grid-template-columns: repeat(3, 1fr);
+    /* 小 = 横7枚 */
+    #card-list.icon-mode.size-small {
+      grid-template-columns: repeat(7, 1fr);
     }
 
     .card.icon-card {
@@ -206,20 +205,87 @@
     }
 
     /* ========================================
-       カード詳細画面
+       カード詳細ポップアップ
        ======================================== */
 
-    #card-detail {
+    #card-modal {
       display: none;
-      max-width: 800px;
+
+      position: fixed;
+      z-index: 1000;
+
+      top: 0;
+      left: 0;
+
+      width: 100%;
+      height: 100%;
+
+      background: rgba(0, 0, 0, 0.7);
+
+      box-sizing: border-box;
+
+      padding: 30px 20px;
+
+      overflow-y: auto;
     }
+
+    #card-modal-content {
+      position: relative;
+
+      width: 100%;
+      max-width: 800px;
+
+      margin: 0 auto;
+
+      background: #fff;
+
+      border-radius: 8px;
+
+      padding: 25px;
+
+      box-sizing: border-box;
+    }
+
+    /* 閉じるボタン */
+
+    #modal-close-button {
+      position: absolute;
+
+      top: 10px;
+      right: 15px;
+
+      width: 40px;
+      height: 40px;
+
+      border: none;
+      background: transparent;
+
+      font-size: 30px;
+      line-height: 1;
+
+      cursor: pointer;
+    }
+
+    #modal-close-button:hover {
+      opacity: 0.6;
+    }
+
+    /* 詳細画像 */
 
     #detail-image {
       max-width: 500px;
       width: 100%;
       height: auto;
+
       display: block;
-      margin-bottom: 20px;
+
+      margin: 0 auto 20px;
+    }
+
+    /* 詳細情報 */
+
+    #detail-name {
+      margin-top: 0;
     }
 
     .detail-row {
@@ -232,10 +298,6 @@
 
     #detail-effect {
       white-space: pre-wrap;
-    }
-
-    #card-search {
-      display: block;
     }
 
     /* ========================================
@@ -252,7 +314,9 @@
         width: 90px;
       }
 
-      #card-list.icon-mode.size-small {
+      /* スマートフォンでは表示枚数を減らす */
+
+      #card-list.icon-mode.size-large {
         grid-template-columns: repeat(2, 1fr);
       }
 
@@ -260,8 +324,16 @@
         grid-template-columns: repeat(3, 1fr);
       }
 
-      #card-list.icon-mode.size-large {
+      #card-list.icon-mode.size-small {
         grid-template-columns: repeat(4, 1fr);
+      }
+
+      #card-modal {
+        padding: 15px 10px;
+      }
+
+      #card-modal-content {
+        padding: 20px 15px;
       }
 
     }
@@ -519,84 +591,107 @@
 
 
   <!-- ========================================
-       カード詳細画面
+       カード詳細ポップアップ
        ======================================== -->
 
-  <div id="card-detail">
+  <div id="card-modal">
 
-    <button id="back-button">
-      ← 検索結果に戻る
-    </button>
+    <div id="card-modal-content">
 
-    <img
-      id="detail-image"
-      src=""
-      alt=""
-    >
-
-    <h1 id="detail-name"></h1>
-
-    <div class="detail-row">
-      <span class="detail-label">カードID：</span>
-      <span id="detail-id"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">読み：</span>
-      <span id="detail-reading"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">コスト：</span>
-      <span id="detail-cost"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">カードタイプ：</span>
-      <span id="detail-type"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">種属：</span>
-      <span id="detail-species"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">ATK：</span>
-      <span id="detail-atk"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">DEF：</span>
-      <span id="detail-def"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">効果：</span>
-      <div id="detail-effect"></div>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">公式キーワード：</span>
-      <span id="detail-keywords"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">公式効果：</span>
-      <span id="detail-effects"></span>
-    </div>
-
-    <div class="detail-row">
-      <span class="detail-label">出典：</span>
-
-      <a
-        id="detail-source"
-        href=""
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        id="modal-close-button"
+        aria-label="閉じる"
       >
-        公式ページを開く
-      </a>
+        ×
+      </button>
+
+
+      <img
+        id="detail-image"
+        src=""
+        alt=""
+      >
+
+
+      <h2 id="detail-name"></h2>
+
+
+      <div class="detail-row">
+        <span class="detail-label">カードID：</span>
+        <span id="detail-id"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">読み：</span>
+        <span id="detail-reading"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">コスト：</span>
+        <span id="detail-cost"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">カードタイプ：</span>
+        <span id="detail-type"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">種属：</span>
+        <span id="detail-species"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">ATK：</span>
+        <span id="detail-atk"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">DEF：</span>
+        <span id="detail-def"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">効果：</span>
+        <div id="detail-effect"></div>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">公式キーワード：</span>
+        <span id="detail-keywords"></span>
+      </div>
+
+
+      <div class="detail-row">
+        <span class="detail-label">公式効果：</span>
+        <span id="detail-effects"></span>
+      </div>
+
+
+      <div class="detail-row">
+
+        <span class="detail-label">
+          出典：
+        </span>
+
+        <a
+          id="detail-source"
+          href=""
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          公式ページを開く
+        </a>
+
+      </div>
 
     </div>
 
@@ -622,6 +717,7 @@
 
     // 現在の表示モード
     let currentDisplayMode = "list";
+
 
     // アイコンサイズ
     let currentIconSize = "medium";
@@ -662,6 +758,7 @@
 
       const values = [];
 
+
       cards.forEach(card => {
 
         splitValues(card[field]).forEach(value => {
@@ -673,6 +770,7 @@
         });
 
       });
+
 
       return values.sort((a, b) =>
         a.localeCompare(b, "ja")
@@ -690,30 +788,38 @@
       const container =
         document.getElementById(elementId);
 
+
       container.innerHTML = "";
+
 
       values.forEach(value => {
 
         const label =
           document.createElement("label");
 
+
         const checkbox =
           document.createElement("input");
+
 
         checkbox.type = "checkbox";
 
         checkbox.value = value;
+
 
         checkbox.addEventListener(
           "change",
           searchCards
         );
 
+
         label.appendChild(checkbox);
+
 
         label.appendChild(
           document.createTextNode(value)
         );
+
 
         container.appendChild(label);
 
@@ -746,11 +852,13 @@
       const cardList =
         document.getElementById("card-list");
 
+
       const resultCount =
         document.getElementById("result-count");
 
 
       cardList.innerHTML = "";
+
 
       resultCount.textContent =
         `検索結果：${cards.length}件`;
@@ -762,20 +870,25 @@
           "<p>該当するカードがありません。</p>";
 
         return;
+
       }
 
 
-      // 現在の表示モードを反映
+      // ======================================
+      // リストモード
+      // ======================================
 
       if (currentDisplayMode === "list") {
 
-        cardList.className = "list-mode";
+        cardList.className =
+          "list-mode";
 
 
         cards.forEach(card => {
 
           const cardElement =
             document.createElement("div");
+
 
           cardElement.className =
             "card list-card";
@@ -797,7 +910,9 @@
 
               <h2>${card.card_name}</h2>
 
-              <p>読み：${card.reading}</p>
+              <p>
+                読み：${card.reading}
+              </p>
 
               <p>
                 コスト：${card.cost}
@@ -815,7 +930,9 @@
                 DEF：${card.def}
               </p>
 
-              <p>${card.effect_text}</p>
+              <p>
+                ${card.effect_text}
+              </p>
 
             </div>
 
@@ -832,9 +949,12 @@
 
         });
 
+
       } else {
 
+        // ====================================
         // アイコンモード
+        // ====================================
 
         cardList.className =
           `icon-mode size-${currentIconSize}`;
@@ -845,6 +965,7 @@
           const cardElement =
             document.createElement("div");
 
+
           cardElement.className =
             "card icon-card";
 
@@ -852,20 +973,19 @@
           if (card.image_url) {
 
             cardElement.innerHTML = `
+
               <img
                 src="${card.image_url}"
                 alt="${card.card_name}"
                 class="icon-card-image"
               >
+
             `;
 
           } else {
 
-            cardElement.innerHTML = `
-              <div>
-                画像なし
-              </div>
-            `;
+            cardElement.innerHTML =
+              "<div>画像なし</div>";
 
           }
 
@@ -886,12 +1006,252 @@
 
 
     // ========================================
+    // 詳細ポップアップを表示
+    // ========================================
+
+    function showCardDetail(card) {
+
+      const modal =
+        document.getElementById(
+          "card-modal"
+        );
+
+
+      const image =
+        document.getElementById(
+          "detail-image"
+        );
+
+
+      // 画像
+
+      if (card.image_url) {
+
+        image.src =
+          card.image_url;
+
+        image.alt =
+          card.card_name;
+
+        image.style.display =
+          "block";
+
+      } else {
+
+        image.style.display =
+          "none";
+
+      }
+
+
+      // 基本情報
+
+      document.getElementById(
+        "detail-name"
+      ).textContent =
+        card.card_name || "";
+
+
+      document.getElementById(
+        "detail-id"
+      ).textContent =
+        card.card_id || "";
+
+
+      document.getElementById(
+        "detail-reading"
+      ).textContent =
+        card.reading || "";
+
+
+      document.getElementById(
+        "detail-cost"
+      ).textContent =
+        card.cost || "";
+
+
+      document.getElementById(
+        "detail-type"
+      ).textContent =
+        card.card_type || "";
+
+
+      document.getElementById(
+        "detail-species"
+      ).textContent =
+        card.species || "";
+
+
+      document.getElementById(
+        "detail-atk"
+      ).textContent =
+        card.atk || "";
+
+
+      document.getElementById(
+        "detail-def"
+      ).textContent =
+        card.def || "";
+
+
+      // 効果
+
+      document.getElementById(
+        "detail-effect"
+      ).textContent =
+        card.effect_text || "";
+
+
+      // 公式キーワード
+
+      document.getElementById(
+        "detail-keywords"
+      ).textContent =
+        card.official_keywords || "なし";
+
+
+      // 公式効果
+
+      document.getElementById(
+        "detail-effects"
+      ).textContent =
+        card.official_effects || "なし";
+
+
+      // 出典
+
+      const source =
+        document.getElementById(
+          "detail-source"
+        );
+
+
+      if (card.source_url) {
+
+        source.href =
+          card.source_url;
+
+        source.style.display =
+          "inline";
+
+      } else {
+
+        source.style.display =
+          "none";
+
+      }
+
+
+      // ポップアップを表示
+
+      modal.style.display =
+        "block";
+
+
+      // 背景ページをスクロールさせない
+
+      document.body.style.overflow =
+        "hidden";
+
+    }
+
+
+    // ========================================
+    // ポップアップを閉じる
+    // ========================================
+
+    function closeCardDetail() {
+
+      document.getElementById(
+        "card-modal"
+      ).style.display =
+        "none";
+
+
+      // 背景ページのスクロールを戻す
+
+      document.body.style.overflow =
+        "";
+
+    }
+
+
+    // ×ボタン
+
+    document
+      .getElementById(
+        "modal-close-button"
+      )
+      .addEventListener(
+        "click",
+        closeCardDetail
+      );
+
+
+    // ========================================
+    // ポップアップ外側をクリックして閉じる
+    // ========================================
+
+    document
+      .getElementById("card-modal")
+      .addEventListener(
+        "click",
+        event => {
+
+          if (
+            event.target.id ===
+            "card-modal"
+          ) {
+
+            closeCardDetail();
+
+          }
+
+        }
+      );
+
+
+    // ========================================
+    // ESCキーで閉じる
+    // ========================================
+
+    document.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Escape"
+        ) {
+
+          const modal =
+            document.getElementById(
+              "card-modal"
+            );
+
+
+          if (
+            modal.style.display ===
+            "block"
+          ) {
+
+            closeCardDetail();
+
+          }
+
+        }
+
+      }
+    );
+
+
+    // ========================================
     // 表示モード変更
     // ========================================
 
     function setDisplayMode(mode) {
 
-      currentDisplayMode = mode;
+      currentDisplayMode =
+        mode;
 
 
       const listButton =
@@ -899,10 +1259,12 @@
           "list-mode-button"
         );
 
+
       const iconButton =
         document.getElementById(
           "icon-mode-button"
         );
+
 
       const sizeControls =
         document.getElementById(
@@ -914,6 +1276,7 @@
         "active",
         mode === "list"
       );
+
 
       iconButton.classList.toggle(
         "active",
@@ -945,33 +1308,47 @@
 
     function setIconSize(size) {
 
-      currentIconSize = size;
+      currentIconSize =
+        size;
 
 
       document
-        .getElementById("icon-small-button")
+        .getElementById(
+          "icon-small-button"
+        )
         .classList.toggle(
           "active",
           size === "small"
         );
 
+
       document
-        .getElementById("icon-medium-button")
+        .getElementById(
+          "icon-medium-button"
+        )
         .classList.toggle(
           "active",
           size === "medium"
         );
 
+
       document
-        .getElementById("icon-large-button")
+        .getElementById(
+          "icon-large-button"
+        )
         .classList.toggle(
           "active",
           size === "large"
         );
 
 
-      if (currentDisplayMode === "icon") {
+      if (
+        currentDisplayMode ===
+        "icon"
+      ) {
+
         searchCards();
+
       }
 
     }
@@ -982,7 +1359,9 @@
     // ========================================
 
     document
-      .getElementById("list-mode-button")
+      .getElementById(
+        "list-mode-button"
+      )
       .addEventListener(
         "click",
         () => setDisplayMode("list")
@@ -990,7 +1369,9 @@
 
 
     document
-      .getElementById("icon-mode-button")
+      .getElementById(
+        "icon-mode-button"
+      )
       .addEventListener(
         "click",
         () => setDisplayMode("icon")
@@ -998,7 +1379,9 @@
 
 
     document
-      .getElementById("icon-small-button")
+      .getElementById(
+        "icon-small-button"
+      )
       .addEventListener(
         "click",
         () => setIconSize("small")
@@ -1006,7 +1389,9 @@
 
 
     document
-      .getElementById("icon-medium-button")
+      .getElementById(
+        "icon-medium-button"
+      )
       .addEventListener(
         "click",
         () => setIconSize("medium")
@@ -1014,147 +1399,12 @@
 
 
     document
-      .getElementById("icon-large-button")
+      .getElementById(
+        "icon-large-button"
+      )
       .addEventListener(
         "click",
         () => setIconSize("large")
-      );
-
-
-    // ========================================
-    // カード詳細
-    // ========================================
-
-    function showCardDetail(card) {
-
-      document.getElementById(
-        "card-search"
-      ).style.display = "none";
-
-
-      document.getElementById(
-        "card-detail"
-      ).style.display = "block";
-
-
-      const image =
-        document.getElementById(
-          "detail-image"
-        );
-
-
-      if (card.image_url) {
-
-        image.src = card.image_url;
-
-        image.alt = card.card_name;
-
-        image.style.display = "block";
-
-      } else {
-
-        image.style.display = "none";
-
-      }
-
-
-      document.getElementById(
-        "detail-name"
-      ).textContent = card.card_name || "";
-
-      document.getElementById(
-        "detail-id"
-      ).textContent = card.card_id || "";
-
-      document.getElementById(
-        "detail-reading"
-      ).textContent = card.reading || "";
-
-      document.getElementById(
-        "detail-cost"
-      ).textContent = card.cost || "";
-
-      document.getElementById(
-        "detail-type"
-      ).textContent = card.card_type || "";
-
-      document.getElementById(
-        "detail-species"
-      ).textContent = card.species || "";
-
-      document.getElementById(
-        "detail-atk"
-      ).textContent = card.atk || "";
-
-      document.getElementById(
-        "detail-def"
-      ).textContent = card.def || "";
-
-      document.getElementById(
-        "detail-effect"
-      ).textContent = card.effect_text || "";
-
-      document.getElementById(
-        "detail-keywords"
-      ).textContent =
-        card.official_keywords || "なし";
-
-      document.getElementById(
-        "detail-effects"
-      ).textContent =
-        card.official_effects || "なし";
-
-
-      const source =
-        document.getElementById(
-          "detail-source"
-        );
-
-
-      if (card.source_url) {
-
-        source.href =
-          card.source_url;
-
-        source.style.display =
-          "inline";
-
-      } else {
-
-        source.style.display =
-          "none";
-
-      }
-
-
-      window.scrollTo(0, 0);
-
-    }
-
-
-    // ========================================
-    // 詳細から戻る
-    // ========================================
-
-    document
-      .getElementById("back-button")
-      .addEventListener(
-        "click",
-        () => {
-
-          document.getElementById(
-            "card-detail"
-          ).style.display = "none";
-
-
-          document.getElementById(
-            "card-search"
-          ).style.display = "block";
-
-
-          window.scrollTo(0, 0);
-
-        }
       );
 
 
@@ -1177,20 +1427,24 @@
           "card-type-filter"
         );
 
+
       const selectedSpecies =
         getSelectedValues(
           "species-filter"
         );
+
 
       const selectedCosts =
         getSelectedValues(
           "cost-filter"
         );
 
+
       const selectedKeywords =
         getSelectedValues(
           "official-keyword-filter"
         );
+
 
       const selectedEffects =
         getSelectedValues(
@@ -1203,6 +1457,7 @@
           "atk-condition"
         ).value;
 
+
       const atkValue =
         document.getElementById(
           "atk-value"
@@ -1213,6 +1468,7 @@
         document.getElementById(
           "def-condition"
         ).value;
+
 
       const defValue =
         document.getElementById(
@@ -1226,13 +1482,21 @@
           // 文字検索
 
           const cardName =
-            normalize(card.card_name);
+            normalize(
+              card.card_name
+            );
+
 
           const reading =
-            normalize(card.reading);
+            normalize(
+              card.reading
+            );
+
 
           const effectText =
-            normalize(card.effect_text);
+            normalize(
+              card.effect_text
+            );
 
 
           const matchesKeyword =
@@ -1256,8 +1520,9 @@
           const matchesSpecies =
             selectedSpecies.length === 0 ||
             selectedSpecies.some(selected =>
-              splitValues(card.species)
-                .includes(selected)
+              splitValues(
+                card.species
+              ).includes(selected)
             );
 
 
@@ -1283,16 +1548,30 @@
             const atk =
               Number(card.atk);
 
+
             const value =
               Number(atkValue);
 
 
-            if (atkCondition === "gte") {
-              matchesAtk = atk >= value;
+            if (
+              atkCondition ===
+              "gte"
+            ) {
+
+              matchesAtk =
+                atk >= value;
+
             }
 
-            if (atkCondition === "lte") {
-              matchesAtk = atk <= value;
+
+            if (
+              atkCondition ===
+              "lte"
+            ) {
+
+              matchesAtk =
+                atk <= value;
+
             }
 
           }
@@ -1311,16 +1590,30 @@
             const def =
               Number(card.def);
 
+
             const value =
               Number(defValue);
 
 
-            if (defCondition === "gte") {
-              matchesDef = def >= value;
+            if (
+              defCondition ===
+              "gte"
+            ) {
+
+              matchesDef =
+                def >= value;
+
             }
 
-            if (defCondition === "lte") {
-              matchesDef = def <= value;
+
+            if (
+              defCondition ===
+              "lte"
+            ) {
+
+              matchesDef =
+                def <= value;
+
             }
 
           }
@@ -1362,7 +1655,9 @@
         });
 
 
-      displayCards(filteredCards);
+      displayCards(
+        filteredCards
+      );
 
     }
 
@@ -1396,7 +1691,8 @@
           allCards,
           "cost"
         ).sort(
-          (a, b) => Number(a) - Number(b)
+          (a, b) =>
+            Number(a) - Number(b)
         );
 
 
@@ -1431,7 +1727,9 @@
     // ========================================
 
     document
-      .getElementById("search-box")
+      .getElementById(
+        "search-box"
+      )
       .addEventListener(
         "input",
         searchCards
@@ -1443,7 +1741,9 @@
     // ========================================
 
     document
-      .getElementById("atk-condition")
+      .getElementById(
+        "atk-condition"
+      )
       .addEventListener(
         "change",
         searchCards
@@ -1451,7 +1751,9 @@
 
 
     document
-      .getElementById("atk-value")
+      .getElementById(
+        "atk-value"
+      )
       .addEventListener(
         "input",
         searchCards
@@ -1459,7 +1761,9 @@
 
 
     document
-      .getElementById("def-condition")
+      .getElementById(
+        "def-condition"
+      )
       .addEventListener(
         "change",
         searchCards
@@ -1467,7 +1771,9 @@
 
 
     document
-      .getElementById("def-value")
+      .getElementById(
+        "def-value"
+      )
       .addEventListener(
         "input",
         searchCards
@@ -1479,7 +1785,9 @@
     // ========================================
 
     document
-      .getElementById("reset-button")
+      .getElementById(
+        "reset-button"
+      )
       .addEventListener(
         "click",
         () => {
@@ -1493,9 +1801,12 @@
             .querySelectorAll(
               ".multi-select input[type='checkbox']"
             )
-            .forEach(checkbox => {
-              checkbox.checked = false;
-            });
+            .forEach(
+              checkbox => {
+                checkbox.checked =
+                  false;
+              }
+            );
 
 
           document.getElementById(
@@ -1518,7 +1829,9 @@
           ).value = "";
 
 
-          displayCards(allCards);
+          displayCards(
+            allCards
+          );
 
         }
       );
@@ -1533,23 +1846,34 @@
       window.loadCardData =
         function(data) {
 
-          allCards = data.cards;
+          allCards =
+            data.cards;
+
 
           createFilterOptions();
 
-          displayCards(allCards);
+
+          displayCards(
+            allCards
+          );
 
         };
 
 
       const script =
-        document.createElement("script");
+        document.createElement(
+          "script"
+        );
+
 
       script.src =
         API_URL +
         "?prefix=loadCardData";
 
-      document.body.appendChild(script);
+
+      document.body.appendChild(
+        script
+      );
 
     }
 
