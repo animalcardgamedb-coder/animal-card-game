@@ -13,7 +13,18 @@
       padding: 10px;
       font-size: 16px;
       box-sizing: border-box;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+    }
+
+    /* 絞り込み欄 */
+    .filter {
+      margin-bottom: 10px;
+    }
+
+    .filter select {
+      padding: 8px;
+      font-size: 16px;
+      min-width: 180px;
     }
 
     /* カード画像 */
@@ -35,16 +46,62 @@
 
   <h1>アニマルカードゲーム カード検索</h1>
 
-  <!-- 検索欄 -->
+  <!-- ========================================
+       文字検索
+       ======================================== -->
   <input
     type="text"
     id="search-box"
     placeholder="カード名・読み・効果テキストを検索"
   >
 
+
+  <!-- ========================================
+       カードタイプ
+       ======================================== -->
+  <div class="filter">
+    <label>
+      カードタイプ：
+      <select id="card-type-filter">
+        <option value="">すべて</option>
+      </select>
+    </label>
+  </div>
+
+
+  <!-- ========================================
+       種属
+       ======================================== -->
+  <div class="filter">
+    <label>
+      種属：
+      <select id="species-filter">
+        <option value="">すべて</option>
+      </select>
+    </label>
+  </div>
+
+
+  <!-- ========================================
+       コスト
+       ======================================== -->
+  <div class="filter">
+    <label>
+      コスト：
+      <select id="cost-filter">
+        <option value="">すべて</option>
+      </select>
+    </label>
+  </div>
+
+
+  <!-- ========================================
+       カード一覧
+       ======================================== -->
   <div id="card-list">
     読み込み中……
   </div>
+
 
   <script>
 
@@ -56,7 +113,7 @@
 
 
     // ========================================
-    // 取得したカードデータを保存しておく
+    // 取得したカードデータ
     // ========================================
     let allCards = [];
 
@@ -68,7 +125,6 @@
 
       const cardList = document.getElementById("card-list");
 
-      // 一度一覧を消す
       cardList.innerHTML = "";
 
       // 該当カードがない場合
@@ -116,22 +172,182 @@
 
 
     // ========================================
-    // GASからカードデータを取得する
-    // JSONPを使用
+    // プルダウンの選択肢を作る
+    // ========================================
+    function createFilterOptions() {
+
+      // ----------------------------
+      // カードタイプ
+      // ----------------------------
+      const cardTypes = [...new Set(
+        allCards
+          .map(card => card.card_type)
+          .filter(value => value !== "")
+      )].sort();
+
+      const cardTypeFilter =
+        document.getElementById("card-type-filter");
+
+      cardTypes.forEach(type => {
+
+        const option = document.createElement("option");
+
+        option.value = type;
+        option.textContent = type;
+
+        cardTypeFilter.appendChild(option);
+      });
+
+
+      // ----------------------------
+      // 種属
+      // ----------------------------
+      const species = [...new Set(
+        allCards
+          .map(card => card.species)
+          .filter(value => value !== "")
+      )].sort();
+
+      const speciesFilter =
+        document.getElementById("species-filter");
+
+      species.forEach(type => {
+
+        const option = document.createElement("option");
+
+        option.value = type;
+        option.textContent = type;
+
+        speciesFilter.appendChild(option);
+      });
+
+
+      // ----------------------------
+      // コスト
+      // ----------------------------
+      const costs = [...new Set(
+        allCards
+          .map(card => card.cost)
+          .filter(value => value !== "")
+      )].sort((a, b) => Number(a) - Number(b));
+
+      const costFilter =
+        document.getElementById("cost-filter");
+
+      costs.forEach(cost => {
+
+        const option = document.createElement("option");
+
+        option.value = cost;
+        option.textContent = cost;
+
+        costFilter.appendChild(option);
+      });
+    }
+
+
+    // ========================================
+    // 検索・絞り込み
+    // ========================================
+    function searchCards() {
+
+      // ----------------------------
+      // 文字検索
+      // ----------------------------
+      const keyword = document
+        .getElementById("search-box")
+        .value
+        .trim()
+        .toLowerCase();
+
+
+      // ----------------------------
+      // 各条件
+      // ----------------------------
+      const cardType =
+        document.getElementById("card-type-filter").value;
+
+      const species =
+        document.getElementById("species-filter").value;
+
+      const cost =
+        document.getElementById("cost-filter").value;
+
+
+      // ----------------------------
+      // 条件に合うカードだけ残す
+      // ----------------------------
+      const filteredCards = allCards.filter(card => {
+
+        const cardName =
+          String(card.card_name || "").toLowerCase();
+
+        const reading =
+          String(card.reading || "").toLowerCase();
+
+        const effectText =
+          String(card.effect_text || "").toLowerCase();
+
+
+        // 文字検索
+        const matchesKeyword =
+          keyword === "" ||
+          cardName.includes(keyword) ||
+          reading.includes(keyword) ||
+          effectText.includes(keyword);
+
+
+        // カードタイプ
+        const matchesCardType =
+          cardType === "" ||
+          String(card.card_type) === cardType;
+
+
+        // 種属
+        const matchesSpecies =
+          species === "" ||
+          String(card.species) === species;
+
+
+        // コスト
+        const matchesCost =
+          cost === "" ||
+          String(card.cost) === cost;
+
+
+        // すべての条件を満たしたカードだけ表示
+        return (
+          matchesKeyword &&
+          matchesCardType &&
+          matchesSpecies &&
+          matchesCost
+        );
+      });
+
+
+      displayCards(filteredCards);
+    }
+
+
+    // ========================================
+    // GASからカードデータを取得
     // ========================================
     function loadCards() {
 
       window.loadCardData = function(data) {
 
-        // 取得したカードを保存
+        // カードデータを保存
         allCards = data.cards;
+
+        // プルダウンを作成
+        createFilterOptions();
 
         // 最初は全部表示
         displayCards(allCards);
       };
 
 
-      // JSONP用のscriptタグ
+      // JSONP用scriptタグ
       const script = document.createElement("script");
 
       script.src = API_URL + "?prefix=loadCardData";
@@ -141,48 +357,23 @@
 
 
     // ========================================
-    // 検索処理
-    // ========================================
-    function searchCards() {
-
-      // 検索欄の文字を取得
-      const keyword = document
-        .getElementById("search-box")
-        .value
-        .trim()
-        .toLowerCase();
-
-      // 検索欄が空なら全部表示
-      if (keyword === "") {
-        displayCards(allCards);
-        return;
-      }
-
-      // 検索対象を確認
-      const filteredCards = allCards.filter(card => {
-
-        const cardName = String(card.card_name || "").toLowerCase();
-        const reading = String(card.reading || "").toLowerCase();
-        const effectText = String(card.effect_text || "").toLowerCase();
-
-        return (
-          cardName.includes(keyword) ||
-          reading.includes(keyword) ||
-          effectText.includes(keyword)
-        );
-      });
-
-      // 検索結果を表示
-      displayCards(filteredCards);
-    }
-
-
-    // ========================================
-    // 検索欄に入力されたら検索
+    // 入力・選択されたら検索
     // ========================================
     document
       .getElementById("search-box")
       .addEventListener("input", searchCards);
+
+    document
+      .getElementById("card-type-filter")
+      .addEventListener("change", searchCards);
+
+    document
+      .getElementById("species-filter")
+      .addEventListener("change", searchCards);
+
+    document
+      .getElementById("cost-filter")
+      .addEventListener("change", searchCards);
 
 
     // ========================================
