@@ -9,7 +9,109 @@
     body {
       font-family: sans-serif;
       margin: 20px;
+      padding-top: 55px;
     }
+
+    /* ========================================
+       上部検索ボタン
+       ======================================== */
+
+    #search-open-button {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 900;
+
+      width: 44px;
+      height: 44px;
+
+      border: 1px solid #aaa;
+      border-radius: 50%;
+
+      background: #fff;
+
+      font-size: 22px;
+      line-height: 1;
+
+      cursor: pointer;
+
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    #search-open-button:hover {
+      background: #f5f5f5;
+    }
+
+
+    /* ========================================
+       検索モーダル
+       ======================================== */
+
+    #search-modal {
+      display: none;
+
+      position: fixed;
+      z-index: 2000;
+
+      top: 0;
+      left: 0;
+
+      width: 100%;
+      height: 100%;
+
+      background: rgba(0, 0, 0, 0.7);
+
+      box-sizing: border-box;
+
+      padding: 30px 20px;
+
+      overflow-y: auto;
+    }
+
+    #search-modal-content {
+      position: relative;
+
+      width: 100%;
+      max-width: 800px;
+
+      margin: 0 auto;
+
+      background: #fff;
+
+      border-radius: 8px;
+
+      padding: 25px;
+
+      box-sizing: border-box;
+    }
+
+    #search-modal-title {
+      margin-top: 0;
+      padding-right: 45px;
+    }
+
+    #search-close-button {
+      position: absolute;
+
+      top: 10px;
+      right: 15px;
+
+      width: 40px;
+      height: 40px;
+
+      border: none;
+      background: transparent;
+
+      font-size: 30px;
+      line-height: 1;
+
+      cursor: pointer;
+    }
+
+    #search-close-button:hover {
+      opacity: 0.6;
+    }
+
 
     /* ========================================
        検索欄
@@ -18,9 +120,13 @@
     #search-box {
       width: 100%;
       max-width: 600px;
+
       padding: 10px;
+
       font-size: 16px;
+
       box-sizing: border-box;
+
       margin-bottom: 15px;
     }
 
@@ -37,35 +143,47 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+
       max-width: 800px;
     }
 
     .multi-select label {
       display: inline-flex;
+
       align-items: center;
+
       gap: 3px;
+
       padding: 4px 8px;
+
       border: 1px solid #ccc;
+
       border-radius: 4px;
+
       cursor: pointer;
     }
 
     .number-filter {
       display: flex;
+
       gap: 8px;
+
       align-items: center;
+
       flex-wrap: wrap;
     }
 
     .number-filter select,
     .number-filter input {
       padding: 7px;
+
       font-size: 16px;
     }
 
     .number-filter input {
       width: 100px;
     }
+
 
     /* ========================================
        ボタン
@@ -77,9 +195,12 @@
 
     #reset-button {
       padding: 8px 16px;
+
       font-size: 16px;
-      margin-bottom: 20px;
+
+      margin-bottom: 5px;
     }
+
 
     /* ========================================
        表示モード切り替え
@@ -87,30 +208,42 @@
 
     #display-controls {
       display: flex;
+
       align-items: center;
+
       gap: 8px;
+
       flex-wrap: wrap;
+
       margin-bottom: 20px;
     }
 
     .display-control-group {
       display: flex;
+
       align-items: center;
+
       gap: 4px;
     }
 
     .display-button {
       padding: 6px 12px;
+
       font-size: 14px;
+
       border: 1px solid #aaa;
+
       background: #fff;
+
       border-radius: 4px;
     }
 
     .display-button.active {
       background: #333;
+
       color: #fff;
     }
+
 
     /* ========================================
        検索結果
@@ -118,8 +251,10 @@
 
     #result-count {
       margin-bottom: 15px;
+
       font-weight: bold;
     }
+
 
     /* ========================================
        リストモード
@@ -127,18 +262,27 @@
 
     #card-list.list-mode {
       display: flex;
+
       flex-direction: column;
+
       gap: 12px;
     }
 
     .card.list-card {
       display: flex;
+
       align-items: flex-start;
+
       gap: 15px;
+
       padding: 10px;
+
       border: 1px solid #ddd;
+
       border-radius: 6px;
+
       cursor: pointer;
+
       box-sizing: border-box;
     }
 
@@ -148,8 +292,11 @@
 
     .list-card-image {
       width: 120px;
+
       height: auto;
+
       flex-shrink: 0;
+
       display: block;
     }
 
@@ -159,6 +306,7 @@
 
     .list-card-info h2 {
       margin-top: 0;
+
       margin-bottom: 8px;
     }
 
@@ -166,26 +314,31 @@
       margin: 4px 0;
     }
 
+
     /* ========================================
        アイコンモード
        ======================================== */
 
     #card-list.icon-mode {
       display: grid;
+
       gap: 12px;
     }
 
     /* 大 = 横3枚 */
+
     #card-list.icon-mode.size-large {
       grid-template-columns: repeat(3, 1fr);
     }
 
     /* 中 = 横5枚 */
+
     #card-list.icon-mode.size-medium {
       grid-template-columns: repeat(5, 1fr);
     }
 
     /* 小 = 横7枚 */
+
     #card-list.icon-mode.size-small {
       grid-template-columns: repeat(7, 1fr);
     }
@@ -200,9 +353,12 @@
 
     .icon-card-image {
       width: 100%;
+
       height: auto;
+
       display: block;
     }
+
 
     /* ========================================
        カード詳細ポップアップ
@@ -212,6 +368,7 @@
       display: none;
 
       position: fixed;
+
       z-index: 1000;
 
       top: 0;
@@ -258,9 +415,11 @@
       height: 40px;
 
       border: none;
+
       background: transparent;
 
       font-size: 30px;
+
       line-height: 1;
 
       cursor: pointer;
@@ -274,7 +433,9 @@
 
     #detail-image {
       max-width: 500px;
+
       width: 100%;
+
       height: auto;
 
       display: block;
@@ -300,6 +461,7 @@
       white-space: pre-wrap;
     }
 
+
     /* ========================================
        スマートフォン用
        ======================================== */
@@ -308,6 +470,8 @@
 
       body {
         margin: 10px;
+
+        padding-top: 55px;
       }
 
       .list-card-image {
@@ -328,6 +492,14 @@
         grid-template-columns: repeat(4, 1fr);
       }
 
+      #search-modal {
+        padding: 15px 10px;
+      }
+
+      #search-modal-content {
+        padding: 20px 15px;
+      }
+
       #card-modal {
         padding: 15px 10px;
       }
@@ -341,173 +513,29 @@
   </style>
 </head>
 
+
 <body>
 
   <!-- ========================================
-       カード検索画面
+       検索ボタン
+       ======================================== -->
+
+  <button
+    id="search-open-button"
+    aria-label="検索を開く"
+    title="検索"
+  >
+    🔍
+  </button>
+
+
+  <!-- ========================================
+       メイン画面
        ======================================== -->
 
   <div id="card-search">
 
     <h1>アニマルカードゲーム カード検索</h1>
-
-
-    <!-- 文字検索 -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        文字検索
-      </div>
-
-      <input
-        type="text"
-        id="search-box"
-        placeholder="カード名・読み・効果テキストを検索"
-      >
-
-    </div>
-
-
-    <!-- カードタイプ -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        カードタイプ
-      </div>
-
-      <div
-        id="card-type-filter"
-        class="multi-select"
-      ></div>
-
-    </div>
-
-
-    <!-- 種属 -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        種属
-      </div>
-
-      <div
-        id="species-filter"
-        class="multi-select"
-      ></div>
-
-    </div>
-
-
-    <!-- コスト -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        コスト
-      </div>
-
-      <div
-        id="cost-filter"
-        class="multi-select"
-      ></div>
-
-    </div>
-
-
-    <!-- ATK -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        ATK
-      </div>
-
-      <div class="number-filter">
-
-        <select id="atk-condition">
-          <option value="">指定なし</option>
-          <option value="gte">以上</option>
-          <option value="lte">以下</option>
-        </select>
-
-        <input
-          type="number"
-          id="atk-value"
-          placeholder="数値"
-        >
-
-      </div>
-
-    </div>
-
-
-    <!-- DEF -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        DEF
-      </div>
-
-      <div class="number-filter">
-
-        <select id="def-condition">
-          <option value="">指定なし</option>
-          <option value="gte">以上</option>
-          <option value="lte">以下</option>
-        </select>
-
-        <input
-          type="number"
-          id="def-value"
-          placeholder="数値"
-        >
-
-      </div>
-
-    </div>
-
-
-    <!-- 公式キーワード -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        公式キーワード
-      </div>
-
-      <div
-        id="official-keyword-filter"
-        class="multi-select"
-      ></div>
-
-    </div>
-
-
-    <!-- 公式効果 -->
-
-    <div class="filter">
-
-      <div class="filter-title">
-        公式効果
-      </div>
-
-      <div
-        id="official-effect-filter"
-        class="multi-select"
-      ></div>
-
-    </div>
-
-
-    <!-- リセット -->
-
-    <button id="reset-button">
-      検索条件をリセット
-    </button>
 
 
     <!-- ========================================
@@ -571,20 +599,226 @@
     </div>
 
 
-    <!-- 検索結果件数 -->
+    <!-- ========================================
+         検索結果件数
+         ======================================== -->
 
     <div id="result-count">
       読み込み中……
     </div>
 
 
-    <!-- カード一覧 -->
+    <!-- ========================================
+         カード一覧
+         ======================================== -->
 
     <div
       id="card-list"
       class="list-mode"
     >
       読み込み中……
+    </div>
+
+  </div>
+
+
+  <!-- ========================================
+       検索ポップアップ
+       ======================================== -->
+
+  <div id="search-modal">
+
+    <div id="search-modal-content">
+
+      <button
+        id="search-close-button"
+        aria-label="検索を閉じる"
+      >
+        ×
+      </button>
+
+      <h2 id="search-modal-title">
+        カード検索
+      </h2>
+
+
+      <!-- 文字検索 -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          文字検索
+        </div>
+
+        <input
+          type="text"
+          id="search-box"
+          placeholder="カード名・読み・効果テキストを検索"
+        >
+
+      </div>
+
+
+      <!-- カードタイプ -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          カードタイプ
+        </div>
+
+        <div
+          id="card-type-filter"
+          class="multi-select"
+        ></div>
+
+      </div>
+
+
+      <!-- 種属 -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          種属
+        </div>
+
+        <div
+          id="species-filter"
+          class="multi-select"
+        ></div>
+
+      </div>
+
+
+      <!-- コスト -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          コスト
+        </div>
+
+        <div
+          id="cost-filter"
+          class="multi-select"
+        ></div>
+
+      </div>
+
+
+      <!-- ATK -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          ATK
+        </div>
+
+        <div class="number-filter">
+
+          <select id="atk-condition">
+
+            <option value="">
+              指定なし
+            </option>
+
+            <option value="gte">
+              以上
+            </option>
+
+            <option value="lte">
+              以下
+            </option>
+
+          </select>
+
+          <input
+            type="number"
+            id="atk-value"
+            placeholder="数値"
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- DEF -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          DEF
+        </div>
+
+        <div class="number-filter">
+
+          <select id="def-condition">
+
+            <option value="">
+              指定なし
+            </option>
+
+            <option value="gte">
+              以上
+            </option>
+
+            <option value="lte">
+              以下
+            </option>
+
+          </select>
+
+          <input
+            type="number"
+            id="def-value"
+            placeholder="数値"
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- 公式キーワード -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          公式キーワード
+        </div>
+
+        <div
+          id="official-keyword-filter"
+          class="multi-select"
+        ></div>
+
+      </div>
+
+
+      <!-- 公式効果 -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          公式効果
+        </div>
+
+        <div
+          id="official-effect-filter"
+          class="multi-select"
+        ></div>
+
+      </div>
+
+
+      <!-- リセット -->
+
+      <button id="reset-button">
+        検索条件をリセット
+      </button>
+
     </div>
 
   </div>
@@ -617,62 +851,112 @@
 
 
       <div class="detail-row">
-        <span class="detail-label">カードID：</span>
+
+        <span class="detail-label">
+          カードID：
+        </span>
+
         <span id="detail-id"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">読み：</span>
+
+        <span class="detail-label">
+          読み：
+        </span>
+
         <span id="detail-reading"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">コスト：</span>
+
+        <span class="detail-label">
+          コスト：
+        </span>
+
         <span id="detail-cost"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">カードタイプ：</span>
+
+        <span class="detail-label">
+          カードタイプ：
+        </span>
+
         <span id="detail-type"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">種属：</span>
+
+        <span class="detail-label">
+          種属：
+        </span>
+
         <span id="detail-species"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">ATK：</span>
+
+        <span class="detail-label">
+          ATK：
+        </span>
+
         <span id="detail-atk"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">DEF：</span>
+
+        <span class="detail-label">
+          DEF：
+        </span>
+
         <span id="detail-def"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">効果：</span>
+
+        <span class="detail-label">
+          効果：
+        </span>
+
         <div id="detail-effect"></div>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">公式キーワード：</span>
+
+        <span class="detail-label">
+          公式キーワード：
+        </span>
+
         <span id="detail-keywords"></span>
+
       </div>
 
 
       <div class="detail-row">
-        <span class="detail-label">公式効果：</span>
+
+        <span class="detail-label">
+          公式効果：
+        </span>
+
         <span id="detail-effects"></span>
+
       </div>
 
 
@@ -716,10 +1000,12 @@
 
 
     // 現在の表示モード
+
     let currentDisplayMode = "list";
 
 
     // アイコンサイズ
+
     let currentIconSize = "medium";
 
 
@@ -764,7 +1050,9 @@
         splitValues(card[field]).forEach(value => {
 
           if (!values.includes(value)) {
+
             values.push(value);
+
           }
 
         });
@@ -898,17 +1186,21 @@
 
             ${
               card.image_url
-                ? `<img
+                ? `
+                  <img
                     src="${card.image_url}"
                     alt="${card.card_name}"
                     class="list-card-image"
-                  >`
+                  >
+                `
                 : ""
             }
 
             <div class="list-card-info">
 
-              <h2>${card.card_name}</h2>
+              <h2>
+                ${card.card_name}
+              </h2>
 
               <p>
                 読み：${card.reading}
@@ -1157,7 +1449,7 @@
 
 
     // ========================================
-    // ポップアップを閉じる
+    // カード詳細ポップアップを閉じる
     // ========================================
 
     function closeCardDetail() {
@@ -1167,8 +1459,6 @@
       ).style.display =
         "none";
 
-
-      // 背景ページのスクロールを戻す
 
       document.body.style.overflow =
         "";
@@ -1188,9 +1478,7 @@
       );
 
 
-    // ========================================
-    // ポップアップ外側をクリックして閉じる
-    // ========================================
+    // 外側クリック
 
     document
       .getElementById("card-modal")
@@ -1212,31 +1500,129 @@
 
 
     // ========================================
-    // ESCキーで閉じる
+    // 検索モーダルを開く
+    // ========================================
+
+    function openSearchModal() {
+
+      document.getElementById(
+        "search-modal"
+      ).style.display =
+        "block";
+
+
+      document.body.style.overflow =
+        "hidden";
+
+    }
+
+
+    // ========================================
+    // 検索モーダルを閉じる
+    // ========================================
+
+    function closeSearchModal() {
+
+      document.getElementById(
+        "search-modal"
+      ).style.display =
+        "none";
+
+
+      document.body.style.overflow =
+        "";
+
+    }
+
+
+    // 検索ボタン
+
+    document
+      .getElementById(
+        "search-open-button"
+      )
+      .addEventListener(
+        "click",
+        openSearchModal
+      );
+
+
+    // 検索モーダルの×ボタン
+
+    document
+      .getElementById(
+        "search-close-button"
+      )
+      .addEventListener(
+        "click",
+        closeSearchModal
+      );
+
+
+    // 検索モーダルの外側クリック
+
+    document
+      .getElementById("search-modal")
+      .addEventListener(
+        "click",
+        event => {
+
+          if (
+            event.target.id ===
+            "search-modal"
+          ) {
+
+            closeSearchModal();
+
+          }
+
+        }
+      );
+
+
+    // ========================================
+    // ESCキー
     // ========================================
 
     document.addEventListener(
       "keydown",
       event => {
 
+        if (event.key !== "Escape") {
+          return;
+        }
+
+
+        const searchModal =
+          document.getElementById(
+            "search-modal"
+          );
+
+
+        const cardModal =
+          document.getElementById(
+            "card-modal"
+          );
+
+
         if (
-          event.key === "Escape"
+          searchModal.style.display ===
+          "block"
         ) {
 
-          const modal =
-            document.getElementById(
-              "card-modal"
-            );
+          closeSearchModal();
+
+          return;
+
+        }
 
 
-          if (
-            modal.style.display ===
-            "block"
-          ) {
+        if (
+          cardModal.style.display ===
+          "block"
+        ) {
 
-            closeCardDetail();
-
-          }
+          closeCardDetail();
 
         }
 
@@ -1803,8 +2189,10 @@
             )
             .forEach(
               checkbox => {
+
                 checkbox.checked =
                   false;
+
               }
             );
 
