@@ -2,85 +2,84 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-
-  <!-- スマートフォンでも画面幅に合わせて表示する -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>アニマルカードゲーム カード検索</title>
+  <title>アニマルカードゲーム</title>
 </head>
 
 <body>
 
-  <h1>アニマルカードゲーム カード検索</h1>
+  <h1>アニマルカードゲーム</h1>
 
-  <!-- ここにカード一覧を表示する -->
   <div id="card-list">
     読み込み中……
   </div>
 
-
   <script>
 
     // ========================================
-    // Google Apps ScriptのAPI URL
+    // GAS APIのURL
     // ========================================
-
     const API_URL =
       "https://script.google.com/macros/s/AKfycbwvFRsrFEnoZOE2GAEtv6Ihf51tb61B8Uqk_VaolPgkcH0nHC8dqY3436h7Y5L8EoRd/exec";
 
 
     // ========================================
-    // APIからカードデータを取得する
+    // GASからカードデータを取得する
+    // JSONPを使用するため、fetch()は使わない
     // ========================================
+    function loadCards() {
 
-    async function loadCards() {
+      // JSONPから呼び出される関数を作成
+      window.loadCardData = function(data) {
 
-      // APIにアクセスしてデータを取得
-      const response = await fetch(API_URL);
+        // 取得したカードデータ
+        const cards = data.cards;
 
-      // JSON形式のデータに変換
-      const data = await response.json();
+        // カード一覧を表示する場所
+        const cardList = document.getElementById("card-list");
 
-      // Cardsシートのデータだけを取得
-      const cards = data.cards;
+        // 「読み込み中……」を消す
+        cardList.innerHTML = "";
 
+        // カードを1枚ずつ表示
+        cards.forEach(card => {
 
-      // カード一覧を表示する場所
-      const cardList = document.getElementById("card-list");
+          const cardElement = document.createElement("div");
 
+          cardElement.innerHTML = `
+            <h2>${card.card_name}</h2>
+            <p>カードID：${card.card_id}</p>
+            <p>読み：${card.reading}</p>
+            <p>コスト：${card.cost}</p>
+            <p>タイプ：${card.card_type}</p>
+            <p>種属：${card.species}</p>
+            <p>ATK：${card.atk}</p>
+            <p>DEF：${card.def}</p>
+            <p>${card.effect_text}</p>
+            <hr>
+          `;
 
-      // 取得したカードを1枚ずつ表示
-      cards.forEach(card => {
-
-        // 1枚分の表示用HTMLを作る
-        const cardElement = document.createElement("div");
-
-        cardElement.innerHTML = `
-          <h2>${card.card_name}</h2>
-          <p>カードID：${card.card_id}</p>
-          <p>読み：${card.reading}</p>
-          <p>コスト：${card.cost}</p>
-          <p>タイプ：${card.card_type}</p>
-          <p>種属：${card.species}</p>
-          <p>ATK：${card.atk}</p>
-          <p>DEF：${card.def}</p>
-          <p>${card.effect_text}</p>
-          <hr>
-        `;
+          cardList.appendChild(cardElement);
+        });
+      };
 
 
-        // 作ったカードを一覧に追加
-        cardList.appendChild(cardElement);
+      // ========================================
+      // JSONP用のscriptタグを作成
+      // ========================================
+      const script = document.createElement("script");
 
-      });
+      script.src = API_URL + "?prefix=loadCardData";
 
+      // HTMLにscriptタグを追加すると
+      // GASからデータが読み込まれる
+      document.body.appendChild(script);
     }
 
 
     // ========================================
-    // ページを開いたらカードを読み込む
+    // カード読み込み開始
     // ========================================
-
     loadCards();
 
   </script>
