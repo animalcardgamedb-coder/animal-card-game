@@ -1,0 +1,894 @@
+/*
+  ========================================
+  ページ全体
+  ========================================
+*/
+
+body {
+
+  /*
+    使用する文字。
+    基本的には端末に入っている標準フォントを使います。
+  */
+  font-family: sans-serif;
+
+  /*
+    ページの左右に20pxの余白を作ります。
+  */
+  margin: 20px;
+
+  /*
+    右上に固定している検索ボタンと
+    ページの内容が重ならないように、
+    上側に55pxの余白を作ります。
+  */
+  padding-top: 55px;
+
+}
+
+
+/*
+  ========================================
+  右上の検索ボタン
+  ========================================
+*/
+
+#search-open-button {
+
+  /*
+    画面をスクロールしても
+    常に右上に表示します。
+  */
+  position: fixed;
+
+  top: 15px;
+
+  right: 15px;
+
+  /*
+    他の表示より手前に出します。
+  */
+  z-index: 900;
+
+  /*
+    ボタンの大きさです。
+  */
+  width: 44px;
+
+  height: 44px;
+
+  /*
+    枠線。
+  */
+  border: 1px solid #aaa;
+
+  /*
+    完全な丸にします。
+  */
+  border-radius: 50%;
+
+  /*
+    背景色。
+  */
+  background: #fff;
+
+  /*
+    虫眼鏡の大きさ。
+  */
+  font-size: 22px;
+
+  line-height: 1;
+
+  /*
+    マウスカーソルを指にします。
+  */
+  cursor: pointer;
+
+  /*
+    少し影を付けます。
+  */
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15);
+
+}
+
+
+/*
+  検索ボタンにマウスを乗せたとき。
+*/
+#search-open-button:hover {
+
+  background: #f5f5f5;
+
+}
+
+
+/*
+  ========================================
+  検索モーダル
+  ========================================
+*/
+
+/*
+  検索画面を覆う黒い半透明の背景です。
+
+  最初は display:none なので、
+  検索ボタンを押すまで表示されません。
+*/
+#search-modal {
+
+  display: none;
+
+  position: fixed;
+
+  top: 0;
+
+  left: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  /*
+    カード詳細画面よりも手前に表示します。
+  */
+  z-index: 2000;
+
+  /*
+    背景を黒く半透明にします。
+  */
+  background:
+    rgba(0, 0, 0, 0.7);
+
+  /*
+    画面の端に検索欄がくっつかないようにします。
+  */
+  box-sizing: border-box;
+
+  padding: 30px 20px;
+
+  /*
+    検索内容が画面より長くなった場合、
+    縦にスクロールできるようにします。
+  */
+  overflow-y: auto;
+
+}
+
+
+/*
+  検索モーダルの白い部分。
+*/
+#search-modal-content {
+
+  position: relative;
+
+  width: 100%;
+
+  /*
+    PCで横に広がりすぎないようにします。
+  */
+  max-width: 800px;
+
+  /*
+    画面中央に配置します。
+  */
+  margin: 0 auto;
+
+  background: #fff;
+
+  border-radius: 8px;
+
+  padding: 25px;
+
+  box-sizing: border-box;
+
+}
+
+
+/*
+  検索モーダルのタイトル。
+
+  右側に閉じるボタンがあるため、
+  タイトルが重ならないようにします。
+*/
+#search-modal-title {
+
+  margin-top: 0;
+
+  padding-right: 45px;
+
+}
+
+
+/*
+  検索モーダルの「×」ボタン。
+*/
+#search-close-button {
+
+  position: absolute;
+
+  top: 10px;
+
+  right: 15px;
+
+  width: 40px;
+
+  height: 40px;
+
+  border: none;
+
+  background: transparent;
+
+  font-size: 30px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+}
+
+
+/*
+  「×」にマウスを乗せたとき。
+*/
+#search-close-button:hover {
+
+  opacity: 0.6;
+
+}
+
+
+/*
+  ========================================
+  文字検索欄
+  ========================================
+*/
+
+#search-box {
+
+  width: 100%;
+
+  max-width: 600px;
+
+  padding: 10px;
+
+  font-size: 16px;
+
+  box-sizing: border-box;
+
+  margin-bottom: 5px;
+
+}
+
+
+/*
+  検索欄の下に表示する説明文。
+
+  例：
+  スペース：AND検索　　-：マイナス検索
+*/
+#search-help {
+
+  margin-top: 0;
+
+  margin-bottom: 15px;
+
+  color: #777;
+
+  font-size: 12px;
+
+}
+
+
+/*
+  ========================================
+  各検索条件
+  ========================================
+*/
+
+.filter {
+
+  margin-bottom: 15px;
+
+}
+
+
+/*
+  「カードタイプ」「種属」などの見出し。
+*/
+.filter-title {
+
+  font-weight: bold;
+
+  margin-bottom: 5px;
+
+}
+
+
+/*
+  チェックボックスを並べる場所。
+
+  横幅が足りなくなったら、
+  自動的に次の行へ折り返します。
+*/
+.multi-select {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  max-width: 800px;
+
+}
+
+
+/*
+  チェックボックスと文字をひとまとめにします。
+*/
+.multi-select label {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 3px;
+
+  padding: 4px 8px;
+
+  border: 1px solid #ccc;
+
+  border-radius: 4px;
+
+  cursor: pointer;
+
+}
+
+
+/*
+  ATK・DEFの条件入力部分。
+*/
+.number-filter {
+
+  display: flex;
+
+  gap: 8px;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+}
+
+
+/*
+  ATK・DEFの「以上」「以下」の選択欄。
+*/
+.number-filter select,
+.number-filter input {
+
+  padding: 7px;
+
+  font-size: 16px;
+
+}
+
+
+/*
+  数値入力欄の横幅。
+*/
+.number-filter input {
+
+  width: 100px;
+
+}
+
+
+/*
+  ========================================
+  ボタン全般
+  ========================================
+*/
+
+button {
+
+  cursor: pointer;
+
+}
+
+
+/*
+  検索条件リセットボタン。
+*/
+#reset-button {
+
+  padding: 8px 16px;
+
+  font-size: 16px;
+
+  margin-bottom: 5px;
+
+}
+
+
+/*
+  ========================================
+  表示方法の切り替え
+  ========================================
+*/
+
+#display-controls {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  flex-wrap: wrap;
+
+  margin-bottom: 20px;
+
+}
+
+
+/*
+  「表示：リスト アイコン」
+  「サイズ：小 中 大」
+  のそれぞれのまとまり。
+*/
+.display-control-group {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+}
+
+
+/*
+  リスト・アイコン・サイズのボタン。
+*/
+.display-button {
+
+  padding: 6px 12px;
+
+  font-size: 14px;
+
+  border: 1px solid #aaa;
+
+  background: #fff;
+
+  border-radius: 4px;
+
+}
+
+
+/*
+  現在選択されているボタン。
+*/
+.display-button.active {
+
+  background: #333;
+
+  color: #fff;
+
+}
+
+
+/*
+  ========================================
+  検索結果件数
+  ========================================
+*/
+
+#result-count {
+
+  margin-bottom: 15px;
+
+  font-weight: bold;
+
+}
+
+
+/*
+  ========================================
+  リスト表示
+  ========================================
+*/
+
+/*
+  リスト表示では、
+  カードを縦に1枚ずつ並べます。
+*/
+#card-list.list-mode {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+
+}
+
+
+/*
+  リスト表示時の1枚分。
+*/
+.card.list-card {
+
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 15px;
+
+  padding: 10px;
+
+  border: 1px solid #ddd;
+
+  border-radius: 6px;
+
+  /*
+    カード全体を押せるようにします。
+  */
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+}
+
+
+/*
+  カードにマウスを乗せたとき。
+*/
+.card.list-card:hover {
+
+  background: #f5f5f5;
+
+}
+
+
+/*
+  リスト表示時のカード画像。
+*/
+.list-card-image {
+
+  width: 120px;
+
+  height: auto;
+
+  flex-shrink: 0;
+
+  display: block;
+
+}
+
+
+/*
+  リスト表示時の文字部分。
+*/
+.list-card-info {
+
+  min-width: 0;
+
+}
+
+
+.list-card-info h2 {
+
+  margin-top: 0;
+
+  margin-bottom: 8px;
+
+}
+
+
+.list-card-info p {
+
+  margin: 4px 0;
+
+}
+
+
+/*
+  ========================================
+  アイコン表示
+  ========================================
+*/
+
+/*
+  アイコン表示では、
+  JavaScriptで決めた列数を使います。
+
+  例えば、
+
+  3列なら
+  [カード][カード][カード]
+
+  5列なら
+  [カード][カード][カード][カード][カード]
+
+  7列なら
+  [カード][カード][カード][カード][カード][カード][カード]
+
+  という並びになります。
+*/
+#card-list.icon-mode {
+
+  display: grid;
+
+  gap: 8px;
+
+  align-items: start;
+
+}
+
+
+/*
+  アイコン1枚分。
+
+  min-width:0 にすることで、
+  画面が狭い場合でもカードが
+  グリッドから飛び出さないようにします。
+*/
+.card.icon-card {
+
+  cursor: pointer;
+
+  min-width: 0;
+
+}
+
+
+/*
+  アイコン表示の画像。
+
+  幅は、そのとき決まった列幅いっぱいになります。
+*/
+.icon-card-image {
+
+  width: 100%;
+
+  height: auto;
+
+  display: block;
+
+}
+
+
+/*
+  アイコンにマウスを乗せたとき。
+*/
+.card.icon-card:hover {
+
+  opacity: 0.75;
+
+}
+
+
+/*
+  ========================================
+  カード詳細ポップアップ
+  ========================================
+*/
+
+/*
+  カードをクリックしたときに表示する
+  黒い半透明の背景です。
+
+  最初は非表示です。
+*/
+#card-modal {
+
+  display: none;
+
+  position: fixed;
+
+  z-index: 1000;
+
+  top: 0;
+
+  left: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  background:
+    rgba(0, 0, 0, 0.7);
+
+  box-sizing: border-box;
+
+  padding: 30px 20px;
+
+  overflow-y: auto;
+
+}
+
+
+/*
+  カード詳細の白い部分。
+*/
+#card-modal-content {
+
+  position: relative;
+
+  width: 100%;
+
+  max-width: 800px;
+
+  margin: 0 auto;
+
+  background: #fff;
+
+  border-radius: 8px;
+
+  padding: 25px;
+
+  box-sizing: border-box;
+
+}
+
+
+/*
+  カード詳細の「×」ボタン。
+*/
+#modal-close-button {
+
+  position: absolute;
+
+  top: 10px;
+
+  right: 15px;
+
+  width: 40px;
+
+  height: 40px;
+
+  border: none;
+
+  background: transparent;
+
+  font-size: 30px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+}
+
+
+#modal-close-button:hover {
+
+  opacity: 0.6;
+
+}
+
+
+/*
+  詳細画面のカード画像。
+*/
+#detail-image {
+
+  max-width: 500px;
+
+  width: 100%;
+
+  height: auto;
+
+  display: block;
+
+  margin: 0 auto 20px;
+
+}
+
+
+/*
+  カード名。
+*/
+#detail-name {
+
+  margin-top: 0;
+
+}
+
+
+/*
+  カード詳細の各項目。
+*/
+.detail-row {
+
+  margin-bottom: 10px;
+
+}
+
+
+/*
+  「カードID：」「コスト：」などの項目名。
+*/
+.detail-label {
+
+  font-weight: bold;
+
+}
+
+
+/*
+  効果テキストの改行を維持します。
+*/
+#detail-effect {
+
+  white-space: pre-wrap;
+
+}
+
+
+/*
+  ========================================
+  スマートフォン用
+  ========================================
+*/
+
+@media (max-width: 600px) {
+
+  /*
+    スマホではページ左右の余白を小さくします。
+  */
+  body {
+
+    margin: 10px;
+
+    padding-top: 55px;
+
+  }
+
+
+  /*
+    リスト表示時の画像を少し小さくします。
+  */
+  .list-card-image {
+
+    width: 90px;
+
+  }
+
+
+  /*
+    検索モーダルの余白を小さくします。
+  */
+  #search-modal {
+
+    padding: 15px 10px;
+
+  }
+
+
+  #search-modal-content {
+
+    padding: 20px 15px;
+
+  }
+
+
+  /*
+    カード詳細モーダルの余白を小さくします。
+  */
+  #card-modal {
+
+    padding: 15px 10px;
+
+  }
+
+
+  #card-modal-content {
+
+    padding: 20px 15px;
+
+  }
+
+}
