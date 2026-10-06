@@ -3,28 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>アニマルカードゲーム</title>
+  <title>アニマルカードゲーム カード検索</title>
 
   <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+
     /* 検索欄 */
     #search-box {
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
       padding: 10px;
       font-size: 16px;
       box-sizing: border-box;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
 
-    /* 絞り込み欄 */
+    /* 検索条件 */
     .filter {
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
 
-    .filter select {
-      padding: 8px;
+    .filter-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    /* 複数選択欄 */
+    .multi-select {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 800px;
+    }
+
+    .multi-select label {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* 数値検索 */
+    .number-filter {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .number-filter select,
+    .number-filter input {
+      padding: 7px;
       font-size: 16px;
-      min-width: 180px;
+    }
+
+    .number-filter input {
+      width: 100px;
+    }
+
+    /* リセットボタン */
+    #reset-button {
+      padding: 8px 16px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    /* 検索結果 */
+    #result-count {
+      margin-bottom: 20px;
+      font-weight: bold;
     }
 
     /* カード画像 */
@@ -46,58 +100,196 @@
 
   <h1>アニマルカードゲーム カード検索</h1>
 
+
   <!-- ========================================
        文字検索
        ======================================== -->
-  <input
-    type="text"
-    id="search-box"
-    placeholder="カード名・読み・効果テキストを検索"
-  >
+
+  <div class="filter">
+
+    <div class="filter-title">
+      文字検索
+    </div>
+
+    <input
+      type="text"
+      id="search-box"
+      placeholder="カード名・読み・効果テキストを検索"
+    >
+
+  </div>
 
 
   <!-- ========================================
        カードタイプ
        ======================================== -->
+
   <div class="filter">
-    <label>
-      カードタイプ：
-      <select id="card-type-filter">
-        <option value="">すべて</option>
-      </select>
-    </label>
+
+    <div class="filter-title">
+      カードタイプ
+    </div>
+
+    <div
+      id="card-type-filter"
+      class="multi-select"
+    ></div>
+
   </div>
 
 
   <!-- ========================================
        種属
        ======================================== -->
+
   <div class="filter">
-    <label>
-      種属：
-      <select id="species-filter">
-        <option value="">すべて</option>
-      </select>
-    </label>
+
+    <div class="filter-title">
+      種属
+    </div>
+
+    <div
+      id="species-filter"
+      class="multi-select"
+    ></div>
+
   </div>
 
 
   <!-- ========================================
        コスト
        ======================================== -->
+
   <div class="filter">
-    <label>
-      コスト：
-      <select id="cost-filter">
-        <option value="">すべて</option>
+
+    <div class="filter-title">
+      コスト
+    </div>
+
+    <div
+      id="cost-filter"
+      class="multi-select"
+    ></div>
+
+  </div>
+
+
+  <!-- ========================================
+       ATK
+       ======================================== -->
+
+  <div class="filter">
+
+    <div class="filter-title">
+      ATK
+    </div>
+
+    <div class="number-filter">
+
+      <select id="atk-condition">
+        <option value="">指定なし</option>
+        <option value="gte">以上</option>
+        <option value="lte">以下</option>
       </select>
-    </label>
+
+      <input
+        type="number"
+        id="atk-value"
+        placeholder="数値"
+      >
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================
+       DEF
+       ======================================== -->
+
+  <div class="filter">
+
+    <div class="filter-title">
+      DEF
+    </div>
+
+    <div class="number-filter">
+
+      <select id="def-condition">
+        <option value="">指定なし</option>
+        <option value="gte">以上</option>
+        <option value="lte">以下</option>
+      </select>
+
+      <input
+        type="number"
+        id="def-value"
+        placeholder="数値"
+      >
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================
+       公式キーワード
+       ======================================== -->
+
+  <div class="filter">
+
+    <div class="filter-title">
+      公式キーワード
+    </div>
+
+    <div
+      id="official-keyword-filter"
+      class="multi-select"
+    ></div>
+
+  </div>
+
+
+  <!-- ========================================
+       公式効果
+       ======================================== -->
+
+  <div class="filter">
+
+    <div class="filter-title">
+      公式効果
+    </div>
+
+    <div
+      id="official-effect-filter"
+      class="multi-select"
+    ></div>
+
+  </div>
+
+
+  <!-- ========================================
+       リセット
+       ======================================== -->
+
+  <button id="reset-button">
+    検索条件をリセット
+  </button>
+
+
+  <!-- ========================================
+       検索結果件数
+       ======================================== -->
+
+  <div id="result-count">
+    読み込み中……
   </div>
 
 
   <!-- ========================================
        カード一覧
        ======================================== -->
+
   <div id="card-list">
     読み込み中……
   </div>
@@ -108,6 +300,7 @@
     // ========================================
     // GAS APIのURL
     // ========================================
+
     const API_URL =
       "https://script.google.com/macros/s/AKfycbwvFRsrFEnoZOE2GAEtv6Ihf51tb61B8Uqk_VaolPgkcH0nHC8dqY3436h7Y5L8EoRd/exec";
 
@@ -115,30 +308,158 @@
     // ========================================
     // 取得したカードデータ
     // ========================================
+
     let allCards = [];
+
+
+    // ========================================
+    // 文字列を検索用に変換
+    // ========================================
+
+    function normalize(value) {
+
+      return String(value || "")
+        .trim()
+        .toLowerCase();
+
+    }
+
+
+    // ========================================
+    // 複数登録されている値を分割
+    // ========================================
+
+    function splitValues(value) {
+
+      return String(value || "")
+        .split(/[,、|｜\n]/)
+        .map(value => value.trim())
+        .filter(value => value !== "");
+
+    }
+
+
+    // ========================================
+    // 重複を除いた選択肢を作る
+    // ========================================
+
+    function getUniqueValues(cards, field) {
+
+      const values = [];
+
+      cards.forEach(card => {
+
+        splitValues(card[field]).forEach(value => {
+
+          if (!values.includes(value)) {
+            values.push(value);
+          }
+
+        });
+
+      });
+
+      return values.sort((a, b) =>
+        a.localeCompare(b, "ja")
+      );
+    }
+
+
+    // ========================================
+    // 複数選択フィルターを作る
+    // ========================================
+
+    function createMultiFilter(elementId, values) {
+
+      const container =
+        document.getElementById(elementId);
+
+      container.innerHTML = "";
+
+      values.forEach(value => {
+
+        const label =
+          document.createElement("label");
+
+        const checkbox =
+          document.createElement("input");
+
+        checkbox.type = "checkbox";
+
+        checkbox.value = value;
+
+        checkbox.addEventListener(
+          "change",
+          searchCards
+        );
+
+        label.appendChild(checkbox);
+
+        label.appendChild(
+          document.createTextNode(value)
+        );
+
+        container.appendChild(label);
+
+      });
+
+    }
+
+
+    // ========================================
+    // 選択されている値を取得
+    // ========================================
+
+    function getSelectedValues(elementId) {
+
+      return [
+        ...document.querySelectorAll(
+          `#${elementId} input[type="checkbox"]:checked`
+        )
+      ].map(checkbox => checkbox.value);
+
+    }
 
 
     // ========================================
     // カードを表示する
     // ========================================
+
     function displayCards(cards) {
 
-      const cardList = document.getElementById("card-list");
+      const cardList =
+        document.getElementById("card-list");
+
+      const resultCount =
+        document.getElementById("result-count");
+
 
       cardList.innerHTML = "";
 
-      // 該当カードがない場合
+
+      // 件数表示
+      resultCount.textContent =
+        `検索結果：${cards.length}件`;
+
+
+      // 該当カードなし
       if (cards.length === 0) {
-        cardList.innerHTML = "<p>該当するカードがありません。</p>";
+
+        cardList.innerHTML =
+          "<p>該当するカードがありません。</p>";
+
         return;
       }
+
 
       // カードを1枚ずつ表示
       cards.forEach(card => {
 
-        const cardElement = document.createElement("div");
+        const cardElement =
+          document.createElement("div");
 
         cardElement.className = "card";
+
 
         cardElement.innerHTML = `
 
@@ -166,219 +487,447 @@
           <hr>
         `;
 
+
         cardList.appendChild(cardElement);
+
       });
+
     }
 
 
     // ========================================
-    // プルダウンの選択肢を作る
+    // 検索処理
     // ========================================
-    function createFilterOptions() {
 
-      // ----------------------------
-      // カードタイプ
-      // ----------------------------
-      const cardTypes = [...new Set(
-        allCards
-          .map(card => card.card_type)
-          .filter(value => value !== "")
-      )].sort();
-
-      const cardTypeFilter =
-        document.getElementById("card-type-filter");
-
-      cardTypes.forEach(type => {
-
-        const option = document.createElement("option");
-
-        option.value = type;
-        option.textContent = type;
-
-        cardTypeFilter.appendChild(option);
-      });
-
-
-      // ----------------------------
-      // 種属
-      // ----------------------------
-      const species = [...new Set(
-        allCards
-          .map(card => card.species)
-          .filter(value => value !== "")
-      )].sort();
-
-      const speciesFilter =
-        document.getElementById("species-filter");
-
-      species.forEach(type => {
-
-        const option = document.createElement("option");
-
-        option.value = type;
-        option.textContent = type;
-
-        speciesFilter.appendChild(option);
-      });
-
-
-      // ----------------------------
-      // コスト
-      // ----------------------------
-      const costs = [...new Set(
-        allCards
-          .map(card => card.cost)
-          .filter(value => value !== "")
-      )].sort((a, b) => Number(a) - Number(b));
-
-      const costFilter =
-        document.getElementById("cost-filter");
-
-      costs.forEach(cost => {
-
-        const option = document.createElement("option");
-
-        option.value = cost;
-        option.textContent = cost;
-
-        costFilter.appendChild(option);
-      });
-    }
-
-
-    // ========================================
-    // 検索・絞り込み
-    // ========================================
     function searchCards() {
 
       // ----------------------------
       // 文字検索
       // ----------------------------
-      const keyword = document
-        .getElementById("search-box")
-        .value
-        .trim()
-        .toLowerCase();
 
-
-      // ----------------------------
-      // 各条件
-      // ----------------------------
-      const cardType =
-        document.getElementById("card-type-filter").value;
-
-      const species =
-        document.getElementById("species-filter").value;
-
-      const cost =
-        document.getElementById("cost-filter").value;
-
-
-      // ----------------------------
-      // 条件に合うカードだけ残す
-      // ----------------------------
-      const filteredCards = allCards.filter(card => {
-
-        const cardName =
-          String(card.card_name || "").toLowerCase();
-
-        const reading =
-          String(card.reading || "").toLowerCase();
-
-        const effectText =
-          String(card.effect_text || "").toLowerCase();
-
-
-        // 文字検索
-        const matchesKeyword =
-          keyword === "" ||
-          cardName.includes(keyword) ||
-          reading.includes(keyword) ||
-          effectText.includes(keyword);
-
-
-        // カードタイプ
-        const matchesCardType =
-          cardType === "" ||
-          String(card.card_type) === cardType;
-
-
-        // 種属
-        const matchesSpecies =
-          species === "" ||
-          String(card.species) === species;
-
-
-        // コスト
-        const matchesCost =
-          cost === "" ||
-          String(card.cost) === cost;
-
-
-        // すべての条件を満たしたカードだけ表示
-        return (
-          matchesKeyword &&
-          matchesCardType &&
-          matchesSpecies &&
-          matchesCost
+      const keyword =
+        normalize(
+          document.getElementById("search-box").value
         );
-      });
+
+
+      // ----------------------------
+      // 各複数選択条件
+      // ----------------------------
+
+      const selectedCardTypes =
+        getSelectedValues("card-type-filter");
+
+      const selectedSpecies =
+        getSelectedValues("species-filter");
+
+      const selectedCosts =
+        getSelectedValues("cost-filter");
+
+      const selectedKeywords =
+        getSelectedValues("official-keyword-filter");
+
+      const selectedEffects =
+        getSelectedValues("official-effect-filter");
+
+
+      // ----------------------------
+      // ATK
+      // ----------------------------
+
+      const atkCondition =
+        document.getElementById("atk-condition").value;
+
+      const atkValue =
+        document.getElementById("atk-value").value;
+
+
+      // ----------------------------
+      // DEF
+      // ----------------------------
+
+      const defCondition =
+        document.getElementById("def-condition").value;
+
+      const defValue =
+        document.getElementById("def-value").value;
+
+
+      // ========================================
+      // カードを条件で絞り込む
+      // ========================================
+
+      const filteredCards =
+        allCards.filter(card => {
+
+
+          // ----------------------------
+          // 文字検索
+          // ----------------------------
+
+          const cardName =
+            normalize(card.card_name);
+
+          const reading =
+            normalize(card.reading);
+
+          const effectText =
+            normalize(card.effect_text);
+
+
+          const matchesKeyword =
+            keyword === "" ||
+            cardName.includes(keyword) ||
+            reading.includes(keyword) ||
+            effectText.includes(keyword);
+
+
+          // ----------------------------
+          // カードタイプ
+          // 同じ項目内はOR
+          // ----------------------------
+
+          const matchesCardType =
+            selectedCardTypes.length === 0 ||
+            selectedCardTypes.includes(
+              String(card.card_type)
+            );
+
+
+          // ----------------------------
+          // 種属
+          // 同じ項目内はOR
+          // ----------------------------
+
+          const matchesSpecies =
+            selectedSpecies.length === 0 ||
+            selectedSpecies.some(selected =>
+              splitValues(card.species)
+                .includes(selected)
+            );
+
+
+          // ----------------------------
+          // コスト
+          // 同じ項目内はOR
+          // ----------------------------
+
+          const matchesCost =
+            selectedCosts.length === 0 ||
+            selectedCosts.includes(
+              String(card.cost)
+            );
+
+
+          // ----------------------------
+          // ATK
+          // ----------------------------
+
+          let matchesAtk = true;
+
+          if (
+            atkCondition !== "" &&
+            atkValue !== ""
+          ) {
+
+            const atk =
+              Number(card.atk);
+
+            const value =
+              Number(atkValue);
+
+
+            if (atkCondition === "gte") {
+              matchesAtk = atk >= value;
+            }
+
+            if (atkCondition === "lte") {
+              matchesAtk = atk <= value;
+            }
+
+          }
+
+
+          // ----------------------------
+          // DEF
+          // ----------------------------
+
+          let matchesDef = true;
+
+          if (
+            defCondition !== "" &&
+            defValue !== ""
+          ) {
+
+            const def =
+              Number(card.def);
+
+            const value =
+              Number(defValue);
+
+
+            if (defCondition === "gte") {
+              matchesDef = def >= value;
+            }
+
+            if (defCondition === "lte") {
+              matchesDef = def <= value;
+            }
+
+          }
+
+
+          // ----------------------------
+          // 公式キーワード
+          // 同じ項目内はOR
+          // ----------------------------
+
+          const matchesOfficialKeyword =
+            selectedKeywords.length === 0 ||
+            selectedKeywords.some(selected =>
+              splitValues(card.official_keywords)
+                .includes(selected)
+            );
+
+
+          // ----------------------------
+          // 公式効果
+          // 同じ項目内はOR
+          // ----------------------------
+
+          const matchesOfficialEffect =
+            selectedEffects.length === 0 ||
+            selectedEffects.some(selected =>
+              splitValues(card.official_effects)
+                .includes(selected)
+            );
+
+
+          // ========================================
+          // すべての条件を満たしたカードだけ表示
+          // ========================================
+
+          return (
+            matchesKeyword &&
+            matchesCardType &&
+            matchesSpecies &&
+            matchesCost &&
+            matchesAtk &&
+            matchesDef &&
+            matchesOfficialKeyword &&
+            matchesOfficialEffect
+          );
+
+        });
 
 
       displayCards(filteredCards);
+
     }
+
+
+    // ========================================
+    // フィルターの選択肢を作成
+    // ========================================
+
+    function createFilterOptions() {
+
+      // カードタイプ
+      createMultiFilter(
+        "card-type-filter",
+        getUniqueValues(
+          allCards,
+          "card_type"
+        )
+      );
+
+
+      // 種属
+      createMultiFilter(
+        "species-filter",
+        getUniqueValues(
+          allCards,
+          "species"
+        )
+      );
+
+
+      // コスト
+      const costs =
+        getUniqueValues(
+          allCards,
+          "cost"
+        ).sort(
+          (a, b) => Number(a) - Number(b)
+        );
+
+      createMultiFilter(
+        "cost-filter",
+        costs
+      );
+
+
+      // 公式キーワード
+      createMultiFilter(
+        "official-keyword-filter",
+        getUniqueValues(
+          allCards,
+          "official_keywords"
+        )
+      );
+
+
+      // 公式効果
+      createMultiFilter(
+        "official-effect-filter",
+        getUniqueValues(
+          allCards,
+          "official_effects"
+        )
+      );
+
+    }
+
+
+    // ========================================
+    // 検索欄
+    // ========================================
+
+    document
+      .getElementById("search-box")
+      .addEventListener(
+        "input",
+        searchCards
+      );
+
+
+    // ========================================
+    // ATK / DEF
+    // ========================================
+
+    document
+      .getElementById("atk-condition")
+      .addEventListener(
+        "change",
+        searchCards
+      );
+
+    document
+      .getElementById("atk-value")
+      .addEventListener(
+        "input",
+        searchCards
+      );
+
+    document
+      .getElementById("def-condition")
+      .addEventListener(
+        "change",
+        searchCards
+      );
+
+    document
+      .getElementById("def-value")
+      .addEventListener(
+        "input",
+        searchCards
+      );
+
+
+    // ========================================
+    // リセット
+    // ========================================
+
+    document
+      .getElementById("reset-button")
+      .addEventListener(
+        "click",
+        () => {
+
+          // 文字検索
+          document.getElementById(
+            "search-box"
+          ).value = "";
+
+
+          // チェックボックス
+          document
+            .querySelectorAll(
+              ".multi-select input[type='checkbox']"
+            )
+            .forEach(checkbox => {
+              checkbox.checked = false;
+            });
+
+
+          // ATK
+          document.getElementById(
+            "atk-condition"
+          ).value = "";
+
+          document.getElementById(
+            "atk-value"
+          ).value = "";
+
+
+          // DEF
+          document.getElementById(
+            "def-condition"
+          ).value = "";
+
+          document.getElementById(
+            "def-value"
+          ).value = "";
+
+
+          // 全カード表示
+          displayCards(allCards);
+
+        }
+      );
 
 
     // ========================================
     // GASからカードデータを取得
     // ========================================
+
     function loadCards() {
 
-      window.loadCardData = function(data) {
+      window.loadCardData =
+        function(data) {
 
-        // カードデータを保存
-        allCards = data.cards;
-
-        // プルダウンを作成
-        createFilterOptions();
-
-        // 最初は全部表示
-        displayCards(allCards);
-      };
+          // カードデータを保存
+          allCards = data.cards;
 
 
-      // JSONP用scriptタグ
-      const script = document.createElement("script");
+          // 検索項目を作成
+          createFilterOptions();
 
-      script.src = API_URL + "?prefix=loadCardData";
+
+          // 最初は全カード表示
+          displayCards(allCards);
+
+        };
+
+
+      // JSONP
+      const script =
+        document.createElement("script");
+
+      script.src =
+        API_URL +
+        "?prefix=loadCardData";
+
 
       document.body.appendChild(script);
+
     }
-
-
-    // ========================================
-    // 入力・選択されたら検索
-    // ========================================
-    document
-      .getElementById("search-box")
-      .addEventListener("input", searchCards);
-
-    document
-      .getElementById("card-type-filter")
-      .addEventListener("change", searchCards);
-
-    document
-      .getElementById("species-filter")
-      .addEventListener("change", searchCards);
-
-    document
-      .getElementById("cost-filter")
-      .addEventListener("change", searchCards);
 
 
     // ========================================
     // カード読み込み開始
     // ========================================
+
     loadCards();
 
   </script>
