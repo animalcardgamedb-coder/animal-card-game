@@ -1,70 +1,84 @@
 /*
-  ========================================
-  GAS API
-  ========================================
-
-  Google Apps Scriptから
-  カードデータを取得するための処理です。
+  Google Apps Script のAPI URL
 */
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbwvFRsrFEnoZOE2GAEtv6Ihf51tb61B8Uqk_VaolPgkcH0nHC8dqY3436h7Y5L8EoRd/exec";
 
+
 /*
-  ========================================
-  GASからカードデータを取得
-  ========================================
+  カード・領地データを読み込む
 */
 
 function loadCards() {
 
   /*
-    GASから返ってきたデータを受け取る
-    関数を作ります。
-
-    GAS側では、
-
-    loadCardData({...});
-
-    という形で返してもらいます。
+    Google Apps Scriptから
+    JSONP形式でデータを受け取ります。
   */
 
   window.loadCardData =
     function(data) {
 
       /*
-        カード一覧を保存します。
+        カードデータを保存
       */
 
       appState.allCards =
-        data.cards;
+        data.cards || [];
 
-      appState.currentSearchResults =
-        data.cards;
 
       /*
-        検索条件の選択肢を作ります。
+        領地データを保存
+      */
+
+      appState.allTerritories =
+        data.territories || [];
+
+
+      /*
+        初期状態では
+        「すべて」を表示します。
+
+        そのため、カードと領地を
+        まとめたデータを作ります。
+      */
+
+      appState.allData = [
+        ...appState.allCards,
+        ...appState.allTerritories
+      ];
+
+
+      /*
+        現在の検索結果も
+        初期状態では全データです。
+      */
+
+      appState.currentSearchResults =
+        appState.allData;
+
+
+      /*
+        検索フィルターを作成します。
       */
 
       createFilterOptions();
 
+
       /*
-        最初は全カードを表示します。
+        初期表示
       */
 
       displayCards(
-        appState.allCards
+        appState.allData
       );
 
     };
 
 
   /*
-    JavaScriptファイルとして
-    GASを読み込みます。
-
-    これがJSONPを使った
-    データ取得処理です。
+    JSONP用のscript要素を作成します。
   */
 
   const script =
@@ -73,10 +87,20 @@ function loadCards() {
     );
 
 
+  /*
+    Google Apps ScriptのURLに
+    JSONP用のcallback名を付けます。
+  */
+
   script.src =
     API_URL +
     "?prefix=loadCardData";
 
+
+  /*
+    ページにscriptを追加して
+    データ取得を開始します。
+  */
 
   document.body.appendChild(
     script
