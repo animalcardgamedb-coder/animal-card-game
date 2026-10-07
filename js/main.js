@@ -4,15 +4,54 @@
 
 const appState = {
 
+  /*
+    カードだけ
+  */
+
   allCards: [],
+
+
+  /*
+    領地だけ
+  */
+
+  allTerritories: [],
+
+
+  /*
+    カード＋領地
+  */
+
+  allData: [],
+
+
+  /*
+    現在の検索結果
+  */
 
   currentSearchResults: [],
 
-  currentDisplayMode: "list",
 
   /*
-    アイコン表示の初期列数です。
-    初期状態は5列にします。
+    現在のカテゴリ
+
+    all       = すべて
+    card      = カード
+    territory = 領地
+  */
+
+  currentCategory: "all",
+
+
+  /*
+    現在の表示方法
+  */
+
+  currentDisplayMode: "list",
+
+
+  /*
+    アイコン表示の列数
   */
 
   currentIconColumns: 5
@@ -30,7 +69,7 @@ document.addEventListener(
 
     /*
       ======================================
-      各ボタンのイベントリスナー
+      検索ボタン
       ======================================
     */
 
@@ -41,12 +80,14 @@ document.addEventListener(
       openSearchModal
     );
 
+
     document.getElementById(
       "search-close-button"
     )?.addEventListener(
       "click",
       closeSearchModal
     );
+
 
     document.getElementById(
       "modal-close-button"
@@ -58,10 +99,41 @@ document.addEventListener(
 
     /*
       ======================================
-      文字検索の入力イベント
+      カテゴリ切り替え
       ======================================
+    */
 
-      入力時に即座に検索を実行します。
+    document.getElementById(
+      "category-all-button"
+    )?.addEventListener(
+      "click",
+      () =>
+        setCategory("all")
+    );
+
+
+    document.getElementById(
+      "category-card-button"
+    )?.addEventListener(
+      "click",
+      () =>
+        setCategory("card")
+    );
+
+
+    document.getElementById(
+      "category-territory-button"
+    )?.addEventListener(
+      "click",
+      () =>
+        setCategory("territory")
+    );
+
+
+    /*
+      ======================================
+      文字検索
+      ======================================
     */
 
     document.getElementById(
@@ -74,10 +146,8 @@ document.addEventListener(
 
     /*
       ======================================
-      ATK フィルターのイベント
+      ATK
       ======================================
-
-      条件選択時と数値入力時に検索を実行します。
     */
 
     document.getElementById(
@@ -86,6 +156,7 @@ document.addEventListener(
       "change",
       searchCards
     );
+
 
     document.getElementById(
       "atk-value"
@@ -97,10 +168,8 @@ document.addEventListener(
 
     /*
       ======================================
-      DEF フィルターのイベント
+      DEF
       ======================================
-
-      条件選択時と数値入力時に検索を実行します。
     */
 
     document.getElementById(
@@ -109,6 +178,7 @@ document.addEventListener(
       "change",
       searchCards
     );
+
 
     document.getElementById(
       "def-value"
@@ -120,7 +190,7 @@ document.addEventListener(
 
     /*
       ======================================
-      モーダル背景クリックで閉じる
+      モーダル背景クリック
       ======================================
     */
 
@@ -141,6 +211,7 @@ document.addEventListener(
 
       }
     );
+
 
     document.getElementById(
       "card-modal"
@@ -163,7 +234,7 @@ document.addEventListener(
 
     /*
       ======================================
-      表示方法のボタン
+      リスト／アイコン
       ======================================
     */
 
@@ -176,6 +247,7 @@ document.addEventListener(
           "list"
         )
     );
+
 
     document.getElementById(
       "icon-mode-button"
@@ -190,7 +262,7 @@ document.addEventListener(
 
     /*
       ======================================
-      アイコン列数のボタン
+      アイコン列数
       ======================================
     */
 
@@ -199,55 +271,49 @@ document.addEventListener(
     )?.addEventListener(
       "click",
       () =>
-        setIconColumns(
-          3
-        )
+        setIconColumns(3)
     );
+
 
     document.getElementById(
       "icon-5-button"
     )?.addEventListener(
       "click",
       () =>
-        setIconColumns(
-          5
-        )
+        setIconColumns(5)
     );
+
 
     document.getElementById(
       "icon-7-button"
     )?.addEventListener(
       "click",
       () =>
-        setIconColumns(
-          7
-        )
+        setIconColumns(7)
     );
+
 
     document.getElementById(
       "icon-9-button"
     )?.addEventListener(
       "click",
       () =>
-        setIconColumns(
-          9
-        )
+        setIconColumns(9)
     );
+
 
     document.getElementById(
       "icon-10-button"
     )?.addEventListener(
       "click",
       () =>
-        setIconColumns(
-          10
-        )
+        setIconColumns(10)
     );
 
 
     /*
       ======================================
-      検索条件のリセット
+      検索条件リセット
       ======================================
     */
 
@@ -259,8 +325,8 @@ document.addEventListener(
 
         document.getElementById(
           "search-box"
-        ).value =
-          "";
+        ).value = "";
+
 
         document.querySelectorAll(
           ".multi-select input[type='checkbox']"
@@ -273,28 +339,34 @@ document.addEventListener(
           }
         );
 
+
         document.getElementById(
           "atk-condition"
-        ).value =
-          "";
+        ).value = "";
+
 
         document.getElementById(
           "atk-value"
-        ).value =
-          "";
+        ).value = "";
+
 
         document.getElementById(
           "def-condition"
-        ).value =
-          "";
+        ).value = "";
+
 
         document.getElementById(
           "def-value"
-        ).value =
-          "";
+        ).value = "";
 
-        displayCards(
-          appState.allCards
+
+        /*
+          現在のカテゴリに合わせて
+          初期データを表示します。
+        */
+
+        setCategory(
+          appState.currentCategory
         );
 
       }
@@ -303,14 +375,8 @@ document.addEventListener(
 
     /*
       ======================================
-      Escapeキーでモーダルを閉じる
+      Escapeキー
       ======================================
-
-      検索モーダルが開いていれば検索モーダルを閉じる。
-      そうでなければカード詳細が開いていれば
-      カード詳細を閉じる。
-
-      という動きです。
     */
 
     document.addEventListener(
@@ -323,15 +389,18 @@ document.addEventListener(
           return;
         }
 
+
         const searchModal =
           document.getElementById(
             "search-modal"
           );
 
+
         const cardModal =
           document.getElementById(
             "card-modal"
           );
+
 
         if (
           searchModal?.style.display ===
@@ -339,9 +408,11 @@ document.addEventListener(
         ) {
 
           closeSearchModal();
+
           return;
 
         }
+
 
         if (
           cardModal?.style.display ===
@@ -366,3 +437,122 @@ document.addEventListener(
 
   }
 );
+
+
+/*
+  ======================================
+  カテゴリ変更
+  ======================================
+*/
+
+function setCategory(
+  category
+) {
+
+  /*
+    現在のカテゴリを保存
+  */
+
+  appState.currentCategory =
+    category;
+
+
+  /*
+    カテゴリボタンの一覧
+  */
+
+  const buttons = [
+
+    {
+      id: "category-all-button",
+      category: "all"
+    },
+
+    {
+      id: "category-card-button",
+      category: "card"
+    },
+
+    {
+      id: "category-territory-button",
+      category: "territory"
+    }
+
+  ];
+
+
+  /*
+    選択中のボタンだけ
+    activeにします。
+  */
+
+  buttons.forEach(
+    item => {
+
+      const button =
+        document.getElementById(
+          item.id
+        );
+
+
+      if (!button) {
+        return;
+      }
+
+
+      button.classList.toggle(
+        "active",
+        item.category === category
+      );
+
+    }
+  );
+
+
+  /*
+    カテゴリに応じて
+    使用するデータを決定します。
+  */
+
+  let data = [];
+
+
+  if (
+    category === "card"
+  ) {
+
+    data =
+      appState.allCards || [];
+
+  } else if (
+    category === "territory"
+  ) {
+
+    data =
+      appState.allTerritories || [];
+
+  } else {
+
+    data =
+      appState.allData || [];
+
+  }
+
+
+  /*
+    現在の検索結果を更新します。
+  */
+
+  appState.currentSearchResults =
+    data;
+
+
+  /*
+    画面に表示します。
+  */
+
+  displayCards(
+    data
+  );
+
+}
