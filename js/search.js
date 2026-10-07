@@ -7,23 +7,14 @@
 
 function normalize(value) {
 
-  /*
-    テキストを小文字に統一し、
-    空白を削除します。
-  */
-
   return String(value || "")
     .toLowerCase()
     .trim();
 
 }
 
-function normalizeWithFullWidth(value) {
 
-  /*
-    テキストを小文字に統一し、
-    全角スペースを半角スペースに変換します。
-  */
+function normalizeWithFullWidth(value) {
 
   return normalize(value)
     .replace(/\u3000/g, " ");
@@ -68,33 +59,33 @@ function splitValues(value) {
 /*
   フィルターの選択肢を作る
 
-  カード・領地データから、
+  指定したデータから、
   重複しない一覧を作ります。
 */
 
 function getUniqueValues(
-  cards,
+  data,
   field
 ) {
 
   const values = [];
 
-  cards.forEach(
-    card => {
+  data.forEach(
+    item => {
 
       splitValues(
-        card[field]
+        item[field]
       ).forEach(
-        item => {
+        value => {
 
           if (
             !values.includes(
-              item
+              value
             )
           ) {
 
             values.push(
-              item
+              value
             );
 
           }
@@ -205,33 +196,49 @@ function createFilterOptions() {
 
 
   /*
+    ======================================
     カードタイプ
+    ======================================
+
+    カードの「card_type」と
+    領地の「territory_type」を
+    同じフィルターにまとめます。
+
+    領地タイプは独立したフィルターには
+    しません。
   */
 
-  createMultiFilter(
-    "card-type-filter",
-    getUniqueValues(
+  const cardTypes = [
+    ...getUniqueValues(
       cards,
       "card_type"
-    )
-  );
-
-
-  /*
-    領地タイプ
-  */
-
-  createMultiFilter(
-    "territory-type-filter",
-    getUniqueValues(
+    ),
+    ...getUniqueValues(
       territories,
       "territory_type"
     )
+  ];
+
+  createMultiFilter(
+    "card-type-filter",
+    [
+      ...new Set(
+        cardTypes
+      )
+    ].sort(
+      (a, b) =>
+        a.localeCompare(
+          b,
+          "ja"
+        )
+    )
   );
 
 
   /*
+    ======================================
     種属
+    ======================================
 
     カードと領地の両方から作ります。
   */
@@ -246,7 +253,9 @@ function createFilterOptions() {
 
 
   /*
+    ======================================
     コスト
+    ======================================
 
     カードと領地の両方から作ります。
   */
@@ -279,26 +288,60 @@ function createFilterOptions() {
 
 
   /*
-    公式キーワード
+    ======================================
+    カードのキーワード能力
+    ======================================
   */
 
   createMultiFilter(
-    "official-keyword-filter",
+    "card-keyword-filter",
     getUniqueValues(
-      allData,
+      cards,
       "official_keywords"
     )
   );
 
 
   /*
-    公式効果
+    ======================================
+    領地のキーワード能力
+    ======================================
   */
 
   createMultiFilter(
-    "official-effect-filter",
+    "territory-keyword-filter",
     getUniqueValues(
-      allData,
+      territories,
+      "official_keywords"
+    )
+  );
+
+
+  /*
+    ======================================
+    カードの効果分類
+    ======================================
+  */
+
+  createMultiFilter(
+    "card-effect-filter",
+    getUniqueValues(
+      cards,
+      "official_effects"
+    )
+  );
+
+
+  /*
+    ======================================
+    領地の効果分類
+    ======================================
+  */
+
+  createMultiFilter(
+    "territory-effect-filter",
+    getUniqueValues(
+      territories,
       "official_effects"
     )
   );
@@ -409,21 +452,8 @@ function searchCards() {
 
   /*
     ======================================
-    文字検索の入力を取得
+    文字検索
     ======================================
-
-    全角スペースを半角スペースに
-    変換します。
-
-    これによって、
-
-    猫　犬
-
-    と入力しても、
-
-    猫 犬
-
-    と同じように検索できます。
   */
 
   const keywordInput =
@@ -448,12 +478,7 @@ function searchCards() {
 
 
   /*
-    ======================================
-    プラス検索とマイナス検索を分ける
-    ======================================
-
-    マイナス検索は、
-    先頭が「-」の検索語です。
+    プラス検索
   */
 
   const includeTerms =
@@ -468,6 +493,11 @@ function searchCards() {
             term
           )
       );
+
+
+  /*
+    マイナス検索
+  */
 
   const excludeTerms =
     searchTerms
@@ -485,18 +515,13 @@ function searchCards() {
 
   /*
     ======================================
-    複数選択フィルターの値を取得
+    複数選択フィルター
     ======================================
   */
 
   const selectedCardTypes =
     getSelectedValues(
       "card-type-filter"
-    );
-
-  const selectedTerritoryTypes =
-    getSelectedValues(
-      "territory-type-filter"
     );
 
   const selectedSpecies =
@@ -509,20 +534,50 @@ function searchCards() {
       "cost-filter"
     );
 
-  const selectedOfficialKeywords =
+
+  /*
+    カード用キーワード能力
+  */
+
+  const selectedCardKeywords =
     getSelectedValues(
-      "official-keyword-filter"
+      "card-keyword-filter"
     );
 
-  const selectedOfficialEffects =
+
+  /*
+    領地用キーワード能力
+  */
+
+  const selectedTerritoryKeywords =
     getSelectedValues(
-      "official-effect-filter"
+      "territory-keyword-filter"
+    );
+
+
+  /*
+    カード用効果分類
+  */
+
+  const selectedCardEffects =
+    getSelectedValues(
+      "card-effect-filter"
+    );
+
+
+  /*
+    領地用効果分類
+  */
+
+  const selectedTerritoryEffects =
+    getSelectedValues(
+      "territory-effect-filter"
     );
 
 
   /*
     ======================================
-    ATK・DEFの条件を取得
+    ATK・DEFの条件
     ======================================
   */
 
@@ -587,12 +642,6 @@ function searchCards() {
           =================================
           文字検索
           =================================
-
-          カード：
-          カード名・読み・効果テキスト
-
-          領地：
-          領地名・読み・効果テキスト
         */
 
         const name =
@@ -620,11 +669,6 @@ function searchCards() {
           effectText;
 
 
-        /*
-          プラス検索。
-          すべての検索語を含む必要があります。
-        */
-
         const matchesInclude =
           includeTerms.every(
             term =>
@@ -633,12 +677,6 @@ function searchCards() {
               )
           );
 
-
-        /*
-          マイナス検索。
-          マイナス検索の単語を
-          含まない必要があります。
-        */
 
         const matchesExclude =
           excludeTerms.every(
@@ -651,37 +689,31 @@ function searchCards() {
 
         /*
           =================================
-          カードタイプ・領地タイプ
+          カードタイプ
           =================================
 
-          カードタイプはカードにだけ適用。
+          カード：
+          card_type
 
-          領地タイプは領地にだけ適用。
+          領地：
+          territory_type
+
+          のどちらも
+          「カードタイプ」として扱います。
         */
 
-        let matchesType = true;
+        const itemType =
+          territory
+            ? item.territory_type
+            : item.card_type;
 
-        if (territory) {
-
-          matchesType =
-            selectedTerritoryTypes.length === 0 ||
-            selectedTerritoryTypes.includes(
-              String(
-                item.territory_type
-              )
-            );
-
-        } else {
-
-          matchesType =
-            selectedCardTypes.length === 0 ||
-            selectedCardTypes.includes(
-              String(
-                item.card_type
-              )
-            );
-
-        }
+        const matchesType =
+          selectedCardTypes.length === 0 ||
+          selectedCardTypes.includes(
+            String(
+              itemType
+            )
+          );
 
 
         /*
@@ -719,13 +751,28 @@ function searchCards() {
 
         /*
           =================================
-          公式キーワード
+          キーワード能力
           =================================
+
+          カードを検索するときは
+          カード用フィルターだけを使用。
+
+          領地を検索するときは
+          領地用フィルターだけを使用。
+
+          これによって、
+          カードと領地のキーワードが
+          混ざりません。
         */
 
-        const matchesOfficialKeyword =
-          selectedOfficialKeywords.length === 0 ||
-          selectedOfficialKeywords.some(
+        const selectedKeywords =
+          territory
+            ? selectedTerritoryKeywords
+            : selectedCardKeywords;
+
+        const matchesKeyword =
+          selectedKeywords.length === 0 ||
+          selectedKeywords.some(
             selected =>
               splitValues(
                 item.official_keywords
@@ -737,13 +784,21 @@ function searchCards() {
 
         /*
           =================================
-          公式効果
+          効果分類
           =================================
+
+          キーワード能力と同様に、
+          カードと領地を分けて扱います。
         */
 
-        const matchesOfficialEffect =
-          selectedOfficialEffects.length === 0 ||
-          selectedOfficialEffects.some(
+        const selectedEffects =
+          territory
+            ? selectedTerritoryEffects
+            : selectedCardEffects;
+
+        const matchesEffect =
+          selectedEffects.length === 0 ||
+          selectedEffects.some(
             selected =>
               splitValues(
                 item.official_effects
@@ -757,12 +812,6 @@ function searchCards() {
           =================================
           ATK・DEF
           =================================
-
-          ATK・DEFはカードにだけ存在します。
-
-          「すべて」でATK/DEFを指定した場合、
-          ATK/DEFを持たない領地は
-          検索結果から除外します。
         */
 
         let matchesAtk = true;
@@ -885,8 +934,8 @@ function searchCards() {
           matchesType &&
           matchesSpecies &&
           matchesCost &&
-          matchesOfficialKeyword &&
-          matchesOfficialEffect &&
+          matchesKeyword &&
+          matchesEffect &&
           matchesAtk &&
           matchesDef
         );
