@@ -57,6 +57,68 @@ document.addEventListener(
 
     /*
       ======================================
+      文字検索の入力イベント
+      ======================================
+
+      入力時に即座に検索を実行します。
+    */
+
+    document.getElementById(
+      "search-box"
+    )?.addEventListener(
+      "input",
+      searchCards
+    );
+
+
+    /*
+      ======================================
+      ATK フィルターのイベント
+      ======================================
+
+      条件選択時と数値入力時に検索を実行します。
+    */
+
+    document.getElementById(
+      "atk-condition"
+    )?.addEventListener(
+      "change",
+      searchCards
+    );
+
+    document.getElementById(
+      "atk-value"
+    )?.addEventListener(
+      "input",
+      searchCards
+    );
+
+
+    /*
+      ======================================
+      DEF フィルターのイベント
+      ======================================
+
+      条件選択時と数値入力時に検索を実行します。
+    */
+
+    document.getElementById(
+      "def-condition"
+    )?.addEventListener(
+      "change",
+      searchCards
+    );
+
+    document.getElementById(
+      "def-value"
+    )?.addEventListener(
+      "input",
+      searchCards
+    );
+
+
+    /*
+      ======================================
       モーダル背景クリックで閉じる
       ======================================
     */
