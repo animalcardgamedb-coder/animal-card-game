@@ -1,12 +1,32 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>アニマルカードゲーム カード検索</title>
-  <link rel="stylesheet" href="css/style.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    アニマルカードゲーム カード検索
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="css/style.css"
+  >
+
 </head>
+
+
 <body>
+
+  <!--
+    検索を開くボタン
+  -->
 
   <button
     id="search-open-button"
@@ -16,14 +36,63 @@
     🔍
   </button>
 
+
   <div id="card-search">
 
-    <h1>アニマルカードゲーム カード検索</h1>
+    <h1>
+      アニマルカードゲーム カード検索
+    </h1>
+
+
+    <!--
+      カテゴリ切り替え
+    -->
+
+    <div id="category-controls">
+
+      <div class="display-control-group">
+
+        <span>
+          種類：
+        </span>
+
+        <button
+          id="category-all-button"
+          class="display-button active"
+        >
+          すべて
+        </button>
+
+        <button
+          id="category-card-button"
+          class="display-button"
+        >
+          カード
+        </button>
+
+        <button
+          id="category-territory-button"
+          class="display-button"
+        >
+          領地
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!--
+      表示方法・アイコン列数
+    -->
 
     <div id="display-controls">
 
       <div class="display-control-group">
-        <span>表示：</span>
+
+        <span>
+          表示：
+        </span>
 
         <button
           id="list-mode-button"
@@ -38,14 +107,19 @@
         >
           アイコン
         </button>
+
       </div>
+
 
       <div
         id="icon-size-controls"
         class="display-control-group"
         style="display: none;"
       >
-        <span>列数：</span>
+
+        <span>
+          列数：
+        </span>
 
         <button
           id="icon-3-button"
@@ -81,18 +155,28 @@
         >
           10列
         </button>
+
       </div>
 
     </div>
 
+
     <div id="result-count"></div>
 
-    <div id="card-list" class="list-mode">
+
+    <div
+      id="card-list"
+      class="list-mode"
+    >
       読み込み中……
     </div>
 
   </div>
 
+
+  <!--
+    検索モーダル
+  -->
 
   <div id="search-modal">
 
@@ -105,9 +189,11 @@
         ×
       </button>
 
+
       <h2 id="search-modal-title">
         カード検索
       </h2>
+
 
       <div class="filter">
 
@@ -137,7 +223,8 @@
         <div
           id="card-type-filter"
           class="multi-select"
-        ></div>
+        >
+        </div>
 
       </div>
 
@@ -151,7 +238,8 @@
         <div
           id="species-filter"
           class="multi-select"
-        ></div>
+        >
+        </div>
 
       </div>
 
@@ -165,7 +253,8 @@
         <div
           id="cost-filter"
           class="multi-select"
-        ></div>
+        >
+        </div>
 
       </div>
 
@@ -193,6 +282,7 @@
             </option>
 
           </select>
+
 
           <input
             type="number"
@@ -229,6 +319,7 @@
 
           </select>
 
+
           <input
             type="number"
             id="def-value"
@@ -249,7 +340,8 @@
         <div
           id="official-keyword-filter"
           class="multi-select"
-        ></div>
+        >
+        </div>
 
       </div>
 
@@ -263,7 +355,8 @@
         <div
           id="official-effect-filter"
           class="multi-select"
-        ></div>
+        >
+        </div>
 
       </div>
 
@@ -280,6 +373,10 @@
   </div>
 
 
+  <!--
+    カード詳細モーダル
+  -->
+
   <div id="card-modal">
 
     <div id="card-modal-content">
@@ -291,83 +388,126 @@
         ×
       </button>
 
+
       <img
         id="detail-image"
         src=""
         alt=""
       >
 
+
       <h2 id="detail-name"></h2>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           カードID：
         </span>
+
         <span id="detail-id"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           読み：
         </span>
+
         <span id="detail-reading"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           コスト：
         </span>
+
         <span id="detail-cost"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           カードタイプ：
         </span>
+
         <span id="detail-type"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           種属：
         </span>
+
         <span id="detail-species"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           ATK：
         </span>
+
         <span id="detail-atk"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           DEF：
         </span>
+
         <span id="detail-def"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           効果：
         </span>
+
         <div id="detail-effect"></div>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           公式キーワード：
         </span>
+
         <span id="detail-keywords"></span>
+
       </div>
 
+
       <div class="detail-row">
+
         <span class="detail-label">
           公式効果：
         </span>
+
         <span id="detail-effects"></span>
+
       </div>
+
 
       <div class="detail-row">
 
@@ -391,10 +531,18 @@
   </div>
 
 
+  <!--
+    JavaScript
+  -->
+
   <script src="js/api.js"></script>
+
   <script src="js/search.js"></script>
+
   <script src="js/display.js"></script>
+
   <script src="js/main.js"></script>
 
 </body>
+
 </html>
