@@ -1,87 +1,6 @@
-/*
-  ========================================
-  アイコンの列数を計算
-  ========================================
-
-  PCとスマートフォンで、
-  アイコンの列数が違います。
-*/
-
-function calculateIconColumns() {
-
-  const width =
-    window.innerWidth;
-
-  const currentSize =
-    appState.currentIconSize;
-
-  /*
-    ======================================
-    スマートフォン（600px以下）
-    ======================================
+ /*
+  アイコンの列数を適用
   */
-
-  if (width <= 600) {
-
-    if (currentSize === "small") {
-      return 3;
-    }
-
-    if (currentSize === "large") {
-      return 2;
-    }
-
-    return 3;
-
-  }
-
-  /*
-    ======================================
-    タブレット（600px～900px）
-    ======================================
-  */
-
-  if (width <= 900) {
-
-    if (currentSize === "small") {
-      return 4;
-    }
-
-    if (currentSize === "large") {
-      return 3;
-    }
-
-    return 4;
-
-  }
-
-  /*
-    ======================================
-    PC（900px以上）
-    ======================================
-  */
-
-  if (currentSize === "small") {
-    return 7;
-  }
-
-  if (currentSize === "large") {
-    return 4;
-  }
-
-  return 5;
-
-}
-
-
-/*
-  ========================================
-  アイコングリッドを適用
-  ========================================
-
-  アイコン表示で、
-  列数を決めます。
-*/
 
 function applyIconGrid() {
 
@@ -104,8 +23,16 @@ function applyIconGrid() {
     return;
   }
 
+  /*
+    現在選択されている列数を取得します。
+  */
+
   const columns =
-    calculateIconColumns();
+    appState.currentIconColumns;
+
+  /*
+    アイコン表示の列数を設定します。
+  */
 
   cardList.style.gridTemplateColumns =
     `repeat(${columns}, minmax(0, 1fr))`;
@@ -114,12 +41,10 @@ function applyIconGrid() {
 
 
 /*
-  ========================================
   カード一覧を表示する
-  ========================================
 
   検索結果を画面に表示します。
-*/
+  */
 
 function displayCards(
   cards
@@ -322,10 +247,8 @@ function displayCards(
 
 
 /*
-  ========================================
   カード詳細を表示
-  ========================================
-*/
+  */
 
 function showCardDetail(
   card
@@ -457,10 +380,8 @@ function showCardDetail(
 
 
 /*
-  ========================================
   カード詳細を閉じる
-  ========================================
-*/
+  */
 
 function closeCardDetail() {
 
@@ -483,10 +404,8 @@ function closeCardDetail() {
 
 
 /*
-  ========================================
   検索モーダルを開く
-  ========================================
-*/
+  */
 
 function openSearchModal() {
 
@@ -509,10 +428,8 @@ function openSearchModal() {
 
 
 /*
-  ========================================
   検索モーダルを閉じる
-  ========================================
-*/
+  */
 
 function closeSearchModal() {
 
@@ -536,7 +453,8 @@ function closeSearchModal() {
   if (
     document.getElementById(
       "card-modal"
-    )?.style.display !== "block"
+    )?.style.display !==
+    "block"
   ) {
 
     document.body.style.overflow =
@@ -548,10 +466,8 @@ function closeSearchModal() {
 
 
 /*
-  ========================================
   表示方法を変更
-  ========================================
-*/
+  */
 
 function setDisplayMode(
   mode
@@ -590,7 +506,7 @@ function setDisplayMode(
   );
 
   /*
-    サイズ選択を表示・非表示。
+    列数選択を表示・非表示。
   */
 
   if (sizeControls) {
@@ -612,49 +528,82 @@ function setDisplayMode(
 
 
 /*
-  ========================================
-  アイコンサイズを変更
-  ========================================
-*/
+  アイコンの列数を変更
+  */
 
-function setIconSize(
-  size
+function setIconColumns(
+  columns
 ) {
 
-  appState.currentIconSize =
-    size;
+  /*
+    選択された列数を保存します。
+  */
+
+  appState.currentIconColumns =
+    columns;
+
+  /*
+    列数ボタンの一覧です。
+  */
 
   const buttons = [
-    document.getElementById(
-      "icon-small-button"
-    ),
-    document.getElementById(
-      "icon-medium-button"
-    ),
-    document.getElementById(
-      "icon-large-button"
-    )
+
+    {
+      id: "icon-3-button",
+      columns: 3
+    },
+
+    {
+      id: "icon-5-button",
+      columns: 5
+    },
+
+    {
+      id: "icon-7-button",
+      columns: 7
+    },
+
+    {
+      id: "icon-9-button",
+      columns: 9
+    },
+
+    {
+      id: "icon-10-button",
+      columns: 10
+    }
+
   ];
 
+  /*
+    選択中のボタンだけ
+    activeにします。
+  */
+
   buttons.forEach(
-    button => {
+    item => {
+
+      const button =
+        document.getElementById(
+          item.id
+        );
 
       if (!button) {
         return;
       }
 
-      const buttonSize =
-        button.id
-          .replace("icon-", "")
-          .replace("-button", "");
-
       button.classList.toggle(
         "active",
-        buttonSize === size
+        item.columns === columns
       );
 
     }
   );
+
+  /*
+    現在アイコン表示中なら、
+    すぐに列数を反映します。
+  */
 
   if (
     appState.currentDisplayMode ===
