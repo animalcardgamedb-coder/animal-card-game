@@ -1,35 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <!--
-    スマートフォンでも画面幅に合わせて表示するための設定です。
-  -->
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>
-    アニマルカードゲーム カード検索
-  </title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アニマルカードゲーム カード検索</title>
   <link rel="stylesheet" href="css/style.css">
-
 </head>
-
-
 <body>
-
-
-  <!--
-    ========================================
-    右上の検索ボタン
-    ========================================
-  -->
 
   <button
     id="search-open-button"
@@ -39,48 +16,14 @@
     🔍
   </button>
 
-
-  <!--
-    ========================================
-    メイン画面
-    ========================================
-  -->
-
   <div id="card-search">
 
-
-    <h1>
-      アニマルカードゲーム カード検索
-    </h1>
-
-
-    <!--
-      ======================================
-      表示方法の変更
-      ======================================
-
-      「リスト」
-      「アイコン」
-
-      を切り替えます。
-
-      アイコンを選ぶと、
-      その下に
-
-      「小・中・大」
-
-      が表示されます。
-    -->
+    <h1>アニマルカードゲーム カード検索</h1>
 
     <div id="display-controls">
 
-
       <div class="display-control-group">
-
-        <span>
-          表示：
-        </span>
-
+        <span>表示：</span>
 
         <button
           id="list-mode-button"
@@ -89,86 +32,71 @@
           リスト
         </button>
 
-
         <button
           id="icon-mode-button"
           class="display-button"
         >
           アイコン
         </button>
-
       </div>
 
-
-      <div id="icon-size-controls" class="display-control-group" style="display: none;">
-
-        <span>
-          サイズ：
-        </span>
+      <div
+        id="icon-size-controls"
+        class="display-control-group"
+        style="display: none;"
+      >
+        <span>列数：</span>
 
         <button
-          id="icon-small-button"
+          id="icon-3-button"
           class="display-button"
         >
-          小
+          3列
         </button>
 
         <button
-          id="icon-medium-button"
+          id="icon-5-button"
           class="display-button active"
         >
-          中
+          5列
         </button>
 
         <button
-          id="icon-large-button"
+          id="icon-7-button"
           class="display-button"
         >
-          大
+          7列
         </button>
 
+        <button
+          id="icon-9-button"
+          class="display-button"
+        >
+          9列
+        </button>
+
+        <button
+          id="icon-10-button"
+          class="display-button"
+        >
+          10列
+        </button>
       </div>
 
     </div>
 
-
     <div id="result-count"></div>
 
-
-    <!--
-      カード一覧。
-
-      JavaScriptによって、
-      ここにカードが追加されます。
-    -->
-
-    <div
-      id="card-list"
-      class="list-mode"
-    >
-
+    <div id="card-list" class="list-mode">
       読み込み中……
-
     </div>
 
   </div>
 
 
-  <!--
-    ========================================
-    検索モーダル
-    ========================================
-  -->
-
   <div id="search-modal">
 
-
     <div id="search-modal-content">
-
-
-      <!--
-        検索画面を閉じる「×」。
-      -->
 
       <button
         id="search-close-button"
@@ -177,30 +105,9 @@
         ×
       </button>
 
-
       <h2 id="search-modal-title">
         カード検索
       </h2>
-
-
-      <!--
-        ======================================
-        文字検索
-        ======================================
-
-        カード名・読み・効果テキストを検索します。
-
-        例：
-
-        猫
-        → 猫を含むカード
-
-        猫 犬
-        → 猫「かつ」犬を含むカード
-
-        猫 -犬
-        → 猫を含む「かつ」犬を含まないカード
-      -->
 
       <div class="filter">
 
@@ -221,29 +128,19 @@
       </div>
 
 
-      <!--
-        ======================================
-        カードタイプフィルター
-        ======================================
-      -->
-
       <div class="filter">
 
         <div class="filter-title">
           カードタイプ
         </div>
 
-        <div id="card-type-filter" class="multi-select">
-        </div>
+        <div
+          id="card-type-filter"
+          class="multi-select"
+        ></div>
 
       </div>
 
-
-      <!--
-        ======================================
-        種属フィルター
-        ======================================
-      -->
 
       <div class="filter">
 
@@ -251,17 +148,13 @@
           種属
         </div>
 
-        <div id="species-filter" class="multi-select">
-        </div>
+        <div
+          id="species-filter"
+          class="multi-select"
+        ></div>
 
       </div>
 
-
-      <!--
-        ======================================
-        コストフィルター
-        ======================================
-      -->
 
       <div class="filter">
 
@@ -269,17 +162,13 @@
           コスト
         </div>
 
-        <div id="cost-filter" class="multi-select">
-        </div>
+        <div
+          id="cost-filter"
+          class="multi-select"
+        ></div>
 
       </div>
 
-
-      <!--
-        ======================================
-        ATKフィルター
-        ======================================
-      -->
 
       <div class="filter">
 
@@ -290,15 +179,19 @@
         <div class="number-filter">
 
           <select id="atk-condition">
+
             <option value="">
               指定なし
             </option>
+
             <option value="gte">
               以上
             </option>
+
             <option value="lte">
               以下
             </option>
+
           </select>
 
           <input
@@ -312,12 +205,6 @@
       </div>
 
 
-      <!--
-        ======================================
-        DEFフィルター
-        ======================================
-      -->
-
       <div class="filter">
 
         <div class="filter-title">
@@ -327,15 +214,19 @@
         <div class="number-filter">
 
           <select id="def-condition">
+
             <option value="">
               指定なし
             </option>
+
             <option value="gte">
               以上
             </option>
+
             <option value="lte">
               以下
             </option>
+
           </select>
 
           <input
@@ -349,29 +240,19 @@
       </div>
 
 
-      <!--
-        ======================================
-        公式キーワードフィルター
-        ======================================
-      -->
-
       <div class="filter">
 
         <div class="filter-title">
           公式キーワード
         </div>
 
-        <div id="official-keyword-filter" class="multi-select">
-        </div>
+        <div
+          id="official-keyword-filter"
+          class="multi-select"
+        ></div>
 
       </div>
 
-
-      <!--
-        ======================================
-        公式効果フィルター
-        ======================================
-      -->
 
       <div class="filter">
 
@@ -379,39 +260,29 @@
           公式効果
         </div>
 
-        <div id="official-effect-filter" class="multi-select">
-        </div>
+        <div
+          id="official-effect-filter"
+          class="multi-select"
+        ></div>
 
       </div>
 
 
-      <!--
-        検索条件をリセット
-      -->
-
-      <button id="reset-button" type="button">
+      <button
+        id="reset-button"
+        type="button"
+      >
         検索条件をリセット
       </button>
-
 
     </div>
 
   </div>
 
 
-  <!--
-    ========================================
-    カード詳細モーダル
-    ========================================
-  -->
-
   <div id="card-modal">
 
     <div id="card-modal-content">
-
-      <!--
-        詳細画面を閉じる「×」。
-      -->
 
       <button
         id="modal-close-button"
@@ -420,127 +291,82 @@
         ×
       </button>
 
-
-      <!--
-        カードの画像。
-      -->
-
       <img
         id="detail-image"
         src=""
         alt=""
       >
 
-
-      <!--
-        カードの名前。
-      -->
-
       <h2 id="detail-name"></h2>
 
-
-      <!--
-        カード情報。
-      -->
-
       <div class="detail-row">
-
         <span class="detail-label">
           カードID：
         </span>
-
         <span id="detail-id"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           読み：
         </span>
-
         <span id="detail-reading"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           コスト：
         </span>
-
         <span id="detail-cost"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           カードタイプ：
         </span>
-
         <span id="detail-type"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           種属：
         </span>
-
         <span id="detail-species"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           ATK：
         </span>
-
         <span id="detail-atk"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           DEF：
         </span>
-
         <span id="detail-def"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           効果：
         </span>
-
         <div id="detail-effect"></div>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           公式キーワード：
         </span>
-
         <span id="detail-keywords"></span>
-
       </div>
 
       <div class="detail-row">
-
         <span class="detail-label">
           公式効果：
         </span>
-
         <span id="detail-effects"></span>
-
       </div>
 
       <div class="detail-row">
@@ -571,5 +397,4 @@
   <script src="js/main.js"></script>
 
 </body>
-
 </html>
