@@ -191,9 +191,13 @@
 
 
       <h2 id="search-modal-title">
-        カード検索
+        カード・領地検索
       </h2>
 
+
+      <!--
+        文字検索
+      -->
 
       <div class="filter">
 
@@ -214,6 +218,14 @@
       </div>
 
 
+      <!--
+        カードタイプ
+
+        カードの「カードタイプ」と
+        領地の「領地タイプ」を
+        ここにまとめて表示します。
+      -->
+
       <div class="filter">
 
         <div class="filter-title">
@@ -230,23 +242,8 @@
 
 
       <!--
-        領地タイプ
+        種属
       -->
-
-      <div class="filter">
-
-        <div class="filter-title">
-          領地タイプ
-        </div>
-
-        <div
-          id="territory-type-filter"
-          class="multi-select"
-        >
-        </div>
-
-      </div>
-
 
       <div class="filter">
 
@@ -263,6 +260,10 @@
       </div>
 
 
+      <!--
+        コスト
+      -->
+
       <div class="filter">
 
         <div class="filter-title">
@@ -277,6 +278,10 @@
 
       </div>
 
+
+      <!--
+        ATK
+      -->
 
       <div class="filter">
 
@@ -314,6 +319,10 @@
       </div>
 
 
+      <!--
+        DEF
+      -->
+
       <div class="filter">
 
         <div class="filter-title">
@@ -350,14 +359,18 @@
       </div>
 
 
+      <!--
+        カード：キーワード能力
+      -->
+
       <div class="filter">
 
         <div class="filter-title">
-          公式キーワード
+          カード：キーワード能力
         </div>
 
         <div
-          id="official-keyword-filter"
+          id="card-keyword-filter"
           class="multi-select"
         >
         </div>
@@ -365,20 +378,66 @@
       </div>
 
 
+      <!--
+        領地：キーワード能力
+      -->
+
       <div class="filter">
 
         <div class="filter-title">
-          公式効果
+          領地：キーワード能力
         </div>
 
         <div
-          id="official-effect-filter"
+          id="territory-keyword-filter"
           class="multi-select"
         >
         </div>
 
       </div>
 
+
+      <!--
+        カード：効果分類
+      -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          カード：効果分類
+        </div>
+
+        <div
+          id="card-effect-filter"
+          class="multi-select"
+        >
+        </div>
+
+      </div>
+
+
+      <!--
+        領地：効果分類
+      -->
+
+      <div class="filter">
+
+        <div class="filter-title">
+          領地：効果分類
+        </div>
+
+        <div
+          id="territory-effect-filter"
+          class="multi-select"
+        >
+        </div>
+
+      </div>
+
+
+      <!--
+        検索条件リセット
+      -->
 
       <button
         id="reset-button"
@@ -393,7 +452,7 @@
 
 
   <!--
-    カード詳細モーダル
+    カード・領地詳細モーダル
   -->
 
   <div id="card-modal">
@@ -509,7 +568,7 @@
       <div class="detail-row">
 
         <span class="detail-label">
-          公式キーワード：
+          キーワード能力：
         </span>
 
         <span id="detail-keywords"></span>
@@ -520,7 +579,7 @@
       <div class="detail-row">
 
         <span class="detail-label">
-          公式効果：
+          効果分類：
         </span>
 
         <span id="detail-effects"></span>
