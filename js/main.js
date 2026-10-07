@@ -1,36 +1,30 @@
- /*
+/*
+  ======================================
   アプリケーション状態
-  */
+  ======================================
+*/
 
 const appState = {
 
   /*
     カードだけ
   */
-
   allCards: [],
-
 
   /*
     領地だけ
   */
-
   allTerritories: [],
-
 
   /*
     カード＋領地
   */
-
   allData: [],
-
 
   /*
     現在の検索結果
   */
-
   currentSearchResults: [],
-
 
   /*
     現在のカテゴリ
@@ -39,33 +33,31 @@ const appState = {
     card      = カード
     territory = 領地
   */
-
   currentCategory: "all",
-
 
   /*
     現在の表示方法
   */
-
   currentDisplayMode: "list",
-
 
   /*
     アイコン表示の列数
   */
-
   currentIconColumns: 5
 
 };
 
 
 /*
+  ======================================
   DOMコンテンツロード時の初期化
-  */
+  ======================================
+*/
 
 document.addEventListener(
   "DOMContentLoaded",
   () => {
+
 
     /*
       ======================================
@@ -362,7 +354,7 @@ document.addEventListener(
 
         /*
           現在のカテゴリに合わせて
-          初期データを表示します。
+          検索をやり直します。
         */
 
         setCategory(
@@ -429,7 +421,7 @@ document.addEventListener(
 
     /*
       ======================================
-      カードデータを読み込む
+      カード・領地データを読み込む
       ======================================
     */
 
@@ -510,49 +502,33 @@ function setCategory(
 
 
   /*
-    カテゴリに応じて
-    使用するデータを決定します。
+    ======================================
+    現在の検索条件を維持したまま
+    カテゴリに応じて再検索します。
+    ======================================
+
+    以前はここで、
+
+    appState.allCards
+    appState.allTerritories
+    appState.allData
+
+    をそのまま表示していました。
+
+    そのため、
+
+    「火」
+
+    と検索したあとに
+    「領地」を押すと、
+    「火」という検索条件が
+    無視されていました。
+
+    今回は searchCards() を呼ぶことで、
+    現在入力されている検索条件を
+    そのまま使って再検索します。
   */
 
-  let data = [];
-
-
-  if (
-    category === "card"
-  ) {
-
-    data =
-      appState.allCards || [];
-
-  } else if (
-    category === "territory"
-  ) {
-
-    data =
-      appState.allTerritories || [];
-
-  } else {
-
-    data =
-      appState.allData || [];
-
-  }
-
-
-  /*
-    現在の検索結果を更新します。
-  */
-
-  appState.currentSearchResults =
-    data;
-
-
-  /*
-    画面に表示します。
-  */
-
-  displayCards(
-    data
-  );
+  searchCards();
 
 }
