@@ -1,8 +1,6 @@
-/*
-  ========================================
+ /*
   アプリケーション状態
-  ========================================
-*/
+  */
 
 const appState = {
 
@@ -12,16 +10,19 @@ const appState = {
 
   currentDisplayMode: "list",
 
-  currentIconSize: "medium"
+  /*
+    アイコン表示の初期列数です。
+    初期状態は5列にします。
+  */
+
+  currentIconColumns: 5
 
 };
 
 
 /*
-  ========================================
   DOMコンテンツロード時の初期化
-  ========================================
-*/
+  */
 
 document.addEventListener(
   "DOMContentLoaded",
@@ -189,37 +190,57 @@ document.addEventListener(
 
     /*
       ======================================
-      アイコンサイズのボタン
+      アイコン列数のボタン
       ======================================
     */
 
     document.getElementById(
-      "icon-small-button"
+      "icon-3-button"
     )?.addEventListener(
       "click",
       () =>
-        setIconSize(
-          "small"
+        setIconColumns(
+          3
         )
     );
 
     document.getElementById(
-      "icon-medium-button"
+      "icon-5-button"
     )?.addEventListener(
       "click",
       () =>
-        setIconSize(
-          "medium"
+        setIconColumns(
+          5
         )
     );
 
     document.getElementById(
-      "icon-large-button"
+      "icon-7-button"
     )?.addEventListener(
       "click",
       () =>
-        setIconSize(
-          "large"
+        setIconColumns(
+          7
+        )
+    );
+
+    document.getElementById(
+      "icon-9-button"
+    )?.addEventListener(
+      "click",
+      () =>
+        setIconColumns(
+          9
+        )
+    );
+
+    document.getElementById(
+      "icon-10-button"
+    )?.addEventListener(
+      "click",
+      () =>
+        setIconColumns(
+          10
         )
     );
 
@@ -330,26 +351,6 @@ document.addEventListener(
           closeCardDetail();
 
         }
-
-      }
-    );
-
-
-    /*
-      ======================================
-      ウィンドウサイズ変更時のアイコン列数調整
-      ======================================
-
-      スマホを横向きにしたり、
-      PCのブラウザ幅を変更した場合に
-      アイコンの列数を計算し直します。
-    */
-
-    window.addEventListener(
-      "resize",
-      () => {
-
-        applyIconGrid();
 
       }
     );
