@@ -1,18 +1,11 @@
- /*
+/*
   アイコンの列数を適用
-  */
-
+*/
 function applyIconGrid() {
-
   const cardList =
     document.getElementById(
       "card-list"
     );
-
-  /*
-    現在アイコン表示でなければ、
-    この処理は必要ありません。
-  */
 
   if (
     !cardList ||
@@ -23,33 +16,20 @@ function applyIconGrid() {
     return;
   }
 
-  /*
-    現在選択されている列数を取得します。
-  */
-
   const columns =
     appState.currentIconColumns;
 
-  /*
-    アイコン表示の列数を設定します。
-  */
-
   cardList.style.gridTemplateColumns =
     `repeat(${columns}, minmax(0, 1fr))`;
-
 }
 
 
 /*
-  カード一覧を表示する
-
-  検索結果を画面に表示します。
-  */
-
+  カード・領地一覧を表示する
+*/
 function displayCards(
   cards
 ) {
-
   const cardList =
     document.getElementById(
       "card-list"
@@ -73,26 +53,19 @@ function displayCards(
     `検索結果：${cards.length}件`;
 
   if (cards.length === 0) {
-
     cardList.innerHTML =
-      "<p>該当するカードがありません。</p>";
-
+      "<p>該当するデータがありません。</p>";
     return;
-
   }
 
 
   /*
-    ======================================
     リスト表示
-    ======================================
   */
-
   if (
     appState.currentDisplayMode ===
     "list"
   ) {
-
     cardList.className =
       "list-mode";
 
@@ -100,7 +73,47 @@ function displayCards(
       "";
 
     cards.forEach(
-      card => {
+      item => {
+
+        /*
+          領地かどうかを判定
+        */
+        const territory =
+          Boolean(
+            item.territory_id
+          );
+
+        /*
+          表示する名前
+        */
+        const name =
+          territory
+            ? item.territory_name
+            : item.card_name;
+
+        /*
+          表示するタイプ
+        */
+        const type =
+          territory
+            ? item.territory_type
+            : item.card_type;
+
+        /*
+          ATK・DEFはカードだけ表示
+        */
+        const statsHtml =
+          territory
+            ? ""
+            : `
+              <p>
+                ATK：
+                ${item.atk}
+                ／
+                DEF：
+                ${item.def}
+              </p>
+            `;
 
         const cardElement =
           document.createElement(
@@ -111,13 +124,12 @@ function displayCards(
           "card list-card";
 
         cardElement.innerHTML = `
-
           ${
-            card.image_url
+            item.image_url
               ? `
                 <img
-                  src="${card.image_url}"
-                  alt="${card.card_name}"
+                  src="${item.image_url}"
+                  alt="${name}"
                   class="list-card-image"
                 >
               `
@@ -127,50 +139,43 @@ function displayCards(
           <div class="list-card-info">
 
             <h2>
-              ${card.card_name}
+              ${name}
             </h2>
 
             <p>
               読み：
-              ${card.reading}
+              ${item.reading || ""}
             </p>
 
             <p>
               コスト：
-              ${card.cost}
+              ${item.cost || ""}
             </p>
 
             <p>
               タイプ：
-              ${card.card_type}
+              ${type || ""}
             </p>
 
             <p>
               種属：
-              ${card.species}
+              ${item.species || ""}
             </p>
 
-            <p>
-              ATK：
-              ${card.atk}
-              ／
-              DEF：
-              ${card.def}
-            </p>
+            ${statsHtml}
 
             <p>
-              ${card.effect_text}
+              ${item.effect_text || ""}
             </p>
 
           </div>
-
         `;
 
         cardElement.addEventListener(
           "click",
           () =>
             showCardDetail(
-              card
+              item
             )
         );
 
@@ -184,16 +189,23 @@ function displayCards(
   } else {
 
     /*
-      ====================================
       アイコン表示
-      ====================================
     */
-
     cardList.className =
       "icon-mode";
 
     cards.forEach(
-      card => {
+      item => {
+
+        const territory =
+          Boolean(
+            item.territory_id
+          );
+
+        const name =
+          territory
+            ? item.territory_name
+            : item.card_name;
 
         const cardElement =
           document.createElement(
@@ -204,31 +216,25 @@ function displayCards(
           "card icon-card";
 
         if (
-          card.image_url
+          item.image_url
         ) {
-
           cardElement.innerHTML = `
-
             <img
-              src="${card.image_url}"
-              alt="${card.card_name}"
+              src="${item.image_url}"
+              alt="${name}"
               class="icon-card-image"
             >
-
           `;
-
         } else {
-
           cardElement.innerHTML =
             "<div>画像なし</div>";
-
         }
 
         cardElement.addEventListener(
           "click",
           () =>
             showCardDetail(
-              card
+              item
             )
         );
 
@@ -242,18 +248,15 @@ function displayCards(
     applyIconGrid();
 
   }
-
 }
 
 
 /*
-  カード詳細を表示
-  */
-
+  カード・領地の詳細を表示
+*/
 function showCardDetail(
-  card
+  item
 ) {
-
   const modal =
     document.getElementById(
       "card-modal"
@@ -271,120 +274,289 @@ function showCardDetail(
     return;
   }
 
-  if (
-    card.image_url
-  ) {
 
+  /*
+    領地かどうかを判定
+  */
+  const territory =
+    Boolean(
+      item.territory_id
+    );
+
+
+  /*
+    名前
+  */
+  const name =
+    territory
+      ? item.territory_name
+      : item.card_name;
+
+
+  /*
+    画像
+  */
+  if (
+    item.image_url
+  ) {
     image.src =
-      card.image_url;
+      item.image_url;
 
     image.alt =
-      card.card_name;
+      name || "";
 
     image.style.display =
       "block";
-
   } else {
-
     image.style.display =
       "none";
-
   }
 
+
+  /*
+    名前
+  */
   document.getElementById(
     "detail-name"
   ).textContent =
-    card.card_name || "";
+    name || "";
 
+
+  /*
+    ID
+  */
   document.getElementById(
     "detail-id"
   ).textContent =
-    card.card_id || "";
+    territory
+      ? item.territory_id || ""
+      : item.card_id || "";
 
+
+  /*
+    読み
+  */
   document.getElementById(
     "detail-reading"
   ).textContent =
-    card.reading || "";
+    item.reading || "";
 
+
+  /*
+    コスト
+  */
   document.getElementById(
     "detail-cost"
   ).textContent =
-    card.cost || "";
+    item.cost || "";
 
+
+  /*
+    タイプ
+  */
   document.getElementById(
     "detail-type"
   ).textContent =
-    card.card_type || "";
+    territory
+      ? item.territory_type || ""
+      : item.card_type || "";
 
+
+  /*
+    種属
+  */
   document.getElementById(
     "detail-species"
   ).textContent =
-    card.species || "";
+    item.species || "";
 
+
+  /*
+    ATK
+  */
   document.getElementById(
     "detail-atk"
   ).textContent =
-    card.atk || "";
+    territory
+      ? ""
+      : item.atk || "";
 
+
+  /*
+    DEF
+  */
   document.getElementById(
     "detail-def"
   ).textContent =
-    card.def || "";
+    territory
+      ? ""
+      : item.def || "";
 
+
+  /*
+    効果
+  */
   document.getElementById(
     "detail-effect"
   ).textContent =
-    card.effect_text || "";
+    item.effect_text || "";
 
+
+  /*
+    公式キーワード
+  */
   document.getElementById(
     "detail-keywords"
   ).textContent =
-    card.official_keywords ||
+    item.official_keywords ||
     "なし";
 
+
+  /*
+    公式効果
+  */
   document.getElementById(
     "detail-effects"
   ).textContent =
-    card.official_effects ||
+    item.official_effects ||
     "なし";
 
+
+  /*
+    ID欄のラベルを変更
+  */
+  const detailId =
+    document.getElementById(
+      "detail-id"
+    );
+
+  const detailIdRow =
+    detailId?.closest(
+      ".detail-row"
+    );
+
+  if (detailIdRow) {
+
+    const label =
+      detailIdRow.querySelector(
+        ".detail-label"
+      );
+
+    if (label) {
+      label.textContent =
+        territory
+          ? "領地ID："
+          : "カードID：";
+    }
+
+  }
+
+
+  /*
+    タイプ欄のラベルを変更
+  */
+  const detailType =
+    document.getElementById(
+      "detail-type"
+    );
+
+  const detailTypeRow =
+    detailType?.closest(
+      ".detail-row"
+    );
+
+  if (detailTypeRow) {
+
+    const label =
+      detailTypeRow.querySelector(
+        ".detail-label"
+      );
+
+    if (label) {
+      label.textContent =
+        territory
+          ? "領地タイプ："
+          : "カードタイプ：";
+    }
+
+  }
+
+
+  /*
+    ATK・DEF欄は領地では非表示
+  */
+  const detailAtk =
+    document.getElementById(
+      "detail-atk"
+    );
+
+  const detailDef =
+    document.getElementById(
+      "detail-def"
+    );
+
+  const detailAtkRow =
+    detailAtk?.closest(
+      ".detail-row"
+    );
+
+  const detailDefRow =
+    detailDef?.closest(
+      ".detail-row"
+    );
+
+  if (detailAtkRow) {
+    detailAtkRow.style.display =
+      territory
+        ? "none"
+        : "";
+  }
+
+  if (detailDefRow) {
+    detailDefRow.style.display =
+      territory
+        ? "none"
+        : "";
+  }
+
+
+  /*
+    公式ページ
+  */
   const source =
     document.getElementById(
       "detail-source"
     );
 
   if (
-    card.source_url
+    item.source_url
   ) {
-
     source.href =
-      card.source_url;
+      item.source_url;
 
     source.style.display =
       "inline";
-
   } else {
-
     source.style.display =
       "none";
-
   }
 
+
+  /*
+    モーダルを表示
+  */
   modal.style.display =
     "block";
 
   document.body.style.overflow =
     "hidden";
-
 }
 
 
 /*
-  カード詳細を閉じる
-  */
-
+  詳細モーダルを閉じる
+*/
 function closeCardDetail() {
-
   const modal =
     document.getElementById(
       "card-modal"
@@ -399,16 +571,13 @@ function closeCardDetail() {
 
   document.body.style.overflow =
     "";
-
 }
 
 
 /*
   検索モーダルを開く
-  */
-
+*/
 function openSearchModal() {
-
   const modal =
     document.getElementById(
       "search-modal"
@@ -423,16 +592,13 @@ function openSearchModal() {
 
   document.body.style.overflow =
     "hidden";
-
 }
 
 
 /*
   検索モーダルを閉じる
-  */
-
+*/
 function closeSearchModal() {
-
   const modal =
     document.getElementById(
       "search-modal"
@@ -445,34 +611,24 @@ function closeSearchModal() {
   modal.style.display =
     "none";
 
-  /*
-    カード詳細が開いていなければ、
-    スクロールを復帰させます。
-  */
-
   if (
     document.getElementById(
       "card-modal"
     )?.style.display !==
     "block"
   ) {
-
     document.body.style.overflow =
       "";
-
   }
-
 }
 
 
 /*
   表示方法を変更
-  */
-
+*/
 function setDisplayMode(
   mode
 ) {
-
   appState.currentDisplayMode =
     mode;
 
@@ -491,10 +647,6 @@ function setDisplayMode(
       "icon-size-controls"
     );
 
-  /*
-    ボタンの「active」状態を切り替え。
-  */
-
   listButton?.classList.toggle(
     "active",
     mode === "list"
@@ -505,17 +657,11 @@ function setDisplayMode(
     mode === "icon"
   );
 
-  /*
-    列数選択を表示・非表示。
-  */
-
   if (sizeControls) {
-
     sizeControls.style.display =
       mode === "icon"
         ? "flex"
         : "none";
-
   }
 
   displayCards(
@@ -523,62 +669,40 @@ function setDisplayMode(
     appState.allCards ||
     []
   );
-
 }
 
 
 /*
   アイコンの列数を変更
-  */
-
+*/
 function setIconColumns(
   columns
 ) {
-
-  /*
-    選択された列数を保存します。
-  */
-
   appState.currentIconColumns =
     columns;
 
-  /*
-    列数ボタンの一覧です。
-  */
-
   const buttons = [
-
     {
       id: "icon-3-button",
       columns: 3
     },
-
     {
       id: "icon-5-button",
       columns: 5
     },
-
     {
       id: "icon-7-button",
       columns: 7
     },
-
     {
       id: "icon-9-button",
       columns: 9
     },
-
     {
       id: "icon-10-button",
       columns: 10
     }
-
   ];
-
-  /*
-    選択中のボタンだけ
-    activeにします。
-  */
 
   buttons.forEach(
     item => {
@@ -600,18 +724,11 @@ function setIconColumns(
     }
   );
 
-  /*
-    現在アイコン表示中なら、
-    すぐに列数を反映します。
-  */
 
   if (
     appState.currentDisplayMode ===
     "icon"
   ) {
-
     applyIconGrid();
-
   }
-
 }
