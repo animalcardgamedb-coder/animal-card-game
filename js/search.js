@@ -1,7 +1,5 @@
 /*
-  ========================================
   テキスト正規化
-  ========================================
 
   検索処理で使う、
   テキストの正規化関数です。
@@ -20,7 +18,6 @@ function normalize(value) {
 
 }
 
-
 function normalizeWithFullWidth(value) {
 
   /*
@@ -35,9 +32,7 @@ function normalizeWithFullWidth(value) {
 
 
 /*
-  ========================================
   複数の値を分割
-  ========================================
 
   スプレッドシートのセルに、
 
@@ -71,19 +66,10 @@ function splitValues(value) {
 
 
 /*
-  ========================================
   フィルターの選択肢を作る
-  ========================================
 
-  カードデータから、
-
-  カードタイプ
-  種属
-  コスト
-  公式キーワード
-  公式効果
-
-  の重複しない一覧を作ります。
+  カード・領地データから、
+  重複しない一覧を作ります。
 */
 
 function getUniqueValues(
@@ -131,9 +117,7 @@ function getUniqueValues(
 
 
 /*
-  ========================================
   フィルターの選択肢を表示
-  ========================================
 */
 
 function createMultiFilter(
@@ -197,22 +181,32 @@ function createMultiFilter(
 
 
 /*
-  ========================================
-  フィルターの検索条件を作る
-  ========================================
+  フィルターの選択肢を作る
 */
 
 function createFilterOptions() {
 
   const cards =
-    appState.allCards;
+    appState.allCards || [];
+
+  const territories =
+    appState.allTerritories || [];
+
+  const allData = [
+    ...cards,
+    ...territories
+  ];
 
   if (
-    !cards ||
-    cards.length === 0
+    allData.length === 0
   ) {
     return;
   }
+
+
+  /*
+    カードタイプ
+  */
 
   createMultiFilter(
     "card-type-filter",
@@ -222,29 +216,57 @@ function createFilterOptions() {
     )
   );
 
+
+  /*
+    領地タイプ
+  */
+
+  createMultiFilter(
+    "territory-type-filter",
+    getUniqueValues(
+      territories,
+      "territory_type"
+    )
+  );
+
+
+  /*
+    種属
+
+    カードと領地の両方から作ります。
+  */
+
   createMultiFilter(
     "species-filter",
     getUniqueValues(
-      cards,
+      allData,
       "species"
     )
   );
 
+
+  /*
+    コスト
+
+    カードと領地の両方から作ります。
+  */
+
   const costs =
-    [...new Set(
-      cards
-        .map(
-          card =>
-            String(
-              card.cost
-            )
-        )
-        .filter(
-          cost =>
-            cost !== ""
-        )
-    )]
-    .sort(
+    [
+      ...new Set(
+        allData
+          .map(
+            item =>
+              String(
+                item.cost ?? ""
+              )
+          )
+          .filter(
+            cost =>
+              cost !== ""
+          )
+      )
+    ].sort(
       (a, b) =>
         Number(a) -
         Number(b)
@@ -255,18 +277,28 @@ function createFilterOptions() {
     costs
   );
 
+
+  /*
+    公式キーワード
+  */
+
   createMultiFilter(
     "official-keyword-filter",
     getUniqueValues(
-      cards,
+      allData,
       "official_keywords"
     )
   );
 
+
+  /*
+    公式効果
+  */
+
   createMultiFilter(
     "official-effect-filter",
     getUniqueValues(
-      cards,
+      allData,
       "official_effects"
     )
   );
@@ -275,9 +307,7 @@ function createFilterOptions() {
 
 
 /*
-  ========================================
   選択されたフィルター値を取得
-  ========================================
 */
 
 function getSelectedValues(
@@ -298,36 +328,92 @@ function getSelectedValues(
       "input[type='checkbox']:checked"
     )
   ).map(
-    item => item.value
+    item =>
+      item.value
   );
 
 }
 
 
 /*
-  ========================================
-  カード検索
-  ========================================
+  検索対象が領地かどうかを判定
+*/
+
+function isTerritory(
+  item
+) {
+
+  return Boolean(
+    item &&
+    item.territory_id
+  );
+
+}
+
+
+/*
+  現在のカテゴリに応じて
+  検索対象を取得
+*/
+
+function getSearchData() {
+
+  if (
+    appState.currentCategory ===
+    "card"
+  ) {
+
+    return appState.allCards || [];
+
+  }
+
+  if (
+    appState.currentCategory ===
+    "territory"
+  ) {
+
+    return appState.allTerritories || [];
+
+  }
+
+  return appState.allData || [];
+
+}
+
+
+/*
+  カード・領地検索
 */
 
 function searchCards() {
 
-  const cards =
-    appState.allCards;
+  const data =
+    getSearchData();
 
   if (
-    !cards ||
-    cards.length === 0
+    !data ||
+    data.length === 0
   ) {
+
+    appState.currentSearchResults =
+      [];
+
+    displayCards(
+      []
+    );
+
     return;
+
   }
+
 
   /*
     ======================================
     文字検索の入力を取得
     ======================================
 
-    全角スペースを半角スペースに変換します。
+    全角スペースを半角スペースに
+    変換します。
 
     これによって、
 
@@ -346,15 +432,20 @@ function searchCards() {
     );
 
   const rawKeyword =
-    keywordInput.value.trim()
-      .replace(/\u3000/g, " ");
+    keywordInput
+      ? keywordInput.value
+        .trim()
+        .replace(/\u3000/g, " ")
+      : "";
 
   const searchTerms =
-    rawKeyword.split(/\s+/)
+    rawKeyword
+      .split(/\s+/)
       .filter(
         term =>
           term !== ""
       );
+
 
   /*
     ======================================
@@ -403,6 +494,11 @@ function searchCards() {
       "card-type-filter"
     );
 
+  const selectedTerritoryTypes =
+    getSelectedValues(
+      "territory-type-filter"
+    );
+
   const selectedSpecies =
     getSelectedValues(
       "species-filter"
@@ -430,72 +526,99 @@ function searchCards() {
     ======================================
   */
 
-  const atkCondition =
+  const atkConditionElement =
     document.getElementById(
       "atk-condition"
-    ).value;
+    );
 
-  const atkValue =
+  const atkValueElement =
     document.getElementById(
       "atk-value"
-    ).value;
+    );
 
-  const defCondition =
+  const defConditionElement =
     document.getElementById(
       "def-condition"
-    ).value;
+    );
 
-  const defValue =
+  const defValueElement =
     document.getElementById(
       "def-value"
-    ).value;
+    );
+
+  const atkCondition =
+    atkConditionElement
+      ? atkConditionElement.value
+      : "";
+
+  const atkValue =
+    atkValueElement
+      ? atkValueElement.value
+      : "";
+
+  const defCondition =
+    defConditionElement
+      ? defConditionElement.value
+      : "";
+
+  const defValue =
+    defValueElement
+      ? defValueElement.value
+      : "";
 
 
   /*
     ======================================
-    カードを1枚ずつ調べる
+    カード・領地を1件ずつ調べる
     ======================================
   */
 
-  const filteredCards =
-    cards.filter(
-      card => {
+  const filteredData =
+    data.filter(
+      item => {
+
+        const territory =
+          isTerritory(
+            item
+          );
+
 
         /*
           =================================
           文字検索
           =================================
 
-          検索対象は、
+          カード：
+          カード名・読み・効果テキスト
 
-          カード名
-          読み
-          効果テキスト
-
-          です。
+          領地：
+          領地名・読み・効果テキスト
         */
 
-        const cardName =
+        const name =
           normalizeWithFullWidth(
-            card.card_name
+            territory
+              ? item.territory_name
+              : item.card_name
           );
 
         const reading =
           normalizeWithFullWidth(
-            card.reading
+            item.reading
           );
 
         const effectText =
           normalizeWithFullWidth(
-            card.effect_text
+            item.effect_text
           );
 
         const searchableText =
-          cardName +
+          name +
           " " +
           reading +
           " " +
           effectText;
+
 
         /*
           プラス検索。
@@ -510,9 +633,11 @@ function searchCards() {
               )
           );
 
+
         /*
           マイナス検索。
-          マイナス検索の単語を含まない必要があります。
+          マイナス検索の単語を
+          含まない必要があります。
         */
 
         const matchesExclude =
@@ -526,130 +651,227 @@ function searchCards() {
 
         /*
           =================================
-          各フィルターの条件をチェック
+          カードタイプ・領地タイプ
           =================================
+
+          カードタイプはカードにだけ適用。
+
+          領地タイプは領地にだけ適用。
         */
 
-        const matchesCardType =
-          selectedCardTypes.length === 0 ||
-          selectedCardTypes.includes(
-            String(
-              card.card_type
-            )
-          );
+        let matchesType = true;
+
+        if (territory) {
+
+          matchesType =
+            selectedTerritoryTypes.length === 0 ||
+            selectedTerritoryTypes.includes(
+              String(
+                item.territory_type
+              )
+            );
+
+        } else {
+
+          matchesType =
+            selectedCardTypes.length === 0 ||
+            selectedCardTypes.includes(
+              String(
+                item.card_type
+              )
+            );
+
+        }
+
+
+        /*
+          =================================
+          種属
+          =================================
+        */
 
         const matchesSpecies =
           selectedSpecies.length === 0 ||
           selectedSpecies.some(
             selected =>
               splitValues(
-                card.species
+                item.species
               ).includes(
                 selected
               )
           );
 
+
+        /*
+          =================================
+          コスト
+          =================================
+        */
+
         const matchesCost =
           selectedCosts.length === 0 ||
           selectedCosts.includes(
             String(
-              card.cost
+              item.cost
             )
           );
+
+
+        /*
+          =================================
+          公式キーワード
+          =================================
+        */
 
         const matchesOfficialKeyword =
           selectedOfficialKeywords.length === 0 ||
           selectedOfficialKeywords.some(
             selected =>
               splitValues(
-                card.official_keywords
+                item.official_keywords
               ).includes(
                 selected
               )
           );
+
+
+        /*
+          =================================
+          公式効果
+          =================================
+        */
 
         const matchesOfficialEffect =
           selectedOfficialEffects.length === 0 ||
           selectedOfficialEffects.some(
             selected =>
               splitValues(
-                card.official_effects
+                item.official_effects
               ).includes(
                 selected
               )
           );
 
+
         /*
           =================================
-          ATK・DEFの条件をチェック
+          ATK・DEF
           =================================
+
+          ATK・DEFはカードにだけ存在します。
+
+          「すべて」でATK/DEFを指定した場合、
+          ATK/DEFを持たない領地は
+          検索結果から除外します。
         */
 
         let matchesAtk = true;
+        let matchesDef = true;
+
+        const hasAtkCondition =
+          Boolean(
+            atkCondition &&
+            atkValue !== ""
+          );
+
+        const hasDefCondition =
+          Boolean(
+            defCondition &&
+            defValue !== ""
+          );
+
 
         if (
-          atkCondition &&
-          atkValue !== ""
+          !territory &&
+          hasAtkCondition
         ) {
 
           const atk =
             Number(
-              card.atk || 0
+              item.atk || 0
             );
 
           const compareValue =
-            Number(atkValue);
+            Number(
+              atkValue
+            );
 
           if (
-            atkCondition === "gte"
+            atkCondition ===
+            "gte"
           ) {
 
             matchesAtk =
-              atk >= compareValue;
+              atk >=
+              compareValue;
 
           } else if (
-            atkCondition === "lte"
+            atkCondition ===
+            "lte"
           ) {
 
             matchesAtk =
-              atk <= compareValue;
+              atk <=
+              compareValue;
 
           }
 
+        } else if (
+          territory &&
+          hasAtkCondition
+        ) {
+
+          matchesAtk =
+            false;
+
         }
 
-        let matchesDef = true;
 
         if (
-          defCondition &&
-          defValue !== ""
+          !territory &&
+          hasDefCondition
         ) {
 
           const def =
             Number(
-              card.def || 0
+              item.def || 0
             );
 
           const compareValue =
-            Number(defValue);
+            Number(
+              defValue
+            );
 
           if (
-            defCondition === "gte"
+            defCondition ===
+            "gte"
           ) {
 
             matchesDef =
-              def >= compareValue;
+              def >=
+              compareValue;
 
           } else if (
-            defCondition === "lte"
+            defCondition ===
+            "lte"
           ) {
 
             matchesDef =
-              def <= compareValue;
+              def <=
+              compareValue;
 
           }
 
+        } else if (
+          territory &&
+          hasDefCondition
+        ) {
+
+          matchesDef =
+            false;
+
         }
+
 
         /*
           =================================
@@ -657,18 +879,21 @@ function searchCards() {
           =================================
         */
 
-        return matchesInclude &&
+        return (
+          matchesInclude &&
           matchesExclude &&
-          matchesCardType &&
+          matchesType &&
           matchesSpecies &&
           matchesCost &&
           matchesOfficialKeyword &&
           matchesOfficialEffect &&
           matchesAtk &&
-          matchesDef;
+          matchesDef
+        );
 
       }
     );
+
 
   /*
     ======================================
@@ -677,10 +902,10 @@ function searchCards() {
   */
 
   appState.currentSearchResults =
-    filteredCards;
+    filteredData;
 
   displayCards(
-    filteredCards
+    filteredData
   );
 
 }
