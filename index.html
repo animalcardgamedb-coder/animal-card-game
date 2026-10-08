@@ -19,6 +19,107 @@
     href="css/style.css"
   >
 
+  <style>
+
+    /*
+      ======================================
+      一括登録モーダル
+      ======================================
+    */
+
+    #bulk-import-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      overflow-y: auto;
+      padding: 30px 15px;
+      box-sizing: border-box;
+    }
+
+    #bulk-import-modal-content {
+      position: relative;
+      width: min(700px, 100%);
+      margin: 0 auto;
+      padding: 25px;
+      box-sizing: border-box;
+      background: #ffffff;
+      border-radius: 8px;
+      color: #222222;
+    }
+
+    #bulk-import-close-button {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      border: none;
+      background: transparent;
+      font-size: 30px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    #bulk-import-modal-content h2 {
+      margin-top: 0;
+      padding-right: 35px;
+    }
+
+    #bulk-import-file {
+      width: 100%;
+      box-sizing: border-box;
+      margin: 10px 0;
+    }
+
+    #bulk-import-button {
+      margin-top: 10px;
+    }
+
+    #bulk-import-status {
+      margin-top: 15px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    #bulk-import-result {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      background: #f5f5f5;
+      white-space: pre-wrap;
+      line-height: 1.7;
+      overflow-wrap: break-word;
+    }
+
+    #bulk-import-errors {
+      margin-top: 10px;
+    }
+
+    #bulk-import-errors ul {
+      margin: 5px 0 0;
+      padding-left: 20px;
+    }
+
+    #bulk-import-warnings {
+      margin-top: 10px;
+    }
+
+    #bulk-import-warnings ul {
+      margin: 5px 0 0;
+      padding-left: 20px;
+    }
+
+    .bulk-import-error {
+      color: #b00020;
+    }
+
+    .bulk-import-warning {
+      color: #8a5a00;
+    }
+
+  </style>
+
 </head>
 
 
@@ -75,6 +176,14 @@
           class="display-button"
         >
           領地
+        </button>
+
+        <button
+          id="bulk-import-open-button"
+          class="display-button"
+          type="button"
+        >
+          データ登録
         </button>
 
       </div>
@@ -220,10 +329,6 @@
 
       <!--
         カードタイプ
-
-        カードの「カードタイプ」と
-        領地の「領地タイプ」を
-        ここにまとめて表示します。
       -->
 
       <div class="filter">
@@ -445,6 +550,78 @@
       >
         検索条件をリセット
       </button>
+
+    </div>
+
+  </div>
+
+
+  <!--
+    一括データ登録モーダル
+  -->
+
+  <div id="bulk-import-modal">
+
+    <div id="bulk-import-modal-content">
+
+      <button
+        id="bulk-import-close-button"
+        aria-label="データ登録を閉じる"
+        type="button"
+      >
+        ×
+      </button>
+
+
+      <h2>
+        データ一括登録
+      </h2>
+
+
+      <p>
+        公式サイトから保存したHTMLファイルを選択してください。
+      </p>
+
+
+      <p>
+        ACGカード・RYO領地を自動判別して登録します。
+      </p>
+
+
+      <input
+        type="file"
+        id="bulk-import-file"
+        accept=".html,.htm,.txt"
+      >
+
+
+      <button
+        id="bulk-import-button"
+        class="display-button"
+        type="button"
+      >
+        一括登録
+      </button>
+
+
+      <div id="bulk-import-status"></div>
+
+
+      <div id="bulk-import-result">
+
+        <div id="bulk-import-summary"></div>
+
+        <div
+          id="bulk-import-errors"
+          class="bulk-import-error"
+        ></div>
+
+        <div
+          id="bulk-import-warnings"
+          class="bulk-import-warning"
+        ></div>
+
+      </div>
 
     </div>
 
