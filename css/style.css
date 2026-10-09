@@ -33,3 +33,4 @@
 .icon-column-input{width:52px;height:42px;padding:5px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#222}
 #local-auth-notice{padding:10px;border-left:3px solid #555;background:#eee;line-height:1.7}
 #local-auth-notice a{color:#111;font-weight:700;text-decoration:underline}
+.builder-search-form{display:flex;flex:1;min-width:0;gap:8px}.builder-search-form .search-field{flex:1}.builder-search-form #builder-search-apply-button{flex:0 0 auto;min-width:56px}
