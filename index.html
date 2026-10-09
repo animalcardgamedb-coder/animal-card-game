@@ -120,10 +120,97 @@
 
   </style>
 
+  <style>
+    #account-controls { position: fixed; top: 15px; left: 15px; z-index: 900; display: flex; gap: 8px; }
+    #account-controls button, .feature-actions button, .feature-modal-content > button:not(.feature-close-button), #add-card-to-deck-button { padding: 9px 13px; border: 1px solid #aaa; border-radius: 6px; background: #fff; cursor: pointer; }
+    #account-controls button:hover, .feature-actions button:hover, .feature-modal-content > button:not(.feature-close-button):hover, #add-card-to-deck-button:hover { background: #f2f6fb; }
+    #add-card-to-deck-button:disabled { cursor: not-allowed; opacity: .55; }
+    .feature-modal { display: none; position: fixed; inset: 0; z-index: 3000; overflow-y: auto; box-sizing: border-box; padding: 24px 14px; background: rgba(0,0,0,.65); }
+    .feature-modal-content { position: relative; box-sizing: border-box; width: min(560px,100%); margin: 0 auto; padding: 24px; border-radius: 8px; background: #fff; }
+    .deck-modal-content { width: min(760px,100%); }
+    .feature-close-button { position: absolute; top: 8px; right: 12px; border: 0; background: transparent; font-size: 28px; cursor: pointer; }
+    .feature-modal-content label { display: block; margin: 12px 0 5px; font-weight: bold; }
+    .feature-modal-content input, .feature-modal-content select { box-sizing: border-box; width: 100%; min-height: 40px; padding: 8px; }
+    .feature-actions, .deck-create-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .deck-create-row input { flex: 1 1 180px; }
+    .feature-status { min-height: 1.5em; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .deck-card-list, .public-deck-list { padding-left: 22px; }
+    .deck-card-list li, .public-deck-list li { margin: 8px 0; }
+    .deck-card-list button { margin-left: 8px; }
+    .danger-button { color: #a40000; }
+    @media (max-width:600px) { #account-controls { top: 12px; left: 10px; gap: 5px; } #account-controls button { padding: 8px 10px; } .feature-modal-content { padding: 20px 15px; } }
+  </style>
+
 </head>
 
 
 <body>
+
+  <div id="account-controls" aria-label="アカウントとデッキ">
+    <button id="account-open-button" type="button">ログイン</button>
+    <button id="deck-open-button" type="button">デッキ</button>
+  </div>
+
+  <div id="account-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
+    <section class="feature-modal-content">
+      <button class="feature-close-button" data-close-modal="account-modal" type="button" aria-label="閉じる">×</button>
+      <h2 id="account-title">ログイン</h2>
+      <p>Google、またはメールアドレスでログインできます。</p>
+      <label for="account-email">メールアドレス</label>
+      <input id="account-email" type="email" autocomplete="email">
+      <label for="account-password">パスワード</label>
+      <input id="account-password" type="password" autocomplete="current-password">
+      <p>メールアドレスで新規登録する場合、パスワードは6文字以上にしてください。</p>
+      <div class="feature-actions">
+        <button id="email-signin-button" type="button">ログイン</button>
+        <button id="email-signup-button" type="button">新規登録</button>
+        <button id="google-signin-button" type="button">Googleでログイン</button>
+        <button id="signout-button" type="button" hidden>ログアウト</button>
+      </div>
+      <p id="account-status" class="feature-status" role="status"></p>
+    </section>
+  </div>
+
+  <div id="deck-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="deck-title">
+    <section class="feature-modal-content deck-modal-content">
+      <button class="feature-close-button" data-close-modal="deck-modal" type="button" aria-label="閉じる">×</button>
+      <h2 id="deck-title">デッキ</h2>
+      <p id="deck-login-hint">デッキを作るにはログインしてください。</p>
+
+      <div id="deck-editor" hidden>
+        <div class="deck-create-row">
+          <label for="new-deck-name">新しいデッキ名</label>
+          <input id="new-deck-name" type="text" maxlength="50" placeholder="例：お気に入りデッキ">
+          <button id="create-deck-button" type="button">デッキを作る</button>
+        </div>
+
+        <label for="owned-deck-select">自分のデッキ</label>
+        <select id="owned-deck-select">
+          <option value="">デッキを選択してください</option>
+        </select>
+
+        <div id="selected-deck-editor" hidden>
+          <label for="selected-deck-name">デッキ名</label>
+          <input id="selected-deck-name" type="text" maxlength="50">
+          <label for="selected-deck-visibility">公開設定</label>
+          <select id="selected-deck-visibility">
+            <option value="private">非公開（自分だけ）</option>
+            <option value="public">公開（ほかの人も見られる）</option>
+          </select>
+          <button id="save-deck-settings-button" type="button">名前・公開設定を保存</button>
+          <h3>デッキのカード</h3>
+          <p>カード詳細画面の「選択中のデッキに追加」からカードを入れられます。</p>
+          <ul id="deck-card-list" class="deck-card-list"></ul>
+          <button id="delete-deck-button" class="danger-button" type="button">このデッキを削除</button>
+        </div>
+      </div>
+
+      <h3>公開デッキ</h3>
+      <button id="refresh-public-decks-button" type="button">公開デッキを読み込む</button>
+      <ul id="public-deck-list" class="public-deck-list"></ul>
+      <p id="deck-status" class="feature-status" role="status"></p>
+    </section>
+  </div>
 
   <!--
     検索を開くボタン
@@ -779,6 +866,10 @@
           公式ページを開く
         </a>
 
+      <button id="add-card-to-deck-button" type="button" disabled>
+        選択中のデッキに追加
+      </button>
+
       </div>
 
     </div>
@@ -797,6 +888,8 @@
   <script src="js/display.js"></script>
 
   <script src="js/main.js"></script>
+
+  <script type="module" src="firebase.js"></script>
 
 </body>
 
