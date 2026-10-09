@@ -441,6 +441,8 @@ function searchCards() {
     appState.currentSearchResults =
       [];
 
+    window.dispatchEvent(new Event("animaldeck:searchresultschange"));
+
     displayCards(
       []
     );
@@ -959,6 +961,8 @@ function searchCards() {
 
   appState.currentSearchResults =
     filteredData;
+
+  window.dispatchEvent(new Event("animaldeck:searchresultschange"));
 
   displayCards(
     filteredData
