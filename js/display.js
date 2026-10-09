@@ -394,6 +394,15 @@ function showCardDetail(
 
 
   /*
+    Condition（スプレッドシートの列）
+  */
+  document.getElementById(
+    "detail-condition"
+  ).textContent =
+    getCardConditionText(item);
+
+
+  /*
     効果
   */
   document.getElementById(
