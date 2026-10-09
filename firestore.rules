@@ -17,7 +17,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'ownerUid', 'ownerName', 'name', 'isPublic',
-          'cards', 'createdAt', 'updatedAt', 'tags'
+          'cards', 'createdAt', 'updatedAt', 'tags', 'territoryCards'
         ])
         && data.ownerUid is string
         && data.ownerName is string
@@ -28,6 +28,7 @@ service cloud.firestore {
         && data.isPublic is bool
         && data.cards is list
         && data.cards.size() <= 200
+        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 200))
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
@@ -47,6 +48,7 @@ service cloud.firestore {
         && data.isPublic is bool
         && data.cards is list
         && data.cards.size() <= 200
+        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 200))
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
           || (data.tags is list && data.tags.size() <= 12));
@@ -65,11 +67,22 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'name', 'isPublic', 'cards', 'tags', 'updatedAt'
+          'name', 'isPublic', 'cards', 'territoryCards', 'tags', 'updatedAt'
         ])
         && validDeckUpdate(request.resource.data);
 
       allow delete: if ownsDeck(resource.data.ownerUid);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['deckTags', 'updatedAt'])
+        && request.resource.data.deckTags is list
+        && request.resource.data.deckTags.size() <= 12
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if signedIn() && request.auth.uid == userId;
     }
   }
 }

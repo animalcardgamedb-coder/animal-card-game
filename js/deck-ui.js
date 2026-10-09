@@ -1,14 +1,24 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, cardLimit: 120 };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, cardLimit: 120, pile: "main", registeredTags: [] };
   const app = () => window.animalDeckApp;
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const allCards = () => [...(window.appState?.allCards || []), ...(window.appState?.allTerritories || [])];
-  const byItemId = id => allCards().find(item => String(item.card_id || item.territory_id) === String(id));
+  const byItemId = id => {
+    const raw = String(id);
+    if (raw.startsWith("card:") || raw.startsWith("territory:")) {
+      const [kind, value] = [raw.slice(0, raw.indexOf(":")), raw.slice(raw.indexOf(":") + 1)];
+      return allCards().find(item => String(kind === "territory" ? item.territory_id : item.card_id) === value);
+    }
+    return allCards().find(item => String(item.card_id || item.territory_id) === raw);
+  };
   const cardName = card => card.card_name || card.territory_name || card.name || "カード";
   const deckCards = deck => Array.isArray(deck?.cards) ? deck.cards : [];
-  const count = deck => deckCards(deck).reduce((sum, card) => sum + Number(card.quantity || 1), 0);
+  const territoryCards = deck => Array.isArray(deck?.territoryCards) ? deck.territoryCards : [];
+  const pileCards = (deck, pile = state.pile) => pile === "territory" ? territoryCards(deck) : deckCards(deck);
+  const allPileCards = deck => [...deckCards(deck), ...territoryCards(deck)];
+  const count = deck => allPileCards(deck).reduce((sum, card) => sum + Number(card.quantity || 1), 0);
   function setScreen(name) {
     state.screen = name;
     ["card-modal", "search-modal"].forEach(id => { if ($(id)) $(id).style.display = "none"; });
@@ -50,8 +60,8 @@
     if (!filtered.length) { list.innerHTML = `<div class="empty-state">${queryText ? "条件に合うデッキはありません。" : (state.tab === "mine" ? "ここに作成したデッキが表示されます。" : "公開されているデッキがここに表示されます。")}</div>`; return; }
     filtered.forEach(deck => {
       const tile = document.createElement("button"); tile.type = "button"; tile.className = "deck-tile";
-      const first = deckCards(deck).map(card => byItemId(card.itemId)?.image_url).find(Boolean);
-      tile.innerHTML = `<div class="deck-cover" ${first ? `style="background:linear-gradient(#0003,#0007),url('${escapeHTML(first)}') center/cover"` : ""}>${first ? "" : "DECK"}</div><div class="deck-tile-top"><h2>${escapeHTML(deck.name || "名前のないデッキ")}</h2><span class="visibility-badge ${deck.isPublic ? "public" : ""}">${deck.isPublic ? "公開" : "非公開"}</span></div><p>${count(deck)}枚 · ${deckCards(deck).length}種類${deck.tags?.length ? ` · ${deck.tags.map(escapeHTML).join(" / ")}` : ""}</p>`;
+      const first = allPileCards(deck).map(card => byItemId(card.itemId)?.image_url).find(Boolean);
+      tile.innerHTML = `<div class="deck-cover" ${first ? `style="background:linear-gradient(#0003,#0007),url('${escapeHTML(first)}') center/cover"` : ""}>${first ? "" : "DECK"}</div><div class="deck-tile-top"><h2>${escapeHTML(deck.name || "名前のないデッキ")}</h2><span class="visibility-badge ${deck.isPublic ? "public" : ""}">${deck.isPublic ? "公開" : "非公開"}</span></div><p>${count(deck)}枚 · ${allPileCards(deck).length}種類${deck.tags?.length ? ` · ${deck.tags.map(escapeHTML).join(" / ")}` : ""}</p>`;
       tile.addEventListener("click", () => openDeck(deck)); list.append(tile);
     });
   }
@@ -70,19 +80,20 @@
     $("delete-current-deck").hidden = state.publicView;
     $("save-deck-button").hidden = state.publicView;
     $("builder-deck-name").disabled = state.publicView;
-    $("builder-deck-tags").value = (deck.tags || []).join(", ");
-    $("builder-deck-tags").disabled = state.publicView;
+    renderTagOptions("builder-deck-tag-options", deck.tags || [], state.publicView);
     $("public-deck-readonly-note").hidden = !state.publicView;
     $("builder-tools").hidden = state.publicView;
     $("builder-category-controls").hidden = state.publicView;
     $("builder-card-list").hidden = state.publicView;
     $("builder-load-more").hidden = true;
     const typeCounts = {};
-    deckCards(deck).forEach(card => { const item = byItemId(card.itemId); const type = item?.card_type || item?.territory_type || "その他"; typeCounts[type] = (typeCounts[type] || 0) + Number(card.quantity || 1); });
+    allPileCards(deck).forEach(card => { const item = byItemId(card.itemId); const type = item?.card_type || item?.territory_type || "その他"; typeCounts[type] = (typeCounts[type] || 0) + Number(card.quantity || 1); });
     $("deck-type-stats").innerHTML = Object.entries(typeCounts).map(([type, number]) => `<span class="stat-chip">${escapeHTML(type)}<strong>${number}</strong></span>`).join("");
     const strip = $("selected-cards-strip"); strip.replaceChildren();
-    if (!deckCards(deck).length) strip.innerHTML = `<div class="empty-state">カードがありません。下の一覧からカードを選んでください。</div>`;
-    deckCards(deck).forEach(card => { const item = byItemId(card.itemId); const mini = document.createElement(state.publicView ? "div" : "button"); mini.className = "selected-card-mini"; if (!state.publicView) { mini.type = "button"; mini.title = `${card.name}：−1枚`; mini.addEventListener("click", () => changeQty(card.itemId, -1)); } mini.innerHTML = item?.image_url ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}"><span>×${Number(card.quantity || 1)}</span>` : `<span class="mini-empty">${escapeHTML(card.name)} × ${Number(card.quantity || 1)}</span>`; strip.append(mini); });
+    const activeCards = pileCards(deck);
+    $("selected-pile-count").textContent = `${state.pile === "main" ? "メインデッキ" : "領地デッキ"}：${activeCards.reduce((sum, card) => sum + Number(card.quantity || 1), 0)}枚`;
+    if (!activeCards.length) strip.innerHTML = `<div class="empty-state">このデッキにはまだカードがありません。</div>`;
+    activeCards.forEach(card => { const item = byItemId(card.itemId); const mini = document.createElement(state.publicView ? "div" : "button"); mini.className = "selected-card-mini"; if (!state.publicView) { mini.type = "button"; mini.title = `${card.name}：−1枚`; mini.addEventListener("click", () => changeQty(card.itemId, -1)); } mini.innerHTML = item?.image_url ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}"><span>×${Number(card.quantity || 1)}</span>` : `<span class="mini-empty">${escapeHTML(card.name)} × ${Number(card.quantity || 1)}</span>`; strip.append(mini); });
     renderBuilderCards();
   }
   function renderBuilderCards() {
@@ -91,15 +102,18 @@
     const terms = normalizedQuery.split(/\s+/).filter(Boolean);
     const searchBase = window.appState?.currentSearchResults || allCards();
     const result = searchBase.filter(item => {
+      const inTerritory = (window.appState?.allTerritories || []).includes(item);
+      if (state.pile === "territory" ? !inTerritory : inTerritory) return false;
       const searchable = `${JSON.stringify(item)} ${window.getCardConditionText?.(item) || ""}`.toLocaleLowerCase();
       return terms.every(term => term.startsWith("-") ? !searchable.includes(term.slice(1)) : searchable.includes(term));
     });
     const list = $("builder-card-list"); list.classList.toggle("compact", state.compact); list.replaceChildren();
     if (!result.length) { $("builder-load-more").hidden = true; list.innerHTML = `<div class="empty-state">該当するカードがありません。</div>`; return; }
     const visible = result.slice(0, state.cardLimit);
-    const selected = new Map(deckCards(state.deck).map(card => [String(card.itemId), Number(card.quantity || 1)]));
+    const activeCards = pileCards(state.deck);
+    const selected = new Map(activeCards.map(card => [String(card.itemId), Number(card.quantity || 1)]));
     visible.forEach(item => {
-      const id = item.card_id || item.territory_id; const name = cardName(item); const tile = document.createElement("button"); tile.type = "button"; tile.className = "builder-card"; tile.title = `${name}をデッキに追加`;
+      const id = window.appState?.allTerritories?.includes(item) ? `territory:${item.territory_id}` : `card:${item.card_id}`; const name = cardName(item); const tile = document.createElement("button"); tile.type = "button"; tile.className = "builder-card"; tile.title = `${name}をデッキに追加`;
       tile.innerHTML = `${item.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(name)}">` : `<div class="no-card-image">${escapeHTML(name)}</div>`}<span class="add-mark">＋</span>${selected.has(String(id)) ? `<span class="quantity-mark">×${selected.get(String(id))}</span>` : ""}<div class="builder-card-name">${escapeHTML(name)}</div>`;
       tile.addEventListener("click", () => state.publicView ? null : addCard(item)); list.append(tile);
     });
@@ -108,11 +122,11 @@
   }
   async function addCard(item) {
     if (state.publicView) return;
-    try { state.deck = await app().addCard(item); renderBuilder(); }
+    try { state.deck = await app().addCard(item, state.pile); renderBuilder(); }
     catch (error) { alert(error.message || "カードを追加できませんでした。"); }
   }
   async function changeQty(id, delta) {
-    try { state.deck = await app().changeQuantity(id, delta); renderBuilder(); }
+    try { state.deck = await app().changeQuantity(id, delta, state.pile); renderBuilder(); }
     catch (error) { alert(error.message || "枚数を変更できませんでした。"); }
   }
   function renderPreview() {
@@ -120,7 +134,7 @@
     $("preview-deck-name").textContent = deck.name || "デッキ";
     $("preview-total-count").textContent = `${count(deck)}枚`;
     const stamp = deck.updatedAt?.toDate?.(); $("preview-updated-at").textContent = `${stamp ? `更新日：${stamp.toLocaleDateString("ja-JP")}　` : ""}${deck.isPublic ? "公開デッキ" : "非公開デッキ"}`;
-    const cards = deckCards(deck); const grid = $("preview-card-list"); grid.replaceChildren();
+    const cards = [...deckCards(deck), ...territoryCards(deck)]; const grid = $("preview-card-list"); grid.replaceChildren();
     if (!cards.length) grid.innerHTML = `<div class="empty-state">デッキにカードがありません。</div>`;
     cards.forEach(card => { const item = byItemId(card.itemId); const el = document.createElement("div"); el.className = "preview-card"; el.innerHTML = `${item?.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}">` : ""}<span>${escapeHTML(card.name || "カード")}</span><b>×${Number(card.quantity || 1)}</b>`; grid.append(el); });
     $("preview-text-list").innerHTML = `<h2>${escapeHTML(deck.name)}</h2><p>合計 ${count(deck)}枚 / ${cards.length}種類</p><ol>${cards.map(card => `<li>${escapeHTML(card.name)} × ${Number(card.quantity || 1)}</li>`).join("")}</ol>`;
@@ -129,9 +143,34 @@
   function openModal(id) { const modal = $(id); if (modal) modal.style.display = "block"; }
   function readTags(text) { return [...new Set(String(text || "").split(/[、,，]/).map(tag => tag.trim()).filter(Boolean))].slice(0, 12).map(tag => tag.slice(0, 24)); }
   function exportDeck(deck) {
-    const lines = [`${deck.name || "デッキ"}`, `タグ：${(deck.tags || []).join("、") || "なし"}`, `合計：${count(deck)}枚`, "", ...deckCards(deck).map(card => `${card.name || "カード"} × ${Number(card.quantity || 1)}`)];
-    const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }));
-    const link = document.createElement("a"); link.href = url; link.download = `${(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_")}.txt`; link.click(); URL.revokeObjectURL(url);
+    const data = { format: "animal-card-game-deck", version: 1, name: deck.name || "デッキ", tags: deck.tags || [], exportedAt: new Date().toISOString(), mainCards: deckCards(deck).map(card => ({ itemId: String(card.itemId).startsWith("card:") ? String(card.itemId).slice(5) : String(card.itemId), name: card.name || "カード", quantity: Number(card.quantity || 1) })), territoryCards: territoryCards(deck).map(card => ({ itemId: String(card.itemId).startsWith("territory:") ? String(card.itemId).slice(10) : String(card.itemId), name: card.name || "領地", quantity: Number(card.quantity || 1) })) };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = `${(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_")}.animaldeck.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function renderTagOptions(containerId, selected = [], disabled = false) {
+    const container = $(containerId); if (!container) return;
+    const selectedSet = new Set(selected);
+    container.replaceChildren();
+    if (!state.registeredTags.length) { container.textContent = "メニューから先にデッキタグを登録してください。"; return; }
+    state.registeredTags.forEach(tag => {
+      const label = document.createElement("label"); const input = document.createElement("input");
+      input.type = "checkbox"; input.value = tag; input.checked = selectedSet.has(tag); input.disabled = disabled;
+      input.addEventListener("change", () => { if (containerId === "builder-deck-tag-options") state.deck.tags = readTagChecks(containerId); });
+      label.append(input, document.createTextNode(tag)); container.append(label);
+    });
+  }
+  function readTagChecks(containerId) { return Array.from($(containerId)?.querySelectorAll("input:checked") || []).map(input => input.value); }
+  async function refreshTagOptions() {
+    state.registeredTags = app()?.isSignedIn() ? await app().listDeckTags() : [];
+    renderTagOptions("new-deck-tag-options");
+    renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView);
+    const list = $("deck-tag-list"); if (list) { list.replaceChildren(); state.registeredTags.forEach(tag => { const item = document.createElement("li"); item.textContent = tag; list.append(item); }); if (!state.registeredTags.length) list.textContent = "登録済みタグはありません。"; }
+  }
+  async function importDeckFile(file) {
+    try {
+      const data = JSON.parse(await file.text());
+      state.deck = await app().importDeck(data); state.publicView = false; setStatus("デッキを読み込み、コピーを作成しました。"); setScreen("builder");
+    } catch (error) { setStatus(error.message || "デッキファイルを読み込めませんでした。"); }
   }
   function prepareSearchPanel() {
     const modal = $("search-modal-content");
@@ -171,7 +210,11 @@
     });
     $("new-deck-open-button").addEventListener("click", () => { if (!app()?.isSignedIn()) { $("menu-panel").hidden = false; openModal("account-modal"); if (location.protocol === "file:") { $("local-auth-notice").hidden = false; ["google-signin-button", "email-signin-button", "email-signup-button"].forEach(id => { const button = $(id); if (button) button.disabled = true; }); } return; } $("new-deck-panel").hidden = false; $("new-deck-screen-name").focus(); });
     $("new-deck-cancel-button").addEventListener("click", () => { $("new-deck-panel").hidden = true; });
-    $("new-deck-panel").addEventListener("submit", async event => { event.preventDefault(); try { if (!readTags($("new-deck-tags").value).length) throw new Error("検索に使うデッキタグを1つ以上入力してください。"); state.deck = await app().create($("new-deck-screen-name").value, readTags($("new-deck-tags").value)); state.publicView = false; $("new-deck-screen-name").value = ""; $("new-deck-tags").value = ""; $("new-deck-panel").hidden = true; setScreen("builder"); } catch (error) { setStatus(error.message || "デッキを作成できませんでした。"); } });
+    $("new-deck-panel").addEventListener("submit", async event => { event.preventDefault(); try { state.deck = await app().create($("new-deck-screen-name").value, readTagChecks("new-deck-tag-options")); state.publicView = false; $("new-deck-screen-name").value = ""; $("new-deck-panel").hidden = true; setScreen("builder"); } catch (error) { setStatus(error.message || "デッキを作成できませんでした。"); } });
+    $("deck-tags-open-button").addEventListener("click", async () => { $("menu-panel").hidden = true; openModal("deck-tags-modal"); await refreshTagOptions(); });
+    $("deck-tag-form").addEventListener("submit", async event => { event.preventDefault(); try { state.registeredTags = await app().addDeckTag($("deck-tag-name").value); $("deck-tag-name").value = ""; $("deck-tag-status").textContent = "タグを登録しました。"; await refreshTagOptions(); } catch (error) { $("deck-tag-status").textContent = error.message || "タグを登録できませんでした。"; } });
+    $("import-deck-button").addEventListener("click", () => { if (!app()?.isSignedIn()) { setStatus("デッキを読み込むにはログインしてください。"); return; } $("import-deck-file").click(); });
+    $("import-deck-file").addEventListener("change", event => { const file = event.target.files?.[0]; if (file) importDeckFile(file); event.target.value = ""; });
     $("my-decks-tab").addEventListener("click", () => { state.tab = "mine"; state.publicView = false; $("my-decks-tab").classList.add("active"); $("public-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "true"); $("public-decks-tab").setAttribute("aria-selected", "false"); refreshDecks(); });
     $("public-decks-tab").addEventListener("click", () => { state.tab = "public"; $("public-decks-tab").classList.add("active"); $("my-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "false"); $("public-decks-tab").setAttribute("aria-selected", "true"); refreshDecks(); });
     $("deck-search").addEventListener("input", () => renderDeckTiles(state.decks)); $("deck-sort-select").addEventListener("change", () => renderDeckTiles(state.decks));
@@ -186,13 +229,16 @@
     $("builder-grid-button").addEventListener("click", () => { state.compact = !state.compact; renderBuilderCards(); });
     $("builder-category-controls").innerHTML = `<button class="active" type="button" data-category="all">すべて</button><button type="button" data-category="card">カード</button><button type="button" data-category="territory">領地</button>`;
     $("builder-category-controls").addEventListener("click", event => { const button = event.target.closest("[data-category]"); if (!button) return; $("builder-category-controls").querySelectorAll("button").forEach(item => item.classList.toggle("active", item === button)); const category = button.dataset.category; $(`category-${category}-button`)?.click(); renderBuilderCards(); });
-    $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, readTags($("builder-deck-tags").value)); setScreen("decks"); } catch (error) { alert(error.message); } });
-    $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, readTags($("builder-deck-tags").value)); renderBuilder(); } catch (error) { alert(error.message); } });
-    $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, readTags($("builder-deck-tags").value)); setScreen("decks"); } catch (error) { alert(error.message); } });
+    const selectedDeckTags = () => readTagChecks("builder-deck-tag-options");
+    $("main-pile-tab").addEventListener("click", () => { state.pile = "main"; $("main-pile-tab").classList.add("active"); $("territory-pile-tab").classList.remove("active"); $("main-pile-tab").setAttribute("aria-selected", "true"); $("territory-pile-tab").setAttribute("aria-selected", "false"); $("category-card-button")?.click(); renderBuilder(); });
+    $("territory-pile-tab").addEventListener("click", () => { state.pile = "territory"; $("territory-pile-tab").classList.add("active"); $("main-pile-tab").classList.remove("active"); $("main-pile-tab").setAttribute("aria-selected", "false"); $("territory-pile-tab").setAttribute("aria-selected", "true"); $("category-territory-button")?.click(); renderBuilder(); });
+    $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags()); renderBuilder(); } catch (error) { alert(error.message); } });
+    $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
     $("delete-current-deck").addEventListener("click", async () => { if (!confirm(`「${state.deck?.name}」を削除します。この操作は取り消せません。`)) return; try { await app().deleteCurrent(); state.deck = null; setScreen("decks"); } catch (error) { alert(error.message); } });
     $("preview-deck-button").addEventListener("click", () => setScreen("preview")); $("print-deck-button").addEventListener("click", () => window.print());
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
-    window.addEventListener("animaldeck:authchange", () => { if (state.screen === "decks") refreshDecks(); });
+    window.addEventListener("animaldeck:authchange", () => { refreshTagOptions(); if (state.screen === "decks") refreshDecks(); });
   });
 })();

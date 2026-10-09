@@ -19,6 +19,7 @@ import {
   limit,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
@@ -396,6 +397,22 @@ window.animalDeckApp = {
     return snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
       .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   },
+  async listDeckTags() {
+    if (!signedInUser) return [];
+    const snapshot = await getDoc(doc(db, "users", signedInUser.uid));
+    return normalizeTags(snapshot.exists() ? snapshot.data().deckTags : []);
+  },
+  async addDeckTag(value) {
+    if (!signedInUser) throw new Error("タグを登録するにはログインしてください。");
+    const tag = String(value || "").trim().slice(0, 24);
+    if (!tag) throw new Error("タグ名を入力してください。");
+    const ref = doc(db, "users", signedInUser.uid);
+    const snapshot = await getDoc(ref);
+    const tags = normalizeTags([...(snapshot.exists() ? snapshot.data().deckTags || [] : []), tag]);
+    if (tags.length === 12 && !(snapshot.exists() && (snapshot.data().deckTags || []).includes(tag))) throw new Error("登録できるタグは12個までです。");
+    await setDoc(ref, { deckTags: tags, updatedAt: serverTimestamp() }, { merge: true });
+    return tags;
+  },
   async select(id) {
     await loadSelectedDeck(id);
     if (!selectedDeck || selectedDeckId !== id) throw new Error("permission-denied");
@@ -411,12 +428,33 @@ window.animalDeckApp = {
       name: safeName,
       tags: normalizeTags(tags),
       isPublic: false,
-      cards: [],
+      cards: [], territoryCards: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
     await loadSelectedDeck(deckRef.id);
     return this.current();
+  },
+  async importDeck(data) {
+    if (!data || data.format !== "animal-card-game-deck" || data.version !== 1) throw new Error("このデッキファイル形式には対応していません。");
+    const main = Array.isArray(data.mainCards) ? data.mainCards : [];
+    const territory = Array.isArray(data.territoryCards) ? data.territoryCards : [];
+    if (main.length > 200 || territory.length > 200) throw new Error("カードの種類数が上限を超えています。");
+    const clean = (list, pile) => list.map(card => {
+      const itemId = String(card.itemId || "").trim();
+      const name = String(card.name || "").trim().slice(0, 100);
+      const quantity = Math.max(1, Math.min(99, Number(card.quantity) || 1));
+      if (!itemId || !name) throw new Error("読み込むデッキにカードIDまたはカード名がありません。");
+      return { itemId: `${pile}:${itemId.replace(/^(card|territory):/, "")}`, name, quantity };
+    });
+    const created = await this.create(`${String(data.name || "読み込みデッキ").slice(0, 44)} のコピー`, normalizeTags(data.tags));
+    try {
+      await this.saveCards(clean(main, "card"), "main");
+      await this.saveCards(clean(territory, "territory"), "territory");
+      return this.current();
+    } catch (error) {
+      throw error;
+    }
   },
   async updateSettings(name, isPublic, tags = selectedDeck?.tags || []) {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
@@ -431,34 +469,38 @@ window.animalDeckApp = {
     selectedDeck = { ...selectedDeck, name: safeName, isPublic: Boolean(isPublic), tags: normalizeTags(tags) };
     return this.current();
   },
-  async saveCards(cards) {
+  async saveCards(cards, pile = "main") {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
     if (!Array.isArray(cards) || cards.length > 200) throw new Error("デッキに登録できる種類数の上限を超えています。");
-    await updateDoc(doc(db, "decks", selectedDeckId), { cards, updatedAt: serverTimestamp() });
-    selectedDeck = { ...selectedDeck, cards };
+    const field = pile === "territory" ? "territoryCards" : "cards";
+    await updateDoc(doc(db, "decks", selectedDeckId), { [field]: cards, updatedAt: serverTimestamp() });
+    selectedDeck = { ...selectedDeck, [field]: cards };
     renderOwnedDeckCards();
     return this.current();
   },
-  async addCard(item) {
+  async addCard(item, pile = "main") {
     if (!selectedDeck) throw new Error("先にデッキを選択してください。");
-    const id = String(item?.card_id || item?.territory_id || item?.itemId || "");
+    const rawId = String(item?.card_id || item?.territory_id || item?.itemId || "");
+    const id = `${pile === "territory" ? "territory" : "card"}:${rawId.replace(/^(card|territory):/, "")}`;
     const name = String(item?.card_name || item?.territory_name || item?.name || "");
-    if (!id || !name) throw new Error("カードIDを確認できませんでした。");
-    const cards = [...(selectedDeck.cards || [])];
+    if (!rawId || !name) throw new Error("カードIDを確認できませんでした。");
+    const field = pile === "territory" ? "territoryCards" : "cards";
+    const cards = [...(selectedDeck[field] || [])];
     const found = cards.find(card => String(card.itemId) === id);
     if (found) found.quantity = Math.min(99, Number(found.quantity || 1) + 1);
     else cards.push({ itemId: id, name, quantity: 1 });
-    return this.saveCards(cards);
+    return this.saveCards(cards, pile);
   },
-  async changeQuantity(itemId, change) {
+  async changeQuantity(itemId, change, pile = "main") {
     if (!selectedDeck) throw new Error("先にデッキを選択してください。");
-    const cards = [...(selectedDeck.cards || [])];
+    const field = pile === "territory" ? "territoryCards" : "cards";
+    const cards = [...(selectedDeck[field] || [])];
     const found = cards.find(card => String(card.itemId) === String(itemId));
     if (!found) return this.current();
     const quantity = Number(found.quantity || 1) + Number(change || 0);
     if (quantity <= 0) cards.splice(cards.indexOf(found), 1);
     else found.quantity = Math.min(99, quantity);
-    return this.saveCards(cards);
+    return this.saveCards(cards, pile);
   },
   async deleteCurrent() {
     if (!signedInUser || !selectedDeckId) throw new Error("先にデッキを選択してください。");

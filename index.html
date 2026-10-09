@@ -159,8 +159,19 @@
 
   <div id="menu-panel" hidden>
     <button id="account-open-button" type="button">ログイン</button>
+    <button id="deck-tags-open-button" type="button">デッキタグ登録</button>
     <button id="bulk-import-open-button" type="button">新カードの追加・データ登録</button>
     <p id="menu-account-status" role="status"></p>
+  </div>
+
+  <div id="deck-tags-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="deck-tags-title">
+    <section class="feature-modal-content">
+      <button class="feature-close-button" data-close-modal="deck-tags-modal" type="button" aria-label="閉じる">×</button>
+      <h2 id="deck-tags-title">デッキタグ登録</h2>
+      <p>登録したタグは、自分のデッキに選んで付けられます。</p>
+      <form id="deck-tag-form" class="deck-create-row"><input id="deck-tag-name" type="text" maxlength="24" placeholder="例：大会用" aria-label="新しいデッキタグ"><button class="primary-button" type="submit">タグを登録</button></form>
+      <ul id="deck-tag-list"></ul><p id="deck-tag-status" class="feature-status" role="status"></p>
+    </section>
   </div>
 
   <nav id="bottom-nav" aria-label="画面切り替え">
@@ -261,16 +272,15 @@
   </div>
 
   <section id="deck-library-screen" class="app-screen" hidden>
-    <div class="screen-title-row"><div><p class="eyebrow">FAN-MADE DECK BUILDER</p><h1>デッキ一覧</h1></div><button id="new-deck-open-button" class="primary-button" type="button">＋ 新しいデッキ</button></div>
+    <div class="screen-title-row"><div><p class="eyebrow">FAN-MADE DECK BUILDER</p><h1>デッキ一覧</h1></div><div class="new-deck-actions"><button id="import-deck-button" class="outline-button" type="button">デッキファイルを読み込む</button><input id="import-deck-file" type="file" accept=".json,application/json" hidden><button id="new-deck-open-button" class="primary-button" type="button">＋ 新しいデッキ</button></div></div>
     <div class="segmented-tabs" role="tablist" aria-label="デッキ一覧の種類">
       <button id="my-decks-tab" type="button" class="active" role="tab" aria-selected="true">マイデッキ</button>
       <button id="public-decks-tab" type="button" role="tab" aria-selected="false">公開デッキ検索</button>
     </div>
     <form id="new-deck-panel" class="new-deck-panel" hidden>
       <label for="new-deck-screen-name">新しいデッキ名</label>
-      <input id="new-deck-screen-name" type="text" maxlength="50" placeholder="例：お気に入りデッキ" required>
-      <label for="new-deck-tags">デッキタグ（カンマ区切り）</label>
-      <input id="new-deck-tags" type="text" maxlength="120" placeholder="例：大会用, 光属性, 初心者向け" required>
+      <input id="new-deck-screen-name" type="text" maxlength="50" placeholder="例：クロコダイルコントロール" required>
+      <fieldset class="deck-tag-picker"><legend>デッキタグ</legend><div id="new-deck-tag-options"></div></fieldset>
       <button class="primary-button" type="submit">デッキを作成</button>
       <button id="new-deck-cancel-button" class="outline-button" type="button">キャンセル</button>
     </form>
@@ -285,11 +295,12 @@
 
   <section id="deck-builder-screen" class="app-screen" hidden>
     <div class="screen-title-row builder-title-row"><button class="back-button" type="button" data-back="decks" aria-label="デッキ一覧へ戻る">‹</button><div class="builder-name-wrap"><label class="eyebrow" for="builder-deck-name">デッキ名</label><input id="builder-deck-name" class="deck-name-input" maxlength="50"></div><button id="builder-save-settings-button" class="toolbar-icon-button" type="button" title="デッキ名・タグ・公開状態を保存">保存</button></div>
-    <label class="deck-tags-editor" for="builder-deck-tags">デッキタグ（カンマ区切り）<input id="builder-deck-tags" type="text" maxlength="120" placeholder="例：大会用, 光属性, 初心者向け"></label>
+    <fieldset class="deck-tag-picker"><legend>デッキタグ</legend><div id="builder-deck-tag-options"></div></fieldset>
     <p id="public-deck-readonly-note" class="readonly-note" hidden>公開デッキの閲覧モードです。編集はできません。</p>
     <div class="deck-summary-panel"><div><strong id="deck-total-count">0</strong><span>枚</span></div><div id="deck-visibility-badge" class="visibility-badge">非公開</div><button id="builder-visibility-button" type="button" class="outline-button">公開設定</button></div>
     <div id="deck-type-stats" class="deck-type-stats"></div>
-    <div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
+    <div id="deck-pile-tabs" class="segmented-tabs deck-pile-tabs" role="tablist" aria-label="編集するデッキ"><button id="main-pile-tab" class="active" type="button" role="tab" aria-selected="true">メインデッキ</button><button id="territory-pile-tab" type="button" role="tab" aria-selected="false">領地デッキ</button></div>
+    <p id="selected-pile-count" class="status-line"></p><div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
     <div id="builder-tools" class="builder-tools toolbar-panel">
       <form id="builder-search-form" class="builder-search-form" role="search">
         <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input id="builder-search" type="search" placeholder="カード名や条件で検索"></label>
@@ -352,7 +363,6 @@
 
       </div>
 
-
       <!--
         種属
       -->
@@ -371,7 +381,6 @@
 
       </div>
 
-
       <!--
         コスト
       -->
@@ -389,6 +398,8 @@
         </div>
 
       </div>
+
+      <div class="filter"><div class="filter-title">コンディション</div><div id="condition-filter" class="multi-select"></div></div>
 
 
       <!--
@@ -811,12 +822,12 @@
 
   <script src="js/api.js"></script>
 
-  <script src="js/search.js?v=20261010-2"></script>
+  <script src="js/search.js?v=20261010-4"></script>
 
   <script src="js/display.js"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261010-2"></script>
+  <script src="js/deck-ui.js?v=20261010-3"></script>
 
   <script type="module" src="firebase.js"></script>
 
