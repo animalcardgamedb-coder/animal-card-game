@@ -87,7 +87,12 @@
   }
   function renderBuilderCards() {
     if (state.publicView) { $("builder-card-list").replaceChildren(); $("builder-load-more").hidden = true; return; }
-    const result = (window.appState?.currentSearchResults || allCards()).filter(item => !state.builderQuery || JSON.stringify(item).toLowerCase().includes(state.builderQuery.toLowerCase()));
+    const normalizedQuery = String(state.builderQuery || "").trim().replace(/\u3000/g, " ").toLocaleLowerCase();
+    const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+    const result = allCards().filter(item => {
+      const searchable = `${JSON.stringify(item)} ${window.getCardConditionText?.(item) || ""}`.toLocaleLowerCase();
+      return terms.every(term => term.startsWith("-") ? !searchable.includes(term.slice(1)) : searchable.includes(term));
+    });
     const list = $("builder-card-list"); list.classList.toggle("compact", state.compact); list.replaceChildren();
     if (!result.length) { $("builder-load-more").hidden = true; list.innerHTML = `<div class="empty-state">該当するカードがありません。</div>`; return; }
     const visible = result.slice(0, state.cardLimit);
@@ -171,7 +176,9 @@
     $("deck-search").addEventListener("input", () => renderDeckTiles(state.decks)); $("deck-sort-select").addEventListener("change", () => renderDeckTiles(state.decks));
     $("deck-list-view-toggle").addEventListener("click", () => { state.compact = !state.compact; renderDeckTiles(state.decks); });
     document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => setScreen(button.dataset.back === "builder" ? "builder" : "decks")));
-    $("builder-search").addEventListener("input", event => { state.builderQuery = event.target.value; renderBuilderCards(); });
+    const applyBuilderSearch = () => { state.builderQuery = $("builder-search").value; renderBuilderCards(); };
+    $("builder-search").addEventListener("input", applyBuilderSearch);
+    $("builder-search-form").addEventListener("submit", event => { event.preventDefault(); applyBuilderSearch(); });
     $("builder-load-more").addEventListener("click", () => { state.cardLimit += 120; renderBuilderCards(); });
     $("builder-filter-button").addEventListener("click", () => openModal("search-modal"));
     $("builder-grid-button").addEventListener("click", () => { state.compact = !state.compact; renderBuilderCards(); });

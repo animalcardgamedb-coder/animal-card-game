@@ -10,7 +10,7 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == ownerUid;
     }
 
-    function validDeck(data) {
+    function validNewDeck(data) {
       return data.keys().hasAll([
           'ownerUid', 'ownerName', 'name', 'isPublic',
           'cards', 'createdAt', 'updatedAt'
@@ -30,7 +30,24 @@ service cloud.firestore {
         && data.cards.size() <= 200
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
-        // tags are optional for existing decks; new tags are kept to a short list.
+        && (!data.keys().hasAny(['tags'])
+          || (data.tags is list && data.tags.size() <= 12));
+    }
+
+    function validDeckUpdate(data) {
+      // Only allow owners to edit supported fields, while leaving legacy fields intact.
+      // Older decks may have additional fields, so updates should not reject them.
+      return data.keys().hasAll([
+          'ownerUid', 'name', 'isPublic', 'cards', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerUid is string
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 50
+        && data.isPublic is bool
+        && data.cards is list
+        && data.cards.size() <= 200
+        && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
           || (data.tags is list && data.tags.size() <= 12));
     }
@@ -42,12 +59,15 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
-        && validDeck(request.resource.data);
+        && validNewDeck(request.resource.data);
 
       allow update: if ownsDeck(resource.data.ownerUid)
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.createdAt == resource.data.createdAt
-        && validDeck(request.resource.data);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'isPublic', 'cards', 'tags', 'updatedAt'
+        ])
+        && validDeckUpdate(request.resource.data);
 
       allow delete: if ownsDeck(resource.data.ownerUid);
     }

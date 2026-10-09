@@ -291,7 +291,10 @@
     <div id="deck-type-stats" class="deck-type-stats"></div>
     <div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
     <div id="builder-tools" class="builder-tools toolbar-panel">
-      <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input id="builder-search" type="search" placeholder="カード名や条件で検索"></label>
+      <form id="builder-search-form" class="builder-search-form" role="search">
+        <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input id="builder-search" type="search" placeholder="カード名や条件で検索"></label>
+        <button id="builder-search-apply-button" class="toolbar-icon-button" type="submit" aria-label="カードを検索">検索</button>
+      </form>
       <button id="builder-filter-button" class="toolbar-icon-button" type="button" aria-label="カードの検索条件を開く">▾</button>
       <button id="builder-grid-button" class="toolbar-icon-button" type="button" aria-label="カード一覧の表示を切り替え">▦</button>
     </div>
