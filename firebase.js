@@ -47,6 +47,12 @@ let selectedDeck = null;
 
 const byId = id => document.getElementById(id);
 
+function normalizeTags(tags) {
+  return [...new Set((Array.isArray(tags) ? tags : []).map(tag => String(tag).trim()).filter(Boolean))]
+    .slice(0, 12)
+    .map(tag => tag.slice(0, 24));
+}
+
 function setStatus(elementId, message) {
   const element = byId(elementId);
   if (element) element.textContent = message;
@@ -72,12 +78,16 @@ function readableError(error) {
     "auth/unauthorized-domain": "このサイトのドメインがFirebaseで許可されていません。FirebaseのAuthentication設定で許可が必要です。",
     "permission-denied": "Firestoreのアクセスが拒否されました。Firebaseのルール設定を確認してください。"
   };
+  if (!error?.code && error?.message) return error.message;
   return messages[error?.code] || `処理に失敗しました。時間をおいて再度お試しください。 (${error?.code || "エラー"})`;
 }
 
 async function runAuthAction(action, successMessage = "ログインしました。") {
   setStatus("account-status", "処理中です……");
   try {
+    if (location.protocol === "file:") {
+      throw new Error("このローカルファイルではFirebaseログインを使えません。GitHub Pages上のサイトを開いてログインしてください。");
+    }
     await action();
     setStatus("account-status", successMessage);
   } catch (error) {
@@ -134,6 +144,7 @@ onAuthStateChanged(auth, async user => {
   byId("deck-login-hint").hidden = Boolean(user);
   if (user) {
     setStatus("account-status", `ログイン中：${user.displayName || user.email || "ユーザー"}`);
+    byId("menu-account-status")?.replaceChildren(document.createTextNode(user.displayName || user.email || "ログイン中"));
     await loadOwnedDecks();
   } else {
     selectedDeckId = "";
@@ -141,7 +152,9 @@ onAuthStateChanged(auth, async user => {
     byId("owned-deck-select").innerHTML = '<option value="">デッキを選択してください</option>';
     byId("selected-deck-editor").hidden = true;
     updateAddCardButton();
+    setStatus("menu-account-status", "ログインしていません");
   }
+  window.dispatchEvent(new CustomEvent("animaldeck:authchange", { detail: { signedIn: Boolean(user) } }));
 });
 
 async function loadOwnedDecks() {
@@ -271,24 +284,6 @@ function updateAddCardButton() {
   if (button) button.disabled = !(signedInUser && selectedDeckId && selectedDeck);
 }
 
-byId("add-card-to-deck-button")?.addEventListener("click", async () => {
-  if (!signedInUser || !selectedDeckId || !selectedDeck) {
-    setStatus("deck-status", "ログインしてデッキを選択してください。");
-    return;
-  }
-  const itemId = byId("detail-id")?.textContent.trim() || "";
-  const itemName = byId("detail-name")?.textContent.trim() || "カード";
-  if (!itemId) {
-    setStatus("deck-status", "この項目にはカードIDがないため追加できません。");
-    return;
-  }
-  const cards = [...(selectedDeck.cards || [])];
-  const existing = cards.find(card => card.itemId === itemId);
-  if (existing) existing.quantity = Number(existing.quantity || 1) + 1;
-  else cards.push({ itemId, name: itemName, quantity: 1 });
-  await saveDeckCards(cards, "カードをデッキに追加しました。");
-});
-
 async function saveDeckCards(cards, successMessage) {
   try {
     await updateDoc(doc(db, "decks", selectedDeckId), {
@@ -343,8 +338,9 @@ async function loadPublicDecks() {
     const snapshot = await getDocs(publicQuery);
     const list = byId("public-deck-list");
     list.replaceChildren();
-    snapshot.forEach(deckDoc => {
-      const data = deckDoc.data();
+    const decks = snapshot.docs.map(deckDoc => ({ id: deckDoc.id, ...deckDoc.data() }));
+    decks.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    decks.forEach(data => {
       const item = document.createElement("li");
       const cards = Array.isArray(data.cards) ? data.cards : [];
       const summary = cards.map(card => `${card.name || "カード"} × ${card.quantity || 1}`).join("、");
@@ -361,3 +357,114 @@ async function loadPublicDecks() {
     setStatus("deck-status", readableError(error));
   }
 }
+
+/*
+  新しい画面から安全に使うデッキ操作。
+  所有権の確認とFirestoreへの保存は、従来どおりサーバールールでも検証されます。
+*/
+window.animalDeckApp = {
+  isSignedIn() {
+    return Boolean(signedInUser);
+  },
+  current() {
+    return selectedDeck ? { id: selectedDeckId, ...selectedDeck } : null;
+  },
+  isOwner() {
+    return Boolean(signedInUser && selectedDeck && selectedDeck.ownerUid === signedInUser.uid);
+  },
+  viewPublic(deck) {
+    if (!deck?.id || deck.isPublic !== true) throw new Error("このデッキは公開されていません。");
+    selectedDeckId = deck.id;
+    selectedDeck = { ...deck };
+    return this.current();
+  },
+  async listOwned() {
+    if (!signedInUser) return [];
+    const snapshot = await getDocs(query(
+      collection(db, "decks"),
+      where("ownerUid", "==", signedInUser.uid)
+    ));
+    return snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
+  },
+  async listPublic() {
+    const snapshot = await getDocs(query(
+      collection(db, "decks"),
+      where("isPublic", "==", true),
+      limit(100)
+    ));
+    return snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+  },
+  async select(id) {
+    await loadSelectedDeck(id);
+    if (!selectedDeck || selectedDeckId !== id) throw new Error("permission-denied");
+    return this.current();
+  },
+  async create(name, tags = []) {
+    if (!signedInUser) throw new Error("ログインしてください。");
+    const safeName = String(name || "").trim().slice(0, 50);
+    if (!safeName) throw new Error("デッキ名を入力してください。");
+    const deckRef = await addDoc(collection(db, "decks"), {
+      ownerUid: signedInUser.uid,
+      ownerName: String(signedInUser.displayName || "プレイヤー").slice(0, 50),
+      name: safeName,
+      tags: normalizeTags(tags),
+      isPublic: false,
+      cards: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    await loadSelectedDeck(deckRef.id);
+    return this.current();
+  },
+  async updateSettings(name, isPublic, tags = selectedDeck?.tags || []) {
+    if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
+    const safeName = String(name || "").trim().slice(0, 50);
+    if (!safeName) throw new Error("デッキ名を入力してください。");
+    await updateDoc(doc(db, "decks", selectedDeckId), {
+      name: safeName,
+      isPublic: Boolean(isPublic),
+      tags: normalizeTags(tags),
+      updatedAt: serverTimestamp()
+    });
+    selectedDeck = { ...selectedDeck, name: safeName, isPublic: Boolean(isPublic), tags: normalizeTags(tags) };
+    return this.current();
+  },
+  async saveCards(cards) {
+    if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
+    if (!Array.isArray(cards) || cards.length > 200) throw new Error("デッキに登録できる種類数の上限を超えています。");
+    await updateDoc(doc(db, "decks", selectedDeckId), { cards, updatedAt: serverTimestamp() });
+    selectedDeck = { ...selectedDeck, cards };
+    renderOwnedDeckCards();
+    return this.current();
+  },
+  async addCard(item) {
+    if (!selectedDeck) throw new Error("先にデッキを選択してください。");
+    const id = String(item?.card_id || item?.territory_id || item?.itemId || "");
+    const name = String(item?.card_name || item?.territory_name || item?.name || "");
+    if (!id || !name) throw new Error("カードIDを確認できませんでした。");
+    const cards = [...(selectedDeck.cards || [])];
+    const found = cards.find(card => String(card.itemId) === id);
+    if (found) found.quantity = Math.min(99, Number(found.quantity || 1) + 1);
+    else cards.push({ itemId: id, name, quantity: 1 });
+    return this.saveCards(cards);
+  },
+  async changeQuantity(itemId, change) {
+    if (!selectedDeck) throw new Error("先にデッキを選択してください。");
+    const cards = [...(selectedDeck.cards || [])];
+    const found = cards.find(card => String(card.itemId) === String(itemId));
+    if (!found) return this.current();
+    const quantity = Number(found.quantity || 1) + Number(change || 0);
+    if (quantity <= 0) cards.splice(cards.indexOf(found), 1);
+    else found.quantity = Math.min(99, quantity);
+    return this.saveCards(cards);
+  },
+  async deleteCurrent() {
+    if (!signedInUser || !selectedDeckId) throw new Error("先にデッキを選択してください。");
+    await deleteDoc(doc(db, "decks", selectedDeckId));
+    selectedDeckId = "";
+    selectedDeck = null;
+    return true;
+  }
+};

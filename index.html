@@ -10,14 +10,15 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>
-    アニマルカードゲーム カード検索
-  </title>
+  <title>ANIMALCARDGAME　DeckBuilder</title>
 
   <link
     rel="stylesheet"
     href="css/style.css"
   >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
 
@@ -122,9 +123,8 @@
 
   <style>
     #account-controls { position: fixed; top: 15px; left: 15px; z-index: 900; display: flex; gap: 8px; }
-    #account-controls button, .feature-actions button, .feature-modal-content > button:not(.feature-close-button), #add-card-to-deck-button { padding: 9px 13px; border: 1px solid #aaa; border-radius: 6px; background: #fff; cursor: pointer; }
-    #account-controls button:hover, .feature-actions button:hover, .feature-modal-content > button:not(.feature-close-button):hover, #add-card-to-deck-button:hover { background: #f2f6fb; }
-    #add-card-to-deck-button:disabled { cursor: not-allowed; opacity: .55; }
+    #account-controls button, .feature-actions button, .feature-modal-content > button:not(.feature-close-button) { padding: 9px 13px; border: 1px solid #aaa; border-radius: 6px; background: #fff; cursor: pointer; }
+    #account-controls button:hover, .feature-actions button:hover, .feature-modal-content > button:not(.feature-close-button):hover { background: #f2f6fb; }
     .feature-modal { display: none; position: fixed; inset: 0; z-index: 3000; overflow-y: auto; box-sizing: border-box; padding: 24px 14px; background: rgba(0,0,0,.65); }
     .feature-modal-content { position: relative; box-sizing: border-box; width: min(560px,100%); margin: 0 auto; padding: 24px; border-radius: 8px; background: #fff; }
     .deck-modal-content { width: min(760px,100%); }
@@ -146,16 +146,34 @@
 
 <body>
 
-  <div id="account-controls" aria-label="アカウントとデッキ">
+  <header id="app-header">
+    <button id="home-button" class="app-brand" type="button" aria-label="ホームへ戻る">
+      <span>ANIMALCARDGAME</span><small>DeckBuilder</small>
+    </button>
+    <nav class="header-actions" aria-label="メインメニュー">
+      <button id="deck-mode-button" class="header-icon-button" type="button" aria-label="デッキ制作モード" title="デッキ制作モード"><span aria-hidden="true">▤</span><small>デッキ</small></button>
+      <button id="search-mode-button" class="header-icon-button active" type="button" aria-label="カード検索モード" title="カード検索モード"><span aria-hidden="true">⌕</span><small>検索</small></button>
+      <button id="menu-open-button" class="header-icon-button" type="button" aria-label="メニューを開く" aria-expanded="false" title="メニュー"><span aria-hidden="true">☰</span><small>メニュー</small></button>
+    </nav>
+  </header>
+
+  <div id="menu-panel" hidden>
     <button id="account-open-button" type="button">ログイン</button>
-    <button id="deck-open-button" type="button">デッキ</button>
+    <button id="bulk-import-open-button" type="button">新カードの追加・データ登録</button>
+    <p id="menu-account-status" role="status"></p>
   </div>
+
+  <nav id="bottom-nav" aria-label="画面切り替え">
+    <button type="button" data-screen="search" class="active"><span aria-hidden="true">⌕</span>検索</button>
+    <button type="button" data-screen="decks"><span aria-hidden="true">▤</span>デッキ</button>
+  </nav>
 
   <div id="account-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
     <section class="feature-modal-content">
       <button class="feature-close-button" data-close-modal="account-modal" type="button" aria-label="閉じる">×</button>
       <h2 id="account-title">ログイン</h2>
       <p>Google、またはメールアドレスでログインできます。</p>
+      <p id="local-auth-notice" hidden>このファイルを直接開いた画面ではFirebaseログインを利用できません。<a href="https://animalcardgamedb-coder.github.io/animal-card-game/" target="_blank" rel="noopener noreferrer">公開サイトを開いてログイン</a>してください。</p>
       <label for="account-email">メールアドレス</label>
       <input id="account-email" type="email" autocomplete="email">
       <label for="account-password">パスワード</label>
@@ -171,7 +189,7 @@
     </section>
   </div>
 
-  <div id="deck-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="deck-title">
+  <div id="deck-modal" class="feature-modal legacy-deck-modal" role="dialog" aria-modal="true" aria-labelledby="deck-title">
     <section class="feature-modal-content deck-modal-content">
       <button class="feature-close-button" data-close-modal="deck-modal" type="button" aria-label="閉じる">×</button>
       <h2 id="deck-title">デッキ</h2>
@@ -199,7 +217,7 @@
           </select>
           <button id="save-deck-settings-button" type="button">名前・公開設定を保存</button>
           <h3>デッキのカード</h3>
-          <p>カード詳細画面の「選択中のデッキに追加」からカードを入れられます。</p>
+          <p>カードはデッキ構築画面のカード一覧から追加できます。</p>
           <ul id="deck-card-list" class="deck-card-list"></ul>
           <button id="delete-deck-button" class="danger-button" type="button">このデッキを削除</button>
         </div>
@@ -216,144 +234,17 @@
     検索を開くボタン
   -->
 
-  <button
-    id="search-open-button"
-    aria-label="検索を開く"
-    title="検索"
-  >
-    🔍
-  </button>
-
-
   <div id="card-search">
 
     <h1>
-      アニマルカードゲーム カード検索
+      カード検索
     </h1>
 
-
-    <!--
-      カテゴリ切り替え
-    -->
-
-    <div id="category-controls">
-
-      <div class="display-control-group">
-
-        <span>
-          種類：
-        </span>
-
-        <button
-          id="category-all-button"
-          class="display-button active"
-        >
-          すべて
-        </button>
-
-        <button
-          id="category-card-button"
-          class="display-button"
-        >
-          カード
-        </button>
-
-        <button
-          id="category-territory-button"
-          class="display-button"
-        >
-          領地
-        </button>
-
-        <button
-          id="bulk-import-open-button"
-          class="display-button"
-          type="button"
-        >
-          データ登録
-        </button>
-
-      </div>
-
-    </div>
-
-
-    <!--
-      表示方法・アイコン列数
-    -->
-
-    <div id="display-controls">
-
-      <div class="display-control-group">
-
-        <span>
-          表示：
-        </span>
-
-        <button
-          id="list-mode-button"
-          class="display-button active"
-        >
-          リスト
-        </button>
-
-        <button
-          id="icon-mode-button"
-          class="display-button"
-        >
-          アイコン
-        </button>
-
-      </div>
-
-
-      <div
-        id="icon-size-controls"
-        class="display-control-group"
-        style="display: none;"
-      >
-
-        <span>
-          列数：
-        </span>
-
-        <button
-          id="icon-3-button"
-          class="display-button"
-        >
-          3列
-        </button>
-
-        <button
-          id="icon-5-button"
-          class="display-button active"
-        >
-          5列
-        </button>
-
-        <button
-          id="icon-7-button"
-          class="display-button"
-        >
-          7列
-        </button>
-
-        <button
-          id="icon-9-button"
-          class="display-button"
-        >
-          9列
-        </button>
-
-        <button
-          id="icon-10-button"
-          class="display-button"
-        >
-          10列
-        </button>
-
-      </div>
-
+    <div id="search-toolbar" class="toolbar-panel">
+      <button id="search-open-button" type="button" aria-label="検索条件を開く" title="カード種別などの条件">⌄</button>
+      <label class="search-field" for="search-box"><span aria-hidden="true">⌕</span><input type="search" id="search-box" placeholder="カード名やテキストで検索" autocomplete="off"></label>
+      <button id="display-toggle-button" type="button" class="toolbar-icon-button" aria-label="リスト表示とアイコン表示を切り替え" title="リスト／アイコン">▦</button>
+      <input id="icon-column-input" class="icon-column-input" type="number" min="1" max="12" value="5" inputmode="numeric" aria-label="アイコン表示の列数" title="アイコン表示の列数" hidden>
     </div>
 
 
@@ -368,6 +259,56 @@
     </div>
 
   </div>
+
+  <section id="deck-library-screen" class="app-screen" hidden>
+    <div class="screen-title-row"><div><p class="eyebrow">FAN-MADE DECK BUILDER</p><h1>デッキ一覧</h1></div><button id="new-deck-open-button" class="primary-button" type="button">＋ 新しいデッキ</button></div>
+    <div class="segmented-tabs" role="tablist" aria-label="デッキ一覧の種類">
+      <button id="my-decks-tab" type="button" class="active" role="tab" aria-selected="true">マイデッキ</button>
+      <button id="public-decks-tab" type="button" role="tab" aria-selected="false">公開デッキ検索</button>
+    </div>
+    <form id="new-deck-panel" class="new-deck-panel" hidden>
+      <label for="new-deck-screen-name">新しいデッキ名</label>
+      <input id="new-deck-screen-name" type="text" maxlength="50" placeholder="例：お気に入りデッキ" required>
+      <label for="new-deck-tags">デッキタグ（カンマ区切り）</label>
+      <input id="new-deck-tags" type="text" maxlength="120" placeholder="例：大会用, 光属性, 初心者向け" required>
+      <button class="primary-button" type="submit">デッキを作成</button>
+      <button id="new-deck-cancel-button" class="outline-button" type="button">キャンセル</button>
+    </form>
+    <div class="toolbar-panel deck-list-toolbar">
+      <label class="search-field" for="deck-search"><span aria-hidden="true">⌕</span><input id="deck-search" type="search" placeholder="デッキ名やタグで検索"></label>
+      <label class="sort-field" for="deck-sort-select"><span>並び順</span><select id="deck-sort-select"><option value="newest">更新日時（新しい順）</option><option value="name">デッキ名</option><option value="count">カード枚数</option></select></label>
+      <button id="deck-list-view-toggle" type="button" class="toolbar-icon-button" aria-label="表示方法を切り替え">▦</button>
+    </div>
+    <p id="deck-library-status" class="status-line" role="status"></p>
+    <div id="deck-library-list" class="deck-library-grid"></div>
+  </section>
+
+  <section id="deck-builder-screen" class="app-screen" hidden>
+    <div class="screen-title-row builder-title-row"><button class="back-button" type="button" data-back="decks" aria-label="デッキ一覧へ戻る">‹</button><div class="builder-name-wrap"><label class="eyebrow" for="builder-deck-name">デッキ名</label><input id="builder-deck-name" class="deck-name-input" maxlength="50"></div><button id="builder-save-settings-button" class="toolbar-icon-button" type="button" title="デッキ名・タグ・公開状態を保存">保存</button></div>
+    <label class="deck-tags-editor" for="builder-deck-tags">デッキタグ（カンマ区切り）<input id="builder-deck-tags" type="text" maxlength="120" placeholder="例：大会用, 光属性, 初心者向け"></label>
+    <p id="public-deck-readonly-note" class="readonly-note" hidden>公開デッキの閲覧モードです。編集はできません。</p>
+    <div class="deck-summary-panel"><div><strong id="deck-total-count">0</strong><span>枚</span></div><div id="deck-visibility-badge" class="visibility-badge">非公開</div><button id="builder-visibility-button" type="button" class="outline-button">公開設定</button></div>
+    <div id="deck-type-stats" class="deck-type-stats"></div>
+    <div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
+    <div id="builder-tools" class="builder-tools toolbar-panel">
+      <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input id="builder-search" type="search" placeholder="カード名や条件で検索"></label>
+      <button id="builder-filter-button" class="toolbar-icon-button" type="button" aria-label="カードの検索条件を開く">▾</button>
+      <button id="builder-grid-button" class="toolbar-icon-button" type="button" aria-label="カード一覧の表示を切り替え">▦</button>
+    </div>
+    <div id="builder-category-controls" class="builder-category-controls"></div>
+    <div id="builder-card-list" class="builder-card-grid"></div>
+    <button id="builder-load-more" class="outline-button builder-load-more" type="button" hidden>カードをさらに表示</button>
+    <div class="builder-bottom-actions"><button id="delete-current-deck" class="danger-button" type="button">削除</button><button id="export-deck-button" class="outline-button" type="button">書き出し</button><button id="preview-deck-button" class="outline-button" type="button">確認</button><button id="save-deck-button" class="primary-button" type="button">保存して一覧へ</button></div>
+  </section>
+
+  <section id="deck-preview-screen" class="app-screen" hidden>
+    <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div>
+    <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
+    <p id="preview-updated-at" class="preview-meta"></p>
+    <div class="preview-count"><span>デッキ合計</span><strong id="preview-total-count"></strong></div>
+    <div id="preview-card-list" class="preview-card-grid"></div>
+    <div id="preview-text-list" class="preview-text-list" hidden></div>
+  </section>
 
 
   <!--
@@ -389,30 +330,6 @@
       <h2 id="search-modal-title">
         カード・領地検索
       </h2>
-
-
-      <!--
-        文字検索
-      -->
-
-      <div class="filter">
-
-        <div class="filter-title">
-          検索
-        </div>
-
-        <input
-          type="text"
-          id="search-box"
-          placeholder="例：火 竜 -ドラゴン"
-        >
-
-        <p id="search-help">
-          スペース：AND検索　　-：マイナス検索
-        </p>
-
-      </div>
-
 
       <!--
         カードタイプ
@@ -440,7 +357,7 @@
       <div class="filter">
 
         <div class="filter-title">
-          種属
+          種族
         </div>
 
         <div
@@ -821,6 +738,17 @@
       <div class="detail-row">
 
         <span class="detail-label">
+          Condition：
+        </span>
+
+        <span id="detail-condition"></span>
+
+      </div>
+
+
+      <div class="detail-row">
+
+        <span class="detail-label">
           効果：
         </span>
 
@@ -866,9 +794,6 @@
           公式ページを開く
         </a>
 
-      <button id="add-card-to-deck-button" type="button" disabled>
-        選択中のデッキに追加
-      </button>
 
       </div>
 
@@ -888,6 +813,7 @@
   <script src="js/display.js"></script>
 
   <script src="js/main.js"></script>
+  <script src="js/deck-ui.js"></script>
 
   <script type="module" src="firebase.js"></script>
 

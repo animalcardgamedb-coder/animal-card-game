@@ -7,6 +7,24 @@ const API_URL =
 
 
 /*
+  スプレッドシートのCondition/条件列をまとめて取り出す
+*/
+function getCardConditionText(item) {
+  if (!item || typeof item !== "object") return "";
+
+  return Object.entries(item)
+    .filter(([key]) => /condition|条件|コンディション/i.test(key))
+    .map(([, value]) => {
+      if (Array.isArray(value)) return value.join("、");
+      if (value && typeof value === "object") return JSON.stringify(value);
+      return String(value ?? "").trim();
+    })
+    .filter(Boolean)
+    .join("、");
+}
+
+
+/*
   カード・領地データを読み込む
 */
 

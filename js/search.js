@@ -661,12 +661,19 @@ function searchCards() {
             item.effect_text
           );
 
+        const condition =
+          normalizeWithFullWidth(
+            getCardConditionText(item)
+          );
+
         const searchableText =
           name +
           " " +
           reading +
           " " +
-          effectText;
+          effectText +
+          " " +
+          condition;
 
 
         const matchesInclude =

@@ -47,6 +47,9 @@ const appState = {
 
 };
 
+// Allow the separate deck-building screen to reuse the existing search results.
+window.appState = appState;
+
 
 /*
   ======================================
