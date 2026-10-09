@@ -17,7 +17,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'ownerUid', 'ownerName', 'name', 'isPublic',
-          'cards', 'createdAt', 'updatedAt'
+          'cards', 'createdAt', 'updatedAt', 'tags'
         ])
         && data.ownerUid is string
         && data.ownerName is string
@@ -29,7 +29,10 @@ service cloud.firestore {
         && data.cards is list
         && data.cards.size() <= 200
         && data.createdAt is timestamp
-        && data.updatedAt is timestamp;
+        && data.updatedAt is timestamp
+        // tags are optional for existing decks; new tags are kept to a short list.
+        && (!data.keys().hasAny(['tags'])
+          || (data.tags is list && data.tags.size() <= 12));
     }
 
     match /decks/{deckId} {
