@@ -106,6 +106,17 @@ function getUniqueValues(
 
 }
 
+function getConditionFilterValues(data) {
+  const values = new Set();
+  data.forEach(item => {
+    const text = window.getCardConditionText?.(item) || "";
+    // Only expose single kanji tokens. Repeats and slash-separated conditions
+    // therefore share the same button (for example 山山/森 -> 山 and 森).
+    (text.match(/[\p{Script=Han}]/gu) || []).forEach(character => values.add(character));
+  });
+  return [...values].sort((a, b) => a.localeCompare(b, "ja"));
+}
+
 
 /*
   フィルターの選択肢を表示
@@ -233,6 +244,8 @@ function createFilterOptions() {
         )
     )
   );
+
+  createMultiFilter("condition-filter", getConditionFilterValues(allData));
 
 
   /*
@@ -526,6 +539,8 @@ function searchCards() {
       "card-type-filter"
     );
 
+  const selectedConditions = getSelectedValues("condition-filter");
+
   const selectedSpecies =
     getSelectedValues(
       "species-filter"
@@ -718,11 +733,11 @@ function searchCards() {
 
         const matchesType =
           selectedCardTypes.length === 0 ||
-          selectedCardTypes.includes(
-            String(
-              itemType
-            )
-          );
+          splitValues(itemType).some(type => selectedCardTypes.includes(type));
+
+        const matchesCondition = selectedConditions.every(selected =>
+          normalizeWithFullWidth(getCardConditionText(item)).includes(normalizeWithFullWidth(selected))
+        );
 
 
         /*
@@ -941,6 +956,7 @@ function searchCards() {
           matchesInclude &&
           matchesExclude &&
           matchesType &&
+          matchesCondition &&
           matchesSpecies &&
           matchesCost &&
           matchesKeyword &&
