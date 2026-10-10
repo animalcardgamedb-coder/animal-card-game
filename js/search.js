@@ -414,6 +414,24 @@ function isTerritory(
 
 function getSearchData() {
 
+  // Family-specific filters must search their family regardless of the
+  // ordinary category selector currently selected.
+  const hasCardSpecificFilters =
+    getSelectedValues("card-keyword-filter").length > 0 ||
+    getSelectedValues("card-effect-filter").length > 0;
+
+  const hasTerritorySpecificFilters =
+    getSelectedValues("territory-keyword-filter").length > 0 ||
+    getSelectedValues("territory-effect-filter").length > 0;
+
+  if (hasCardSpecificFilters || hasTerritorySpecificFilters) {
+    if (appState.allData?.length) return appState.allData;
+    return [
+      ...(appState.allCards || []),
+      ...(appState.allTerritories || [])
+    ];
+  }
+
   if (
     appState.currentCategory ===
     "card"

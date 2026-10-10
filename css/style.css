@@ -35,3 +35,16 @@
 #local-auth-notice{padding:10px;border-left:3px solid #555;background:#eee;line-height:1.7}
 #local-auth-notice a{color:#111;font-weight:700;text-decoration:underline}
 .builder-search-form{display:flex;flex:1;min-width:0;gap:8px}.builder-search-form .search-field{flex:1}.builder-search-form #builder-search-apply-button{flex:0 0 auto;min-width:56px}
+
+
+/* Deck builder card tile: click card for details; use separate quantity controls. */
+.builder-card{display:flex;flex-direction:column;min-width:0}
+.builder-card-detail{display:block;width:100%;min-width:0;padding:0;border:0;border-radius:0;background:transparent;text-align:left;color:inherit}
+.builder-card-detail:hover{background:#f7f7f5}
+.builder-card-detail img{display:block;width:100%;aspect-ratio:.72;object-fit:cover;background:#e9e9e9}
+.builder-card .quantity-mark{left:auto;right:5px;top:5px;z-index:2}
+.builder-card-actions{display:flex;align-items:center;justify-content:center;gap:8px;padding:4px 7px 8px;margin-top:auto}
+.builder-card-actions button{width:32px;height:29px;padding:0;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink);font-size:18px;font-weight:700;line-height:1}
+.builder-card-actions .builder-card-add{background:#171717;border-color:#171717;color:#fff}
+.builder-card-actions button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:420px){.builder-card-actions{gap:5px;padding:3px 4px 6px}.builder-card-actions button{width:29px;height:27px}}
