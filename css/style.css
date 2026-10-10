@@ -59,3 +59,19 @@
 .selected-card-mini-reorder{position:absolute;top:3px;left:3px;right:3px;z-index:4;display:flex;justify-content:space-between;pointer-events:none}
 .selected-card-move-button{width:23px;height:23px;padding:0;border:1px solid #555;border-radius:4px;background:#fff;color:#111;font-size:13px;font-weight:700;line-height:1;box-shadow:0 1px 4px #0003;pointer-events:auto}
 .selected-card-move-button:disabled{opacity:.3;cursor:not-allowed}
+
+/* Clear deck actions, visible reordering controls and HTML5 drag-and-drop feedback. */
+.builder-utility-actions{display:flex;flex-wrap:wrap;gap:8px;margin:-5px 0 14px}
+.builder-utility-actions button{min-height:42px}
+.reorder-help{margin:9px 0 2px;color:var(--muted);font-size:12px}
+.selected-card-mini{cursor:grab}
+.selected-card-mini:active{cursor:grabbing}
+.selected-card-mini.is-dragging{opacity:.45}
+.selected-card-mini.is-drag-over{outline:3px solid #2878c8;outline-offset:2px;transform:translateY(-2px)}
+.selected-card-mini-image.has-controls{bottom:32px}
+.selected-card-mini .selected-card-quantity{bottom:35px;right:3px;z-index:3}
+.selected-card-mini-reorder{position:absolute;left:0;right:0;bottom:0;top:auto;height:32px;z-index:4;display:flex;align-items:center;justify-content:space-evenly;gap:4px;padding:3px 4px;background:#fff;border-top:1px solid #bbb;pointer-events:auto}
+.selected-card-move-button{flex:1 1 0;width:auto;max-width:32px;height:25px;border:1px solid #999;border-radius:4px;background:#f4f4f2;color:#111;font-size:17px;font-weight:800;line-height:1;box-shadow:none;pointer-events:auto}
+.selected-card-move-button:hover:not(:disabled){background:#deded9}
+.selected-card-move-button:disabled{opacity:.25;cursor:not-allowed}
+@media(max-width:760px){.selected-card-mini{flex-basis:70px;height:110px}.selected-card-mini-image.has-controls{bottom:30px}.selected-card-mini .selected-card-quantity{bottom:33px}.selected-card-mini-reorder{height:30px;gap:2px;padding:2px}.selected-card-move-button{height:24px;max-width:29px;font-size:16px}.builder-utility-actions button{flex:1 1 auto;min-width:130px}}
