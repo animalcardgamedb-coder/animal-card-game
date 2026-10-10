@@ -54,6 +54,30 @@ function normalizeTags(tags) {
     .map(tag => tag.slice(0, 24));
 }
 
+function normalizeSharedDeckTags(tags) {
+  const unique = new Map();
+  (Array.isArray(tags) ? tags : []).forEach(value => {
+    const tag = String(value || "").trim().slice(0, 24);
+    const key = tag.toLocaleLowerCase("ja-JP");
+    if (tag && !unique.has(key)) unique.set(key, tag);
+  });
+  return [...unique.values()].sort((a, b) => a.localeCompare(b, "ja"));
+}
+
+function sharedDeckTagDocumentId(value) {
+  return encodeURIComponent(String(value || "").trim().toLocaleLowerCase("ja-JP"));
+}
+
+function sharedDeckTagDocument(value) {
+  const tag = String(value || "").trim().slice(0, 24);
+  return {
+    name: tag,
+    normalized: tag.toLocaleLowerCase("ja-JP"),
+    createdAt: serverTimestamp(),
+    createdByUid: signedInUser.uid
+  };
+}
+
 function setStatus(elementId, message) {
   const element = byId(elementId);
   if (element) element.textContent = message;
@@ -398,20 +422,43 @@ window.animalDeckApp = {
       .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   },
   async listDeckTags() {
-    if (!signedInUser) return [];
-    const snapshot = await getDoc(doc(db, "users", signedInUser.uid));
-    return normalizeTags(snapshot.exists() ? snapshot.data().deckTags : []);
+    let snapshot = await getDocs(collection(db, "deckTagCatalog"));
+    const knownIds = new Set(snapshot.docs.map(item => item.id));
+    let migratedLegacyTags = false;
+
+    // Promote tags from the previous per-user list into the shared catalogue.
+    if (signedInUser) {
+      const legacySnapshot = await getDoc(doc(db, "users", signedInUser.uid));
+      const legacyTags = normalizeTags(legacySnapshot.exists() ? legacySnapshot.data().deckTags : []);
+      for (const tag of legacyTags) {
+        const tagId = sharedDeckTagDocumentId(tag);
+        if (knownIds.has(tagId)) continue;
+        await setDoc(doc(db, "deckTagCatalog", tagId), sharedDeckTagDocument(tag));
+        knownIds.add(tagId);
+        migratedLegacyTags = true;
+      }
+    }
+
+    if (migratedLegacyTags) snapshot = await getDocs(collection(db, "deckTagCatalog"));
+    return normalizeSharedDeckTags(snapshot.docs.map(item => item.data().name));
   },
   async addDeckTag(value) {
-    if (!signedInUser) throw new Error("タグを登録するにはログインしてください。");
+    if (!signedInUser) throw new Error("共通デッキタグを登録するにはログインしてください。");
     const tag = String(value || "").trim().slice(0, 24);
     if (!tag) throw new Error("タグ名を入力してください。");
-    const ref = doc(db, "users", signedInUser.uid);
-    const snapshot = await getDoc(ref);
-    const tags = normalizeTags([...(snapshot.exists() ? snapshot.data().deckTags || [] : []), tag]);
-    if (tags.length === 12 && !(snapshot.exists() && (snapshot.data().deckTags || []).includes(tag))) throw new Error("登録できるタグは12個までです。");
-    await setDoc(ref, { deckTags: tags, updatedAt: serverTimestamp() }, { merge: true });
-    return tags;
+
+    const ref = doc(db, "deckTagCatalog", sharedDeckTagDocumentId(tag));
+    const existing = await getDoc(ref);
+    if (existing.exists()) return this.listDeckTags();
+
+    try {
+      await setDoc(ref, sharedDeckTagDocument(tag));
+    } catch (error) {
+      // A simultaneous registration of the same tag may have created the same document.
+      const concurrent = await getDoc(ref);
+      if (!concurrent.exists()) throw error;
+    }
+    return this.listDeckTags();
   },
   async select(id) {
     await loadSelectedDeck(id);
