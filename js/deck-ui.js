@@ -19,6 +19,30 @@
   const pileCards = (deck, pile = state.pile) => pile === "territory" ? territoryCards(deck) : deckCards(deck);
   const allPileCards = deck => [...deckCards(deck), ...territoryCards(deck)];
   const count = deck => allPileCards(deck).reduce((sum, card) => sum + Number(card.quantity || 1), 0);
+  // The shared search filters depend on appState.currentCategory. Keep that
+  // category aligned with the pile being edited so card-only filters never
+  // leak unfiltered territory results (and vice versa).
+  function setSearchCategoryForPile() {
+    const category = state.pile === "territory" ? "territory" : "card";
+    if (typeof window.setCategory === "function") {
+      window.setCategory(category);
+    } else if (window.appState) {
+      window.appState.currentCategory = category;
+      window.searchCards?.();
+    }
+  }
+
+  function setBuilderPile(pile) {
+    state.pile = pile === "territory" ? "territory" : "main";
+    const territory = state.pile === "territory";
+    $("main-pile-tab").classList.toggle("active", !territory);
+    $("territory-pile-tab").classList.toggle("active", territory);
+    $("main-pile-tab").setAttribute("aria-selected", String(!territory));
+    $("territory-pile-tab").setAttribute("aria-selected", String(territory));
+    setSearchCategoryForPile();
+    renderBuilder();
+  }
+
   function setScreen(name) {
     state.screen = name;
     ["card-modal", "search-modal"].forEach(id => { if ($(id)) $(id).style.display = "none"; });
@@ -31,7 +55,7 @@
     $("deck-mode-button").classList.toggle("active", name !== "search");
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (name === "decks") refreshDecks();
-    if (name === "builder") renderBuilder();
+    if (name === "builder") { setSearchCategoryForPile(); renderBuilder(); }
     if (name === "preview") renderPreview();
   }
   function setStatus(message) { $("deck-library-status").textContent = message || ""; }
@@ -228,10 +252,21 @@
     $("builder-filter-button").addEventListener("click", () => openModal("search-modal"));
     $("builder-grid-button").addEventListener("click", () => { state.compact = !state.compact; renderBuilderCards(); });
     $("builder-category-controls").innerHTML = `<button class="active" type="button" data-category="all">すべて</button><button type="button" data-category="card">カード</button><button type="button" data-category="territory">領地</button>`;
-    $("builder-category-controls").addEventListener("click", event => { const button = event.target.closest("[data-category]"); if (!button) return; $("builder-category-controls").querySelectorAll("button").forEach(item => item.classList.toggle("active", item === button)); const category = button.dataset.category; $(`category-${category}-button`)?.click(); renderBuilderCards(); });
+    $("builder-category-controls").addEventListener("click", event => {
+      const button = event.target.closest("[data-category]");
+      if (!button) return;
+      $("builder-category-controls").querySelectorAll("button").forEach(item => item.classList.toggle("active", item === button));
+      const category = button.dataset.category;
+      // In the builder, choosing a specific category also selects the matching
+      // pile; "すべて" means all cards in the currently selected pile.
+      if (category === "card") { setBuilderPile("main"); return; }
+      if (category === "territory") { setBuilderPile("territory"); return; }
+      setSearchCategoryForPile();
+      renderBuilderCards();
+    });
     const selectedDeckTags = () => readTagChecks("builder-deck-tag-options");
-    $("main-pile-tab").addEventListener("click", () => { state.pile = "main"; $("main-pile-tab").classList.add("active"); $("territory-pile-tab").classList.remove("active"); $("main-pile-tab").setAttribute("aria-selected", "true"); $("territory-pile-tab").setAttribute("aria-selected", "false"); $("category-card-button")?.click(); renderBuilder(); });
-    $("territory-pile-tab").addEventListener("click", () => { state.pile = "territory"; $("territory-pile-tab").classList.add("active"); $("main-pile-tab").classList.remove("active"); $("main-pile-tab").setAttribute("aria-selected", "false"); $("territory-pile-tab").setAttribute("aria-selected", "true"); $("category-territory-button")?.click(); renderBuilder(); });
+    $("main-pile-tab").addEventListener("click", () => setBuilderPile("main"));
+    $("territory-pile-tab").addEventListener("click", () => setBuilderPile("territory"));
     $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
     $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags()); renderBuilder(); } catch (error) { alert(error.message); } });
     $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
