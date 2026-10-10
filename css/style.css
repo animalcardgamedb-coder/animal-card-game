@@ -90,8 +90,9 @@
 #a4-layout-status{line-height:1.7}
 .a4-layout-preview{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;max-height:48vh;overflow:auto;padding:12px;background:#efefed;border-radius:8px}
 .a4-preview-page{display:flex;align-items:center;justify-content:center;aspect-ratio:210/297;min-width:0;padding:4%;background:#fff;border:1px solid #ccc;box-shadow:0 2px 7px #00000010}
-.a4-preview-grid{display:grid;width:100%;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2.5%}
-.a4-preview-card{display:block;width:100%;height:100%;aspect-ratio:63/88;object-fit:fill;border:1px dashed #bbb}
+.a4-preview-grid{display:flex;flex-direction:column;width:100%;gap:2.5%}
+.a4-preview-row{display:flex;align-items:center;justify-content:center;gap:2.5%;width:100%}
+.a4-preview-card{display:block;width:31.5%;height:auto;aspect-ratio:63/88;object-fit:fill;border:1px dashed #bbb}
 .a4-layout-actions{justify-content:flex-start}
 .a4-print-help{color:var(--muted);font-size:12px;line-height:1.7}
 #a4-print-area{display:none}
@@ -102,6 +103,7 @@
   body > #a4-print-area{display:block!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}
   .a4-print-page{display:flex!important;align-items:center!important;justify-content:center!important;width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;break-after:page;page-break-after:always;background:#fff!important}
   .a4-print-page:last-child{break-after:auto;page-break-after:auto}
-  .a4-print-grid{display:grid!important;grid-template-columns:repeat(3,63mm)!important;grid-auto-rows:88mm!important;gap:2mm!important;align-content:center!important;justify-content:center!important;margin:0!important;padding:0!important}
-  .a4-print-card{display:block!important;width:63mm!important;height:88mm!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;object-fit:fill!important;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .a4-print-grid{display:flex!important;flex-direction:column!important;gap:2mm!important;width:193mm!important;margin:0!important;padding:0!important}
+  .a4-print-row{display:flex!important;align-items:center!important;justify-content:center!important;gap:2mm!important;width:193mm!important;height:88mm!important}
+  .a4-print-card{display:block!important;flex:0 0 63mm!important;width:63mm!important;height:88mm!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;object-fit:fill!important;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
