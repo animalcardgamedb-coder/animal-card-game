@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null };
   const app = () => window.animalDeckApp;
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const allCards = () => [...(window.appState?.allCards || []), ...(window.appState?.allTerritories || [])];
@@ -172,9 +172,15 @@
     const activeCards = pileCards(state.deck);
     const selected = new Map(activeCards.map(card => [String(card.itemId), Number(card.quantity || 1)]));
     visible.forEach(item => {
-      const id = window.appState?.allTerritories?.includes(item) ? `territory:${item.territory_id}` : `card:${item.card_id}`; const name = cardName(item); const tile = document.createElement("button"); tile.type = "button"; tile.className = "builder-card"; tile.title = `${name}をデッキに追加`;
-      tile.innerHTML = `${item.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(name)}">` : `<div class="no-card-image">${escapeHTML(name)}</div>`}<span class="add-mark">＋</span>${selected.has(String(id)) ? `<span class="quantity-mark">×${selected.get(String(id))}</span>` : ""}<div class="builder-card-name">${escapeHTML(name)}</div>`;
-      tile.addEventListener("click", () => state.publicView ? null : addCard(item)); list.append(tile);
+      const id = window.appState?.allTerritories?.includes(item) ? `territory:${item.territory_id}` : `card:${item.card_id}`; const name = cardName(item); const tile = document.createElement("button"); tile.type = "button"; tile.className = "builder-card"; tile.title = `${name}の詳細を表示`;
+      tile.innerHTML = `${item.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(name)}">` : `<div class="no-card-image">${escapeHTML(name)}</div>`}${selected.has(String(id)) ? `<span class="quantity-mark">×${selected.get(String(id))}</span>` : ""}<div class="builder-card-name">${escapeHTML(name)}</div>`;
+      tile.addEventListener("click", () => {
+        state.pendingCard = item;
+        if (typeof window.showCardDetail === "function") {
+          window.showCardDetail(item, { deckBuilder: !state.publicView });
+        }
+      });
+      list.append(tile);
     });
     $("builder-load-more").hidden = result.length <= state.cardLimit;
     $("builder-load-more").textContent = `さらに表示（残り ${result.length - state.cardLimit} 件）`;
@@ -184,9 +190,15 @@
   };
 
   async function addCard(item) {
-    if (state.publicView) return;
-    try { state.deck = await app().addCard(item, state.pile); renderBuilder(); }
-    catch (error) { alert(error.message || "カードを追加できませんでした。"); }
+    if (state.publicView || !item) return;
+    try {
+      state.deck = await app().addCard(item, state.pile);
+      state.pendingCard = null;
+      if (typeof window.closeCardDetail === "function") window.closeCardDetail();
+      renderBuilder();
+    } catch (error) {
+      alert(error.message || "カードを追加できませんでした。");
+    }
   }
   async function changeQty(id, delta) {
     try { state.deck = await app().changeQuantity(id, delta, state.pile); renderBuilder(); }
@@ -295,6 +307,11 @@
     $("builder-load-more").addEventListener("click", () => { state.cardLimit += 120; renderBuilderCards(); });
     $("builder-filter-button").addEventListener("click", () => openModal("search-modal"));
     $("builder-grid-button").addEventListener("click", () => { state.compact = !state.compact; renderBuilderCards(); });
+    $("detail-add-to-deck-button").addEventListener("click", () => {
+      if (state.screen === "builder" && !state.publicView && state.pendingCard) {
+        addCard(state.pendingCard);
+      }
+    });
     const selectedDeckTags = () => readTagChecks("builder-deck-tag-options");
     $("main-pile-tab").addEventListener("click", () => setBuilderPile("main"));
     $("territory-pile-tab").addEventListener("click", () => setBuilderPile("territory"));
