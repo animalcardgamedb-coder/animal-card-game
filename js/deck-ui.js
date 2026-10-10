@@ -471,8 +471,14 @@
     const container = $(containerId); if (!container) return;
     const selectedSet = new Set(selected);
     container.replaceChildren();
-    if (!state.registeredTags.length) { container.textContent = "メニューから先にデッキタグを登録してください。"; return; }
-    state.registeredTags.forEach(tag => {
+    const optionTags = [...state.registeredTags];
+    selected.forEach(tag => {
+      if (!optionTags.some(existing => existing.toLocaleLowerCase("ja-JP") === String(tag).toLocaleLowerCase("ja-JP"))) {
+        optionTags.push(String(tag));
+      }
+    });
+    if (!optionTags.length) { container.textContent = "共通タグがまだありません。メニューの「共通デッキタグ登録」から追加できます。"; return; }
+    optionTags.forEach(tag => {
       const label = document.createElement("label"); const input = document.createElement("input");
       input.type = "checkbox"; input.value = tag; input.checked = selectedSet.has(tag); input.disabled = disabled;
       input.addEventListener("change", () => { if (containerId === "builder-deck-tag-options") state.deck.tags = readTagChecks(containerId); });
@@ -481,10 +487,27 @@
   }
   function readTagChecks(containerId) { return Array.from($(containerId)?.querySelectorAll("input:checked") || []).map(input => input.value); }
   async function refreshTagOptions() {
-    state.registeredTags = app()?.isSignedIn() ? await app().listDeckTags() : [];
+    let loadError = "";
+    try {
+      state.registeredTags = app()?.listDeckTags ? await app().listDeckTags() : [];
+    } catch (error) {
+      state.registeredTags = [];
+      loadError = error.message || "共有タグ一覧を読み込めませんでした。";
+    }
     renderTagOptions("new-deck-tag-options");
     renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView);
-    const list = $("deck-tag-list"); if (list) { list.replaceChildren(); state.registeredTags.forEach(tag => { const item = document.createElement("li"); item.textContent = tag; list.append(item); }); if (!state.registeredTags.length) list.textContent = "登録済みタグはありません。"; }
+    const list = $("deck-tag-list");
+    if (list) {
+      list.replaceChildren();
+      state.registeredTags.forEach(tag => {
+        const item = document.createElement("li");
+        item.textContent = tag;
+        list.append(item);
+      });
+      if (!state.registeredTags.length && !loadError) list.textContent = "共通タグはまだ登録されていません。";
+    }
+    const status = $("deck-tag-status");
+    if (status && loadError) status.textContent = loadError + "（共有タグ用のFirestoreルールが公開されているか確認してください。）";
   }
   async function importDeckFile(file) {
     try {
@@ -693,7 +716,22 @@
     $("new-deck-cancel-button").addEventListener("click", () => { $("new-deck-panel").hidden = true; });
     $("new-deck-panel").addEventListener("submit", async event => { event.preventDefault(); try { state.deck = await app().create($("new-deck-screen-name").value, readTagChecks("new-deck-tag-options")); state.publicView = false; $("new-deck-screen-name").value = ""; $("new-deck-panel").hidden = true; setScreen("builder"); } catch (error) { setStatus(error.message || "デッキを作成できませんでした。"); } });
     $("deck-tags-open-button").addEventListener("click", async () => { $("menu-panel").hidden = true; openModal("deck-tags-modal"); await refreshTagOptions(); });
-    $("deck-tag-form").addEventListener("submit", async event => { event.preventDefault(); try { state.registeredTags = await app().addDeckTag($("deck-tag-name").value); $("deck-tag-name").value = ""; $("deck-tag-status").textContent = "タグを登録しました。"; await refreshTagOptions(); } catch (error) { $("deck-tag-status").textContent = error.message || "タグを登録できませんでした。"; } });
+    $("deck-tag-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const input = $("deck-tag-name");
+      const requestedTag = input.value.trim().slice(0, 24);
+      const wasAlreadyRegistered = state.registeredTags.some(tag => tag.toLocaleLowerCase("ja-JP") === requestedTag.toLocaleLowerCase("ja-JP"));
+      try {
+        state.registeredTags = await app().addDeckTag(requestedTag);
+        input.value = "";
+        await refreshTagOptions();
+        $("deck-tag-status").textContent = wasAlreadyRegistered
+          ? "このタグはすでに共通一覧に登録されています。"
+          : "共通タグとして登録しました。すべての利用者がデッキ編集で選べます。";
+      } catch (error) {
+        $("deck-tag-status").textContent = error.message || "共通タグを登録できませんでした。";
+      }
+    });
     $("import-deck-button").addEventListener("click", () => { if (!app()?.isSignedIn()) { setStatus("デッキを読み込むにはログインしてください。"); return; } $("import-deck-file").click(); });
     $("import-deck-file").addEventListener("change", event => { const file = event.target.files?.[0]; if (file) importDeckFile(file); event.target.value = ""; });
     $("my-decks-tab").addEventListener("click", () => { state.tab = "mine"; state.publicView = false; $("my-decks-tab").classList.add("active"); $("public-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "true"); $("public-decks-tab").setAttribute("aria-selected", "false"); refreshDecks(); });
