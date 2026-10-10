@@ -170,16 +170,73 @@
     if (!result.length) { $("builder-load-more").hidden = true; list.innerHTML = `<div class="empty-state">該当するカードがありません。</div>`; return; }
     const visible = result.slice(0, state.cardLimit);
     const activeCards = pileCards(state.deck);
-    const selected = new Map(activeCards.map(card => [String(card.itemId), Number(card.quantity || 1)]));
+    const itemKeyForCard = card => {
+      const raw = String(card.itemId || "");
+      if (raw.startsWith("card:") || raw.startsWith("territory:")) return raw;
+      return `${state.pile === "territory" ? "territory" : "card"}:${raw}`;
+    };
+    const selected = new Map(activeCards.map(card => [itemKeyForCard(card), card]));
+
     visible.forEach(item => {
-      const id = window.appState?.allTerritories?.includes(item) ? `territory:${item.territory_id}` : `card:${item.card_id}`; const name = cardName(item); const tile = document.createElement("button"); tile.type = "button"; tile.className = "builder-card"; tile.title = `${name}の詳細を表示`;
-      tile.innerHTML = `${item.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(name)}">` : `<div class="no-card-image">${escapeHTML(name)}</div>`}${selected.has(String(id)) ? `<span class="quantity-mark">×${selected.get(String(id))}</span>` : ""}<div class="builder-card-name">${escapeHTML(name)}</div>`;
-      tile.addEventListener("click", () => {
+      const territory = (window.appState?.allTerritories || []).includes(item) || Boolean(item.territory_id);
+      const id = territory ? `territory:${item.territory_id}` : `card:${item.card_id}`;
+      const name = cardName(item);
+      const selectedCard = selected.get(String(id));
+      const quantity = Number(selectedCard?.quantity || 0);
+      const tile = document.createElement("div");
+      tile.className = "builder-card";
+
+      const detailButton = document.createElement("button");
+      detailButton.type = "button";
+      detailButton.className = "builder-card-detail";
+      detailButton.title = `${name}の詳細を表示`;
+      detailButton.setAttribute("aria-label", `${name}の詳細を表示`);
+      detailButton.innerHTML = `${item.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="">` : `<div class="no-card-image">${escapeHTML(name)}</div>`}<div class="builder-card-name">${escapeHTML(name)}</div>`;
+      detailButton.addEventListener("click", () => {
         state.pendingCard = item;
         if (typeof window.showCardDetail === "function") {
           window.showCardDetail(item, { deckBuilder: !state.publicView });
         }
       });
+
+      if (quantity > 0) {
+        const quantityMark = document.createElement("span");
+        quantityMark.className = "quantity-mark";
+        quantityMark.textContent = `×${quantity}`;
+        tile.append(quantityMark);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "builder-card-actions";
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "builder-card-remove";
+      removeButton.textContent = "−";
+      removeButton.title = quantity > 0 ? `${name}を1枚減らす` : "デッキに入っていません";
+      removeButton.setAttribute("aria-label", `${name}を1枚減らす`);
+      removeButton.disabled = !selectedCard || state.publicView;
+      removeButton.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (selectedCard && !state.publicView) changeQty(selectedCard.itemId, -1);
+      });
+
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = "builder-card-add";
+      addButton.textContent = "＋";
+      addButton.title = `${name}をデッキに1枚追加`;
+      addButton.setAttribute("aria-label", `${name}をデッキに1枚追加`);
+      addButton.disabled = state.publicView;
+      addButton.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!state.publicView) addCard(item);
+      });
+
+      actions.append(removeButton, addButton);
+      tile.append(detailButton, actions);
       list.append(tile);
     });
     $("builder-load-more").hidden = result.length <= state.cardLimit;
