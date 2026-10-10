@@ -492,6 +492,125 @@
       state.deck = await app().importDeck(data); state.publicView = false; setStatus("デッキを読み込み、コピーを作成しました。"); setScreen("builder");
     } catch (error) { setStatus(error.message || "デッキファイルを読み込めませんでした。"); }
   }
+  function resolveA4PrintCard(entry, pile) {
+    const rawItemId = String(entry?.itemId ?? entry?.card_id ?? entry?.territory_id ?? "");
+    const prefixMatch = rawItemId.match(/^(card|territory):(.*)$/);
+    const id = prefixMatch ? prefixMatch[2] : rawItemId;
+    const resolvedPile = prefixMatch ? (prefixMatch[1] === "territory" ? "territory" : "main") : pile;
+    const sourceList = resolvedPile === "territory"
+      ? (window.appState?.allTerritories || [])
+      : (window.appState?.allCards || []);
+    const idField = resolvedPile === "territory" ? "territory_id" : "card_id";
+    let source = id ? sourceList.find(item => String(item[idField]) === id) : null;
+    const requestedName = String(entry?.name || entry?.card_name || entry?.territory_name || "").trim();
+    if (!source && requestedName) source = sourceList.find(item => cardName(item) === requestedName);
+    const candidateUrl = String(source?.image_url || entry?.image_url || entry?.imageUrl || "");
+    const allowedImageUrl = candidateUrl.startsWith("https://") || candidateUrl.startsWith("http://") || candidateUrl.startsWith("data:image/");
+    return { name: requestedName || (source ? cardName(source) : "カード"), imageUrl: allowedImageUrl ? candidateUrl : "" };
+  }
+
+  function buildA4Sheets(container, cards, printMode = false) {
+    container.replaceChildren();
+    const perPage = 9;
+    for (let start = 0; start < cards.length; start += perPage) {
+      const page = document.createElement("section");
+      page.className = printMode ? "a4-print-page" : "a4-preview-page";
+      page.setAttribute("aria-label", (Math.floor(start / perPage) + 1) + "ページ目");
+      const grid = document.createElement("div");
+      grid.className = printMode ? "a4-print-grid" : "a4-preview-grid";
+      cards.slice(start, start + perPage).forEach(card => {
+        const image = document.createElement("img");
+        image.className = printMode ? "a4-print-card" : "a4-preview-card";
+        image.src = card.imageUrl;
+        image.alt = "";
+        image.draggable = false;
+        image.decoding = "sync";
+        grid.append(image);
+      });
+      page.append(grid);
+      container.append(page);
+    }
+  }
+
+  async function loadA4PrintDeck(file) {
+    const status = $("a4-layout-status");
+    const printButton = $("a4-print-button");
+    printButton.disabled = true;
+    $("a4-layout-preview").replaceChildren();
+    $("a4-print-area").replaceChildren();
+    try {
+      const data = JSON.parse(await file.text());
+      const mainCards = Array.isArray(data.mainCards) && data.mainCards.length
+        ? data.mainCards
+        : (Array.isArray(data.cards) ? data.cards : []);
+      const territories = Array.isArray(data.territoryCards) && data.territoryCards.length
+        ? data.territoryCards
+        : (Array.isArray(data.territories) ? data.territories : []);
+      const sourceEntries = [
+        { pile: "main", entries: mainCards },
+        { pile: "territory", entries: territories }
+      ].flatMap(group => group.entries.map(entry => ({ ...entry, __pile: group.pile })));
+      if (!sourceEntries.length) {
+        throw new Error("このJSONにはメインデッキ／領地デッキのカード一覧がありません。サイトから書き出したデッキJSONを選択してください。");
+      }
+
+      const expectedCopies = sourceEntries.reduce((sum, entry) => sum + Math.max(1, Math.floor(Number(entry.quantity) || 1)), 0);
+      if (expectedCopies > 900) {
+        throw new Error("一度に印刷できるのは最大900枚です。枚数を分けて読み込んでください。");
+      }
+      const printCards = [];
+      let missingCopies = 0;
+      const missingNames = [];
+      sourceEntries.forEach(entry => {
+        const quantity = Math.max(1, Math.floor(Number(entry.quantity) || 1));
+        const resolved = resolveA4PrintCard(entry, entry.__pile);
+        if (!resolved.imageUrl) {
+          missingCopies += quantity;
+          if (missingNames.length < 5) missingNames.push(resolved.name);
+          return;
+        }
+        for (let copy = 0; copy < quantity; copy++) printCards.push(resolved);
+      });
+      if (!printCards.length) {
+        throw new Error("カード画像を特定できませんでした。カード検索画面のデータ読み込みが終わってから、もう一度ファイルを選択してください。");
+      }
+
+      const rawFileName = String(file.name || "デッキ");
+      const deckName = String(data.name || rawFileName.slice(0, rawFileName.toLowerCase().endsWith(".json") ? -5 : undefined) || "デッキ");
+      buildA4Sheets($("a4-layout-preview"), printCards, false);
+      buildA4Sheets($("a4-print-area"), printCards, true);
+      const pages = Math.ceil(printCards.length / 9);
+      let message = "「" + deckName + "」を読み込みました：" + printCards.length + "枚・" + pages + "ページ（1ページ最大9枚）。";
+      if (missingCopies) {
+        message += " 画像を見つけられなかった" + missingCopies + "枚は除外しました" + (missingNames.length ? "（例：" + missingNames.join("、") + "）" : "") + "。";
+      }
+      status.textContent = message;
+      printButton.disabled = false;
+    } catch (error) {
+      status.textContent = error.message || "デッキファイルを読み込めませんでした。";
+      printButton.disabled = true;
+    }
+  }
+
+  async function printA4Deck() {
+    const printButton = $("a4-print-button");
+    if (printButton.disabled) return;
+    printButton.disabled = true;
+    $("a4-layout-status").textContent = "カード画像を準備しています…";
+    try {
+      const images = Array.from($("a4-print-area").querySelectorAll("img"));
+      await Promise.all(images.map(image => (
+        typeof image.decode === "function"
+          ? image.decode().catch(() => undefined)
+          : Promise.resolve()
+      )));
+      $("a4-layout-status").textContent = "印刷画面を開きます。A4・倍率100%で印刷してください。";
+      window.print();
+    } finally {
+      printButton.disabled = false;
+    }
+  }
+
   function prepareSearchPanel() {
     const modal = $("search-modal-content");
     modal.querySelectorAll(".filter").forEach(filter => {
@@ -530,6 +649,21 @@
       $("display-settings-status").textContent = "";
       openModal("display-settings-modal");
     });
+    $("a4-layout-open-button").addEventListener("click", () => {
+      $("menu-panel").hidden = true;
+      $("menu-open-button").setAttribute("aria-expanded", "false");
+      $("a4-layout-status").textContent = "デッキファイルを選択してください。";
+      $("a4-layout-file").value = "";
+      $("a4-layout-preview").replaceChildren();
+      $("a4-print-area").replaceChildren();
+      $("a4-print-button").disabled = true;
+      openModal("a4-layout-modal");
+    });
+    $("a4-layout-file").addEventListener("change", event => {
+      const file = event.target.files?.[0];
+      if (file) void loadA4PrintDeck(file);
+    });
+    $("a4-print-button").addEventListener("click", () => { void printA4Deck(); });
     $("display-settings-form").addEventListener("submit", event => {
       event.preventDefault();
       const value = applySharedIconColumns($("settings-icon-columns").value, true);
