@@ -75,3 +75,10 @@
 .selected-card-move-button:hover:not(:disabled){background:#deded9}
 .selected-card-move-button:disabled{opacity:.25;cursor:not-allowed}
 @media(max-width:760px){.selected-card-mini{flex-basis:70px;height:110px}.selected-card-mini-image.has-controls{bottom:30px}.selected-card-mini .selected-card-quantity{bottom:33px}.selected-card-mini-reorder{height:30px;gap:2px;padding:2px}.selected-card-move-button{height:24px;max-width:29px;font-size:16px}.builder-utility-actions button{flex:1 1 auto;min-width:130px}}
+
+/* Shared display-column settings modal and consistent image grids. */
+.display-settings-description{line-height:1.75;color:#555}
+.display-settings-help{margin:8px 0;color:var(--muted);font-size:12px}
+#display-settings-form input[type="number"]{width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#111}
+#display-settings-form .feature-actions{justify-content:flex-start}
+#builder-card-list,#preview-card-list{grid-template-columns:repeat(5,minmax(0,1fr))}
