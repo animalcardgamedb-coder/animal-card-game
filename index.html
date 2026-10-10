@@ -14,7 +14,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261010-6"
+    href="css/style.css?v=20261010-7"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -161,7 +161,7 @@
     <button id="account-open-button" type="button">ログイン</button>
     <button id="settings-open-button" type="button">設定</button>
     <button id="a4-layout-open-button" type="button">デッキを読み込んでA4サイズに配置</button>
-    <button id="deck-tags-open-button" type="button">デッキタグ登録</button>
+    <button id="deck-tags-open-button" type="button">共通デッキタグ登録</button>
     <button id="bulk-import-open-button" type="button">新カードの追加・データ登録</button>
     <p id="menu-account-status" role="status"></p>
   </div>
@@ -169,8 +169,9 @@
   <div id="deck-tags-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="deck-tags-title">
     <section class="feature-modal-content">
       <button class="feature-close-button" data-close-modal="deck-tags-modal" type="button" aria-label="閉じる">×</button>
-      <h2 id="deck-tags-title">デッキタグ登録</h2>
-      <p>登録したタグは、自分のデッキに選んで付けられます。</p>
+      <h2 id="deck-tags-title">共通デッキタグ登録</h2>
+      <p>ここで登録したタグは全利用者共通の一覧に追加され、すべてのデッキ編集画面から選べるようになります。タグ一覧にない項目を追加してください。</p>
+      <h3>登録済みの共通タグ</h3>
       <form id="deck-tag-form" class="deck-create-row"><input id="deck-tag-name" type="text" maxlength="24" placeholder="例：大会用" aria-label="新しいデッキタグ"><button class="primary-button" type="submit">タグを登録</button></form>
       <ul id="deck-tag-list"></ul><p id="deck-tag-status" class="feature-status" role="status"></p>
     </section>
@@ -858,7 +859,7 @@
   <script src="js/display.js?v=20261010-7"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261010-11"></script>
+  <script src="js/deck-ui.js?v=20261010-12"></script>
 
   <script type="module" src="firebase.js"></script>
 
