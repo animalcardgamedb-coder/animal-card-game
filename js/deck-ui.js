@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0 };
   const app = () => window.animalDeckApp;
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const allCards = () => [...(window.appState?.allCards || []), ...(window.appState?.allTerritories || [])];
@@ -148,6 +148,20 @@
     allPileCards(deck).forEach(card => { const item = byItemId(card.itemId); const type = item?.card_type || item?.territory_type || "その他"; typeCounts[type] = (typeCounts[type] || 0) + Number(card.quantity || 1); });
     $("deck-type-stats").innerHTML = Object.entries(typeCounts).map(([type, number]) => `<span class="stat-chip">${escapeHTML(type)}<strong>${number}</strong></span>`).join("");
     const strip = $("selected-cards-strip"); strip.replaceChildren();
+    if (!strip.dataset.dropEndReady) {
+      strip.dataset.dropEndReady = "true";
+      strip.addEventListener("dragover", event => {
+        if (event.target === strip && state.dragItemId != null) event.preventDefault();
+      });
+      strip.addEventListener("drop", event => {
+        if (event.target !== strip || state.dragItemId == null) return;
+        event.preventDefault();
+        const sourceId = state.dragItemId;
+        const sourcePile = state.dragPile || state.pile;
+        state.ignoreRemoveUntil = Date.now() + 500;
+        void moveCardTo(sourceId, null, sourcePile);
+      });
+    }
     const activeCards = pileCards(deck);
     $("selected-pile-count").textContent = `${state.pile === "main" ? "メインデッキ" : "領地デッキ"}：${activeCards.reduce((sum, card) => sum + Number(card.quantity || 1), 0)}枚`;
     if (!activeCards.length) strip.innerHTML = `<div class="empty-state">このデッキにはまだカードがありません。</div>`;
@@ -155,14 +169,56 @@
       const item = byItemId(card.itemId);
       const mini = document.createElement("div");
       mini.className = "selected-card-mini";
+      if (!state.publicView) {
+        mini.draggable = true;
+        mini.title = `${card.name}：ドラッグして並び替え`;
+        mini.addEventListener("dragstart", event => {
+          state.dragItemId = card.itemId;
+          state.dragPile = state.pile;
+          mini.classList.add("is-dragging");
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", String(card.itemId));
+          }
+        });
+        mini.addEventListener("dragover", event => {
+          if (state.dragItemId == null || String(state.dragItemId) === String(card.itemId) || state.dragPile !== state.pile) return;
+          event.preventDefault();
+          if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+          mini.classList.add("is-drag-over");
+        });
+        mini.addEventListener("dragleave", event => {
+          if (!mini.contains(event.relatedTarget)) mini.classList.remove("is-drag-over");
+        });
+        mini.addEventListener("drop", event => {
+          event.preventDefault();
+          mini.classList.remove("is-drag-over");
+          const sourceId = state.dragItemId ?? event.dataTransfer?.getData("text/plain");
+          const sourcePile = state.dragPile || state.pile;
+          state.ignoreRemoveUntil = Date.now() + 500;
+          if (sourceId != null && String(sourceId) !== String(card.itemId)) {
+            void moveCardTo(sourceId, card.itemId, sourcePile);
+          }
+        });
+        mini.addEventListener("dragend", () => {
+          state.dragItemId = null;
+          state.dragPile = null;
+          strip.querySelectorAll(".is-dragging, .is-drag-over").forEach(element => element.classList.remove("is-dragging", "is-drag-over"));
+        });
+      }
 
       const imageButton = document.createElement(state.publicView ? "div" : "button");
       imageButton.className = "selected-card-mini-image";
       if (!state.publicView) {
+        imageButton.classList.add("has-controls");
         imageButton.type = "button";
-        imageButton.title = `${card.name}：クリックで1枚減らす`;
-        imageButton.setAttribute("aria-label", `${card.name}を1枚減らす`);
-        imageButton.addEventListener("click", () => changeQty(card.itemId, -1));
+        imageButton.draggable = true;
+        imageButton.title = `${card.name}：ドラッグで順番変更／クリックで1枚減らす`;
+        imageButton.setAttribute("aria-label", `${card.name}をドラッグして並べ替え、クリックで1枚減らす`);
+        imageButton.addEventListener("click", () => {
+          if (Date.now() < state.ignoreRemoveUntil) return;
+          changeQty(card.itemId, -1);
+        });
       }
       imageButton.innerHTML = item?.image_url
         ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}">`
@@ -337,6 +393,32 @@
       alert(error.message || "カードの順番を変更できませんでした。");
     }
   }
+  async function moveCardTo(itemId, targetItemId, pile = state.pile) {
+    if (state.publicView) return;
+    try {
+      const field = pile === "territory" ? "territoryCards" : "cards";
+      const cards = [...(state.deck?.[field] || [])];
+      const fromIndex = cards.findIndex(card => String(card.itemId) === String(itemId));
+      const targetIndex = targetItemId == null
+        ? cards.length
+        : cards.findIndex(card => String(card.itemId) === String(targetItemId));
+      if (fromIndex < 0 || targetIndex < 0 || targetIndex > cards.length) return;
+      if (targetItemId == null && fromIndex === cards.length - 1) return;
+
+      const [moving] = cards.splice(fromIndex, 1);
+      const insertIndex = targetItemId == null ? cards.length : (fromIndex < targetIndex ? targetIndex - 1 : targetIndex);
+      cards.splice(insertIndex, 0, moving);
+      state.deck = await app().saveCards(cards, pile);
+      renderBuilder();
+    } catch (error) {
+      alert(error.message || "カードの順番を変更できませんでした。");
+    } finally {
+      state.dragItemId = null;
+      state.dragPile = null;
+      document.querySelectorAll(".is-dragging, .is-drag-over").forEach(element => element.classList.remove("is-dragging", "is-drag-over"));
+    }
+  }
+
   function renderPreview() {
     const deck = state.deck; if (!deck) return;
     $("preview-deck-name").textContent = deck.name || "デッキ";
