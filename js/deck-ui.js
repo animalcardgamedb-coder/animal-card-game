@@ -42,6 +42,18 @@
     });
   }
 
+  function clearSearchFilters() {
+    const root = $("search-modal-content");
+    if (!root) return;
+    root.querySelectorAll("input, select").forEach(element => {
+      if (element.type === "checkbox" || element.type === "radio") {
+        element.checked = false;
+      } else {
+        element.value = "";
+      }
+    });
+  }
+
   function setBuilderPile(pile) {
     state.pile = pile === "territory" ? "territory" : "main";
     const territory = state.pile === "territory";
@@ -56,7 +68,12 @@
     const previousScreen = state.screen;
     if (previousScreen !== "builder" && name === "builder") {
       state.normalFilterState = captureSearchFilters();
-      if (state.builderFilterState) applySearchFilters(state.builderFilterState);
+      if (state.builderFilterState) {
+        applySearchFilters(state.builderFilterState);
+      } else {
+        clearSearchFilters();
+        state.builderFilterState = captureSearchFilters();
+      }
     } else if (previousScreen === "builder" && name !== "builder") {
       state.builderFilterState = captureSearchFilters();
       if (state.normalFilterState) applySearchFilters(state.normalFilterState);
