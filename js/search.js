@@ -441,15 +441,30 @@ function getSearchData() {
   カード・領地検索
 */
 
-function searchCards() {
+function searchCards(options = {}) {
+
+  // While the deck builder is open, shared filter controls update only the
+  // builder list and do not overwrite the ordinary search results.
+  if (
+    !options.builderInternal &&
+    window.animalDeckBuilderSearchActive &&
+    typeof window.animalDeckBuilderSearch === "function"
+  ) {
+    window.animalDeckBuilderSearch();
+    return;
+  }
 
   const data =
-    getSearchData();
+    options.data || getSearchData();
 
   if (
     !data ||
     data.length === 0
   ) {
+
+    if (options.builderInternal) {
+      return [];
+    }
 
     appState.currentSearchResults =
       [];
@@ -473,7 +488,7 @@ function searchCards() {
 
   const keywordInput =
     document.getElementById(
-      "search-box"
+      options.keywordInputId || "search-box"
     );
 
   const rawKeyword =
@@ -974,6 +989,10 @@ function searchCards() {
     検索結果を保存して表示
     ======================================
   */
+
+  if (options.builderInternal) {
+    return filteredData;
+  }
 
   appState.currentSearchResults =
     filteredData;
