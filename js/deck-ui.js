@@ -151,7 +151,65 @@
     const activeCards = pileCards(deck);
     $("selected-pile-count").textContent = `${state.pile === "main" ? "メインデッキ" : "領地デッキ"}：${activeCards.reduce((sum, card) => sum + Number(card.quantity || 1), 0)}枚`;
     if (!activeCards.length) strip.innerHTML = `<div class="empty-state">このデッキにはまだカードがありません。</div>`;
-    activeCards.forEach(card => { const item = byItemId(card.itemId); const mini = document.createElement(state.publicView ? "div" : "button"); mini.className = "selected-card-mini"; if (!state.publicView) { mini.type = "button"; mini.title = `${card.name}：−1枚`; mini.addEventListener("click", () => changeQty(card.itemId, -1)); } mini.innerHTML = item?.image_url ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}"><span>×${Number(card.quantity || 1)}</span>` : `<span class="mini-empty">${escapeHTML(card.name)} × ${Number(card.quantity || 1)}</span>`; strip.append(mini); });
+    activeCards.forEach((card, index) => {
+      const item = byItemId(card.itemId);
+      const mini = document.createElement("div");
+      mini.className = "selected-card-mini";
+
+      const imageButton = document.createElement(state.publicView ? "div" : "button");
+      imageButton.className = "selected-card-mini-image";
+      if (!state.publicView) {
+        imageButton.type = "button";
+        imageButton.title = `${card.name}：クリックで1枚減らす`;
+        imageButton.setAttribute("aria-label", `${card.name}を1枚減らす`);
+        imageButton.addEventListener("click", () => changeQty(card.itemId, -1));
+      }
+      imageButton.innerHTML = item?.image_url
+        ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}">`
+        : `<span class="mini-empty">${escapeHTML(card.name)}</span>`;
+
+      const quantityMark = document.createElement("span");
+      quantityMark.className = "selected-card-quantity";
+      quantityMark.textContent = `×${Number(card.quantity || 1)}`;
+
+      mini.append(imageButton, quantityMark);
+
+      if (!state.publicView) {
+        const reorder = document.createElement("div");
+        reorder.className = "selected-card-mini-reorder";
+
+        const previous = document.createElement("button");
+        previous.type = "button";
+        previous.className = "selected-card-move-button";
+        previous.textContent = "←";
+        previous.title = "前の位置へ移動";
+        previous.setAttribute("aria-label", `${card.name}を前の位置へ移動`);
+        previous.disabled = index === 0;
+        previous.addEventListener("click", event => {
+          event.preventDefault();
+          event.stopPropagation();
+          moveCard(card.itemId, -1);
+        });
+
+        const next = document.createElement("button");
+        next.type = "button";
+        next.className = "selected-card-move-button";
+        next.textContent = "→";
+        next.title = "次の位置へ移動";
+        next.setAttribute("aria-label", `${card.name}を次の位置へ移動`);
+        next.disabled = index === activeCards.length - 1;
+        next.addEventListener("click", event => {
+          event.preventDefault();
+          event.stopPropagation();
+          moveCard(card.itemId, 1);
+        });
+
+        reorder.append(previous, next);
+        mini.append(reorder);
+      }
+
+      strip.append(mini);
+    });
     renderBuilderCards();
   }
   function renderBuilderCards() {
@@ -260,6 +318,24 @@
   async function changeQty(id, delta) {
     try { state.deck = await app().changeQuantity(id, delta, state.pile); renderBuilder(); }
     catch (error) { alert(error.message || "枚数を変更できませんでした。"); }
+  }
+
+  async function moveCard(itemId, direction) {
+    if (state.publicView) return;
+    try {
+      const pile = state.pile;
+      const field = pile === "territory" ? "territoryCards" : "cards";
+      const cards = [...(state.deck?.[field] || [])];
+      const fromIndex = cards.findIndex(card => String(card.itemId) === String(itemId));
+      const toIndex = fromIndex + Number(direction || 0);
+      if (fromIndex < 0 || toIndex < 0 || toIndex >= cards.length) return;
+
+      [cards[fromIndex], cards[toIndex]] = [cards[toIndex], cards[fromIndex]];
+      state.deck = await app().saveCards(cards, pile);
+      renderBuilder();
+    } catch (error) {
+      alert(error.message || "カードの順番を変更できませんでした。");
+    }
   }
   function renderPreview() {
     const deck = state.deck; if (!deck) return;
