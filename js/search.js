@@ -606,6 +606,19 @@ function searchCards(options = {}) {
       "territory-effect-filter"
     );
 
+  // Filters attached to one family also scope results to that family.
+  const hasCardSpecificFilters =
+    selectedCardKeywords.length > 0 ||
+    selectedCardEffects.length > 0;
+
+  const hasTerritorySpecificFilters =
+    selectedTerritoryKeywords.length > 0 ||
+    selectedTerritoryEffects.length > 0;
+
+  const hasCategorySpecificFilters =
+    hasCardSpecificFilters ||
+    hasTerritorySpecificFilters;
+
 
   /*
     ======================================
@@ -846,6 +859,12 @@ function searchCards(options = {}) {
               )
           );
 
+        const matchesCategorySpecificFilters =
+          !hasCategorySpecificFilters ||
+          (territory
+            ? hasTerritorySpecificFilters
+            : hasCardSpecificFilters);
+
 
         /*
           =================================
@@ -974,6 +993,7 @@ function searchCards(options = {}) {
           matchesCondition &&
           matchesSpecies &&
           matchesCost &&
+          matchesCategorySpecificFilters &&
           matchesKeyword &&
           matchesEffect &&
           matchesAtk &&
