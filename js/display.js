@@ -255,8 +255,17 @@ function displayCards(
   カード・領地の詳細を表示
 */
 function showCardDetail(
-  item
+  item,
+  options = {}
 ) {
+  const addToDeckButton = document.getElementById("detail-add-to-deck-button");
+  if (addToDeckButton) {
+    addToDeckButton.hidden = !options.deckBuilder;
+    addToDeckButton.textContent = item?.territory_id
+      ? "この領地をデッキに追加"
+      : "このカードをデッキに追加";
+  }
+
   const modal =
     document.getElementById(
       "card-modal"
