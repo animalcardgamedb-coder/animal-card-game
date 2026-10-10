@@ -65,7 +65,7 @@ function normalizeSharedDeckTags(tags) {
 }
 
 function sharedDeckTagDocumentId(value) {
-  return encodeURIComponent(String(value || "").trim().toLocaleLowerCase("ja-JP"));
+  return "tag-" + encodeURIComponent(String(value || "").trim().toLocaleLowerCase("ja-JP"));
 }
 
 function sharedDeckTagDocument(value) {
