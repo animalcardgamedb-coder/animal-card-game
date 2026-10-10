@@ -74,6 +74,23 @@ service cloud.firestore {
       allow delete: if ownsDeck(resource.data.ownerUid);
     }
 
+    match /deckTagCatalog/{tagId} {
+      // All users may read the shared tag catalogue; signed-in users may only add tags.
+      allow get, list: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['name', 'normalized', 'createdAt', 'createdByUid'])
+        && request.resource.data.keys().hasOnly(['name', 'normalized', 'createdAt', 'createdByUid'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 24
+        && request.resource.data.normalized is string
+        && request.resource.data.normalized.size() > 0
+        && request.resource.data.normalized.size() <= 24
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdByUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create, update: if signedIn()
