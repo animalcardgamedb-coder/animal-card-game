@@ -3,6 +3,16 @@
   const $ = id => document.getElementById(id);
   const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0 };
   const app = () => window.animalDeckApp;
+  const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
+  const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
+  const readSavedIconColumns = () => {
+    try {
+      return clampIconColumns(window.localStorage.getItem(ICON_COLUMNS_STORAGE_KEY) || window.appState?.currentIconColumns || 5);
+    } catch (_) {
+      return clampIconColumns(window.appState?.currentIconColumns || 5);
+    }
+  };
+  if (window.appState) window.appState.currentIconColumns = readSavedIconColumns();
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const allCards = () => [...(window.appState?.allCards || []), ...(window.appState?.allTerritories || [])];
   const byItemId = id => {
@@ -16,6 +26,24 @@
   const cardName = card => card.card_name || card.territory_name || card.name || "カード";
   const deckCards = deck => Array.isArray(deck?.cards) ? deck.cards : [];
   const territoryCards = deck => Array.isArray(deck?.territoryCards) ? deck.territoryCards : [];
+  function applySharedIconColumns(value, persist = false) {
+    const columns = clampIconColumns(value);
+    if (window.appState) window.appState.currentIconColumns = columns;
+    if (persist) {
+      try { window.localStorage.setItem(ICON_COLUMNS_STORAGE_KEY, String(columns)); }
+      catch (_) { /* Continue using the setting for this page if storage is unavailable. */ }
+    }
+    const searchInput = $("icon-column-input");
+    const settingsInput = $("settings-icon-columns");
+    if (searchInput) searchInput.value = String(columns);
+    if (settingsInput) settingsInput.value = String(columns);
+    if (typeof window.applyIconGrid === "function") window.applyIconGrid();
+    ["builder-card-list", "preview-card-list"].forEach(id => {
+      const grid = $(id);
+      if (grid) grid.style.gridTemplateColumns = "repeat(" + columns + ", minmax(0, 1fr))";
+    });
+    return columns;
+  }
   const pileCards = (deck, pile = state.pile) => pile === "territory" ? territoryCards(deck) : deckCards(deck);
   const allPileCards = deck => [...deckCards(deck), ...territoryCards(deck)];
   const count = deck => allPileCards(deck).reduce((sum, card) => sum + Number(card.quantity || 1), 0);
@@ -269,6 +297,7 @@
     renderBuilderCards();
   }
   function renderBuilderCards() {
+    applySharedIconColumns(window.appState?.currentIconColumns, false);
     if (state.publicView) { $("builder-card-list").replaceChildren(); $("builder-load-more").hidden = true; return; }
     const source = state.pile === "territory"
       ? (window.appState?.allTerritories || [])
@@ -429,6 +458,7 @@
     cards.forEach(card => { const item = byItemId(card.itemId); const el = document.createElement("div"); el.className = "preview-card"; el.innerHTML = `${item?.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}">` : ""}<span>${escapeHTML(card.name || "カード")}</span><b>×${Number(card.quantity || 1)}</b>`; grid.append(el); });
     $("preview-text-list").innerHTML = `<h2>${escapeHTML(deck.name)}</h2><p>合計 ${count(deck)}枚 / ${cards.length}種類</p><ol>${cards.map(card => `<li>${escapeHTML(card.name)} × ${Number(card.quantity || 1)}</li>`).join("")}</ol>`;
     $("preview-text-list").hidden = !state.previewText; grid.hidden = state.previewText;
+    applySharedIconColumns(window.appState?.currentIconColumns, false);
   }
   function openModal(id) { const modal = $(id); if (modal) modal.style.display = "block"; }
   function readTags(text) { return [...new Set(String(text || "").split(/[、,，]/).map(tag => tag.trim()).filter(Boolean))].slice(0, 12).map(tag => tag.slice(0, 24)); }
@@ -476,6 +506,7 @@
   }
   document.addEventListener("DOMContentLoaded", () => {
     prepareSearchPanel();
+    applySharedIconColumns(readSavedIconColumns(), false);
     document.querySelectorAll("[data-close-modal]").forEach(button => {
       button.addEventListener("click", () => {
         const modal = $(button.dataset.closeModal);
@@ -487,8 +518,28 @@
     $("deck-mode-button").addEventListener("click", () => setScreen("decks"));
     $("search-mode-button").addEventListener("click", () => setScreen("search"));
     $("home-button").addEventListener("click", () => setScreen("search"));
-    $("display-toggle-button").addEventListener("click", () => { const next = window.appState.currentDisplayMode === "list" ? "icon" : "list"; if (window.setDisplayMode) window.setDisplayMode(next); $("icon-column-input").hidden = next !== "icon"; });
-    $("icon-column-input").addEventListener("change", event => { const value = Math.max(1, Math.min(12, Number(event.target.value) || 1)); event.target.value = value; window.appState.currentIconColumns = value; if (window.applyIconGrid) window.applyIconGrid(); });
+    $("display-toggle-button").addEventListener("click", () => { const next = window.appState.currentDisplayMode === "list" ? "icon" : "list"; if (window.setDisplayMode) window.setDisplayMode(next); $("icon-column-input").hidden = next !== "icon"; applySharedIconColumns(window.appState.currentIconColumns, false); });
+    $("icon-column-input").addEventListener("change", event => {
+      const value = applySharedIconColumns(event.target.value, true);
+      $("display-settings-status").textContent = "表示列数を" + value + "列に設定しました。";
+    });
+    $("settings-open-button").addEventListener("click", () => {
+      $("menu-panel").hidden = true;
+      $("menu-open-button").setAttribute("aria-expanded", "false");
+      applySharedIconColumns(window.appState?.currentIconColumns, false);
+      $("display-settings-status").textContent = "";
+      openModal("display-settings-modal");
+    });
+    $("display-settings-form").addEventListener("submit", event => {
+      event.preventDefault();
+      const value = applySharedIconColumns($("settings-icon-columns").value, true);
+      $("icon-column-input").value = String(value);
+      $("display-settings-status").textContent = "設定を保存しました。カード一覧は" + value + "列で表示されます。";
+    });
+    window.addEventListener("storage", event => {
+      if (event.key !== ICON_COLUMNS_STORAGE_KEY) return;
+      applySharedIconColumns(event.newValue || 5, false);
+    });
     $("menu-open-button").addEventListener("click", () => { const panel = $("menu-panel"); panel.hidden = !panel.hidden; $("menu-open-button").setAttribute("aria-expanded", String(!panel.hidden)); });
     $("account-open-button").addEventListener("click", () => {
       $("menu-panel").hidden = true;
