@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, cardLimit: 120, pile: "main", registeredTags: [] };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null };
   const app = () => window.animalDeckApp;
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const allCards = () => [...(window.appState?.allCards || []), ...(window.appState?.allTerritories || [])];
@@ -19,17 +19,27 @@
   const pileCards = (deck, pile = state.pile) => pile === "territory" ? territoryCards(deck) : deckCards(deck);
   const allPileCards = deck => [...deckCards(deck), ...territoryCards(deck)];
   const count = deck => allPileCards(deck).reduce((sum, card) => sum + Number(card.quantity || 1), 0);
-  // The shared search filters depend on appState.currentCategory. Keep that
-  // category aligned with the pile being edited so card-only filters never
-  // leak unfiltered territory results (and vice versa).
-  function setSearchCategoryForPile() {
-    const category = state.pile === "territory" ? "territory" : "card";
-    if (typeof window.setCategory === "function") {
-      window.setCategory(category);
-    } else if (window.appState) {
-      window.appState.currentCategory = category;
-      window.searchCards?.();
-    }
+  function captureSearchFilters() {
+    const root = $("search-modal-content");
+    if (!root) return [];
+    return Array.from(root.querySelectorAll("input, select")).map(element => ({
+      type: element.type,
+      value: element.value,
+      checked: element.type === "checkbox" ? element.checked : undefined
+    }));
+  }
+
+  function applySearchFilters(snapshot) {
+    if (!Array.isArray(snapshot)) return;
+    const root = $("search-modal-content");
+    if (!root) return;
+    const controls = Array.from(root.querySelectorAll("input, select"));
+    snapshot.forEach((saved, index) => {
+      const element = controls[index];
+      if (!element) return;
+      if (saved.type === "checkbox") element.checked = Boolean(saved.checked);
+      else element.value = saved.value;
+    });
   }
 
   function setBuilderPile(pile) {
@@ -39,12 +49,20 @@
     $("territory-pile-tab").classList.toggle("active", territory);
     $("main-pile-tab").setAttribute("aria-selected", String(!territory));
     $("territory-pile-tab").setAttribute("aria-selected", String(territory));
-    setSearchCategoryForPile();
     renderBuilder();
   }
 
   function setScreen(name) {
+    const previousScreen = state.screen;
+    if (previousScreen !== "builder" && name === "builder") {
+      state.normalFilterState = captureSearchFilters();
+      if (state.builderFilterState) applySearchFilters(state.builderFilterState);
+    } else if (previousScreen === "builder" && name !== "builder") {
+      state.builderFilterState = captureSearchFilters();
+      if (state.normalFilterState) applySearchFilters(state.normalFilterState);
+    }
     state.screen = name;
+    window.animalDeckBuilderSearchActive = name === "builder";
     ["card-modal", "search-modal"].forEach(id => { if ($(id)) $(id).style.display = "none"; });
     $("card-search").hidden = name !== "search";
     $("deck-library-screen").hidden = name !== "decks";
@@ -55,7 +73,7 @@
     $("deck-mode-button").classList.toggle("active", name !== "search");
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (name === "decks") refreshDecks();
-    if (name === "builder") { setSearchCategoryForPile(); renderBuilder(); }
+    if (name === "builder") { renderBuilder(); }
     if (name === "preview") renderPreview();
   }
   function setStatus(message) { $("deck-library-status").textContent = message || ""; }
@@ -107,7 +125,6 @@
     renderTagOptions("builder-deck-tag-options", deck.tags || [], state.publicView);
     $("public-deck-readonly-note").hidden = !state.publicView;
     $("builder-tools").hidden = state.publicView;
-    $("builder-category-controls").hidden = state.publicView;
     $("builder-card-list").hidden = state.publicView;
     $("builder-load-more").hidden = true;
     const typeCounts = {};
@@ -122,15 +139,16 @@
   }
   function renderBuilderCards() {
     if (state.publicView) { $("builder-card-list").replaceChildren(); $("builder-load-more").hidden = true; return; }
-    const normalizedQuery = String(state.builderQuery || "").trim().replace(/\u3000/g, " ").toLocaleLowerCase();
-    const terms = normalizedQuery.split(/\s+/).filter(Boolean);
-    const searchBase = window.appState?.currentSearchResults || allCards();
-    const result = searchBase.filter(item => {
-      const inTerritory = (window.appState?.allTerritories || []).includes(item);
-      if (state.pile === "territory" ? !inTerritory : inTerritory) return false;
-      const searchable = `${JSON.stringify(item)} ${window.getCardConditionText?.(item) || ""}`.toLocaleLowerCase();
-      return terms.every(term => term.startsWith("-") ? !searchable.includes(term.slice(1)) : searchable.includes(term));
-    });
+    const source = state.pile === "territory"
+      ? (window.appState?.allTerritories || [])
+      : (window.appState?.allCards || []);
+    const result = window.searchCards
+      ? (window.searchCards({
+          data: source,
+          keywordInputId: "builder-search",
+          builderInternal: true
+        }) || [])
+      : source;
     const list = $("builder-card-list"); list.classList.toggle("compact", state.compact); list.replaceChildren();
     if (!result.length) { $("builder-load-more").hidden = true; list.innerHTML = `<div class="empty-state">該当するカードがありません。</div>`; return; }
     const visible = result.slice(0, state.cardLimit);
@@ -144,6 +162,10 @@
     $("builder-load-more").hidden = result.length <= state.cardLimit;
     $("builder-load-more").textContent = `さらに表示（残り ${result.length - state.cardLimit} 件）`;
   }
+  window.animalDeckBuilderSearch = () => {
+    if (state.screen === "builder") renderBuilderCards();
+  };
+
   async function addCard(item) {
     if (state.publicView) return;
     try { state.deck = await app().addCard(item, state.pile); renderBuilder(); }
@@ -246,24 +268,16 @@
     document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => setScreen(button.dataset.back === "builder" ? "builder" : "decks")));
     const applyBuilderSearch = () => { state.builderQuery = $("builder-search").value; renderBuilderCards(); };
     $("builder-search").addEventListener("input", applyBuilderSearch);
-    $("builder-search-form").addEventListener("submit", event => { event.preventDefault(); applyBuilderSearch(); });
+    $("reset-button").addEventListener("click", () => {
+      if (state.screen === "builder") {
+        state.builderQuery = "";
+        $("builder-search").value = "";
+      }
+    }, true);
     window.addEventListener("animaldeck:searchresultschange", () => { if (state.screen === "builder") renderBuilderCards(); });
     $("builder-load-more").addEventListener("click", () => { state.cardLimit += 120; renderBuilderCards(); });
     $("builder-filter-button").addEventListener("click", () => openModal("search-modal"));
     $("builder-grid-button").addEventListener("click", () => { state.compact = !state.compact; renderBuilderCards(); });
-    $("builder-category-controls").innerHTML = `<button class="active" type="button" data-category="all">すべて</button><button type="button" data-category="card">カード</button><button type="button" data-category="territory">領地</button>`;
-    $("builder-category-controls").addEventListener("click", event => {
-      const button = event.target.closest("[data-category]");
-      if (!button) return;
-      $("builder-category-controls").querySelectorAll("button").forEach(item => item.classList.toggle("active", item === button));
-      const category = button.dataset.category;
-      // In the builder, choosing a specific category also selects the matching
-      // pile; "すべて" means all cards in the currently selected pile.
-      if (category === "card") { setBuilderPile("main"); return; }
-      if (category === "territory") { setBuilderPile("territory"); return; }
-      setSearchCategoryForPile();
-      renderBuilderCards();
-    });
     const selectedDeckTags = () => readTagChecks("builder-deck-tag-options");
     $("main-pile-tab").addEventListener("click", () => setBuilderPile("main"));
     $("territory-pile-tab").addEventListener("click", () => setBuilderPile("territory"));
