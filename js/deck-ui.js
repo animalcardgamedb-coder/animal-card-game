@@ -518,15 +518,21 @@
       page.setAttribute("aria-label", (Math.floor(start / perPage) + 1) + "ページ目");
       const grid = document.createElement("div");
       grid.className = printMode ? "a4-print-grid" : "a4-preview-grid";
-      cards.slice(start, start + perPage).forEach(card => {
-        const image = document.createElement("img");
-        image.className = printMode ? "a4-print-card" : "a4-preview-card";
-        image.src = card.imageUrl;
-        image.alt = "";
-        image.draggable = false;
-        image.decoding = "sync";
-        grid.append(image);
-      });
+      const pageCards = cards.slice(start, start + perPage);
+      for (let rowStart = 0; rowStart < pageCards.length; rowStart += 3) {
+        const row = document.createElement("div");
+        row.className = printMode ? "a4-print-row" : "a4-preview-row";
+        pageCards.slice(rowStart, rowStart + 3).forEach(card => {
+          const image = document.createElement("img");
+          image.className = printMode ? "a4-print-card" : "a4-preview-card";
+          image.src = card.imageUrl;
+          image.alt = "";
+          image.draggable = false;
+          image.decoding = "sync";
+          row.append(image);
+        });
+        grid.append(row);
+      }
       page.append(grid);
       container.append(page);
     }
