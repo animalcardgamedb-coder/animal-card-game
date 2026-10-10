@@ -302,14 +302,10 @@
     <div id="deck-pile-tabs" class="segmented-tabs deck-pile-tabs" role="tablist" aria-label="編集するデッキ"><button id="main-pile-tab" class="active" type="button" role="tab" aria-selected="true">メインデッキ</button><button id="territory-pile-tab" type="button" role="tab" aria-selected="false">領地デッキ</button></div>
     <p id="selected-pile-count" class="status-line"></p><div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
     <div id="builder-tools" class="builder-tools toolbar-panel">
-      <form id="builder-search-form" class="builder-search-form" role="search">
-        <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input id="builder-search" type="search" placeholder="カード名や条件で検索"></label>
-        <button id="builder-search-apply-button" class="toolbar-icon-button" type="submit" aria-label="カードを検索">検索</button>
-      </form>
-      <button id="builder-filter-button" class="toolbar-icon-button" type="button" aria-label="カードの検索条件を開く">▾</button>
-      <button id="builder-grid-button" class="toolbar-icon-button" type="button" aria-label="カード一覧の表示を切り替え">▦</button>
+      <button id="builder-filter-button" class="toolbar-icon-button" type="button" aria-label="検索条件を開く" title="カード種別などの条件">⌄</button>
+      <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input type="search" id="builder-search" placeholder="カード名やテキストで検索" autocomplete="off"></label>
+      <button id="builder-grid-button" class="toolbar-icon-button" type="button" aria-label="リスト表示とアイコン表示を切り替え" title="リスト／アイコン">▦</button>
     </div>
-    <div id="builder-category-controls" class="builder-category-controls"></div>
     <div id="builder-card-list" class="builder-card-grid"></div>
     <button id="builder-load-more" class="outline-button builder-load-more" type="button" hidden>カードをさらに表示</button>
     <div class="builder-bottom-actions"><button id="delete-current-deck" class="danger-button" type="button">削除</button><button id="export-deck-button" class="outline-button" type="button">書き出し</button><button id="preview-deck-button" class="outline-button" type="button">確認</button><button id="save-deck-button" class="primary-button" type="button">保存して一覧へ</button></div>
@@ -822,12 +818,12 @@
 
   <script src="js/api.js"></script>
 
-  <script src="js/search.js?v=20261010-4"></script>
+  <script src="js/search.js?v=20261010-5"></script>
 
   <script src="js/display.js"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261010-4"></script>
+  <script src="js/deck-ui.js?v=20261010-5"></script>
 
   <script type="module" src="firebase.js"></script>
 
