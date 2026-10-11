@@ -47,6 +47,38 @@
   const pileCards = (deck, pile = state.pile) => pile === "territory" ? territoryCards(deck) : deckCards(deck);
   const allPileCards = deck => [...deckCards(deck), ...territoryCards(deck)];
   const count = deck => allPileCards(deck).reduce((sum, card) => sum + Number(card.quantity || 1), 0);
+  function territoryLimitStatus(deck) {
+    const cards = territoryCards(deck);
+    const total = cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+    const countsByName = new Map();
+    cards.forEach(card => {
+      const item = byItemId(card.itemId);
+      const name = String(item?.territory_name || card.name || "").trim();
+      const species = String(item?.species ?? card.species ?? "");
+      const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
+      if (!name || isBasic) return;
+      const key = name.toLocaleLowerCase("ja-JP");
+      const entry = countsByName.get(key) || { name, quantity: 0 };
+      entry.quantity += Math.max(1, Number(card.quantity) || 1);
+      countsByName.set(key, entry);
+    });
+    return { total, countsByName, overTotal: total > 10, reachedTotal: total >= 10 };
+  }
+  function canAddCurrentTerritoryItem(item) {
+    return state.pile !== "territory" || (app()?.canAddTerritoryCard ? app().canAddTerritoryCard(item) : true);
+  }
+  function territoryAddLimitMessage(item) {
+    if (state.pile !== "territory") return "";
+    const limits = territoryLimitStatus(state.deck);
+    if (limits.total >= 10) return "領土デッキは最大10枚です";
+    const name = String(item?.territory_name || item?.name || "").trim();
+    const species = String(item?.species || "");
+    const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
+    if (!isBasic && (limits.countsByName.get(name.toLocaleLowerCase("ja-JP"))?.quantity || 0) >= 4) {
+      return "種属が「基礎」以外の同名領土カードは最大4枚です";
+    }
+    return "";
+  }
   function captureSearchFilters() {
     const root = $("search-modal-content");
     if (!root) return [];
@@ -191,7 +223,19 @@
       });
     }
     const activeCards = pileCards(deck);
-    $("selected-pile-count").textContent = `${state.pile === "main" ? "メインデッキ" : "領地デッキ"}：${activeCards.reduce((sum, card) => sum + Number(card.quantity || 1), 0)}枚`;
+    const activeTotal = activeCards.reduce((sum, card) => sum + Number(card.quantity || 1), 0);
+    const pileCount = $("selected-pile-count");
+    if (state.pile === "territory") {
+      const limits = territoryLimitStatus(deck);
+      pileCount.textContent = "領土デッキ：" + activeTotal + "/10枚";
+      pileCount.classList.toggle("limit-reached", limits.reachedTotal);
+      pileCount.classList.toggle("over-limit", limits.overTotal);
+      pileCount.title = limits.overTotal ? "領土デッキが上限10枚を超えています。−ボタンで減らしてください。" : (limits.reachedTotal ? "領土デッキの上限10枚に達しています。" : "");
+    } else {
+      pileCount.textContent = "メインデッキ：" + activeTotal + "枚";
+      pileCount.classList.remove("limit-reached", "over-limit");
+      pileCount.title = "";
+    }
     if (!activeCards.length) strip.innerHTML = `<div class="empty-state">このデッキにはまだカードがありません。</div>`;
     activeCards.forEach((card, index) => {
       const item = byItemId(card.itemId);
@@ -257,6 +301,18 @@
       const quantityMark = document.createElement("span");
       quantityMark.className = "selected-card-quantity";
       quantityMark.textContent = "×" + Number(card.quantity || 1);
+      if (state.pile === "territory") {
+        const limits = territoryLimitStatus(deck);
+        const itemName = String(item?.territory_name || card.name || "").trim();
+        const species = String(item?.species ?? card.species ?? "");
+        const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
+        const sameNameCount = limits.countsByName.get(itemName.toLocaleLowerCase("ja-JP"))?.quantity || 0;
+        if (!isBasic && sameNameCount >= 4) {
+          quantityMark.classList.toggle("over-limit", sameNameCount > 4);
+          quantityMark.classList.toggle("limit-reached", sameNameCount === 4);
+          quantityMark.title = "種属が「基礎」以外の同名領土カード：最大4枚";
+        }
+      }
       mini.append(imageButton, quantityMark);
 
       if (!state.publicView) {
@@ -281,6 +337,9 @@
         addButton.textContent = "＋";
         addButton.title = String(card.name || "カード") + "を1枚増やす";
         addButton.setAttribute("aria-label", String(card.name || "カード") + "を1枚増やす");
+        addButton.disabled = !canAddCurrentTerritoryItem(item);
+        const limitMessage = territoryAddLimitMessage(item);
+        if (limitMessage) addButton.title = limitMessage;
         addButton.addEventListener("click", event => {
           event.preventDefault();
           event.stopPropagation();
@@ -346,6 +405,17 @@
         const quantityMark = document.createElement("span");
         quantityMark.className = "quantity-mark";
         quantityMark.textContent = `×${quantity}`;
+        if (state.pile === "territory") {
+          const limits = territoryLimitStatus(state.deck);
+          const species = String(item?.species || "");
+          const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
+          const sameNameCount = limits.countsByName.get(String(item?.territory_name || name).trim().toLocaleLowerCase("ja-JP"))?.quantity || 0;
+          if (!isBasic && sameNameCount >= 4) {
+            quantityMark.classList.toggle("over-limit", sameNameCount > 4);
+            quantityMark.classList.toggle("limit-reached", sameNameCount === 4);
+            quantityMark.title = "種属が「基礎」以外の同名領土カード：最大4枚";
+          }
+        }
         tile.append(quantityMark);
       }
 
@@ -371,7 +441,9 @@
       addButton.textContent = "＋";
       addButton.title = `${name}をデッキに1枚追加`;
       addButton.setAttribute("aria-label", `${name}をデッキに1枚追加`);
-      addButton.disabled = state.publicView;
+      addButton.disabled = state.publicView || !canAddCurrentTerritoryItem(item);
+      const limitMessage = territoryAddLimitMessage(item);
+      if (limitMessage) addButton.title = limitMessage;
       addButton.addEventListener("click", event => {
         event.preventDefault();
         event.stopPropagation();

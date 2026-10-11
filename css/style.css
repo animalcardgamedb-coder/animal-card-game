@@ -158,3 +158,14 @@
 .user-tag-options input[type=checkbox]{width:16px;height:16px;min-height:0;margin:0}
 .card-user-tag-editor .feature-status{margin:8px 0}
 #user-tag-filter:empty::before{content:"タグはまだありません。メニューから作成できます。";color:var(--muted);font-size:12px}
+
+
+/* Territory deck limits: visual feedback without interrupting editing. */
+#selected-pile-count.limit-reached,
+#selected-pile-count.over-limit{color:#b00020;font-weight:800}
+.selected-card-quantity.limit-reached,
+.quantity-mark.limit-reached{background:#b00020!important;color:#fff!important;border:1px solid #8c0019!important}
+.selected-card-quantity.over-limit,
+.quantity-mark.over-limit{background:#7f0014!important;color:#fff!important;border:2px solid #ff8b8b!important;box-shadow:0 0 0 2px #ffb6b6}
+.builder-card-add:disabled,
+.selected-card-quantity-button:disabled{opacity:.38;cursor:not-allowed}
