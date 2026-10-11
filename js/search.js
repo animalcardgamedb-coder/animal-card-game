@@ -629,6 +629,9 @@ function searchCards(options = {}) {
       "cost-filter"
     );
 
+  const selectedUserTags =
+    getSelectedValues("user-tag-filter");
+
 
   /*
     カード用キーワード能力
@@ -868,6 +871,13 @@ function searchCards(options = {}) {
             )
           );
 
+        const itemUserTagIds = Array.isArray(item.user_tag_ids)
+          ? item.user_tag_ids.map(String)
+          : [];
+        const matchesUserTags =
+          selectedUserTags.length === 0 ||
+          selectedUserTags.some(tagId => itemUserTagIds.includes(String(tagId)));
+
 
         /*
           =================================
@@ -1053,6 +1063,7 @@ function searchCards(options = {}) {
           matchesCondition &&
           matchesSpecies &&
           matchesCost &&
+          matchesUserTags &&
           matchesCategorySpecificFilters &&
           matchesKeyword &&
           matchesEffect &&

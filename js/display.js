@@ -697,6 +697,11 @@ function showCardDetail(
 
 
   /*
+    ユーザータグ編集欄
+  */
+  window.renderCardUserTagEditor?.(item);
+
+  /*
     モーダルを表示
   */
   modal.style.display =
