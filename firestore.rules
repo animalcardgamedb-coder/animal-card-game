@@ -28,7 +28,7 @@ service cloud.firestore {
         && data.isPublic is bool
         && data.cards is list
         && data.cards.size() <= 200
-        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 200))
+        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 10))
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
@@ -48,7 +48,7 @@ service cloud.firestore {
         && data.isPublic is bool
         && data.cards is list
         && data.cards.size() <= 200
-        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 200))
+        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 10))
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
           || (data.tags is list && data.tags.size() <= 12));
@@ -88,7 +88,13 @@ service cloud.firestore {
         && request.resource.data.normalized.size() <= 24
         && request.resource.data.createdAt is timestamp
         && request.resource.data.createdByUid == request.auth.uid;
-      allow update, delete: if false;
+      // Anyone may soft-delete a shared tag; signed-in users may restore a tag.
+      // Keeping a tombstone prevents legacy per-user tags from reappearing after deletion.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted'])
+        && request.resource.data.deleted is bool
+        && (request.resource.data.deleted == true
+          || (signedIn() && resource.data.deleted == true && request.resource.data.deleted == false));
+      allow delete: if false;
     }
 
     match /users/{userId} {
