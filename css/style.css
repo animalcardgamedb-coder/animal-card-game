@@ -107,3 +107,33 @@
   .a4-print-row{display:flex!important;align-items:center!important;justify-content:center!important;gap:2mm!important;width:193mm!important;height:88mm!important}
   .a4-print-card{display:block!important;flex:0 0 63mm!important;width:63mm!important;height:88mm!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;object-fit:fill!important;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+
+/* 2026-10-11 search, sorting, user-tag and deck-editor improvements */
+.filter-logic-control{display:block;margin:8px 0 5px;color:var(--muted);font-size:12px}
+.filter-mode-select{min-height:34px;margin:0 0 10px;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink)}
+.card-sort-field{flex:0 1 auto;min-width:0}
+.card-sort-field select{max-width:130px;min-height:34px;padding:5px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink)}
+.preview-duplicates-setting{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
+.preview-duplicates-setting input{width:17px;height:17px}
+#user-tag-list,#deck-tag-list{padding-left:22px}
+#user-tag-list li,#deck-tag-list li{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:7px 0}
+#user-tag-list li button,#deck-tag-list li button{flex:0 0 auto;padding:5px 9px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer}
+.selected-card-mini{height:auto;align-self:flex-start;overflow:hidden}
+.selected-card-mini-image{display:block;width:100%;height:auto;min-height:0;padding:0;border:0;background:transparent;cursor:pointer}
+.selected-card-mini-image img{display:block;width:100%;height:auto;aspect-ratio:.72;object-fit:cover}
+.selected-card-mini .mini-empty{height:auto;aspect-ratio:.72}
+.selected-card-mini .selected-card-quantity{position:absolute;top:3px;right:3px;bottom:auto;z-index:2;pointer-events:none;padding:2px 6px;border-radius:12px;background:#111;color:#fff;font-size:11px;font-weight:700}
+.selected-card-mini-actions{display:flex;align-items:center;gap:4px;padding:4px;background:#fff}
+.selected-card-mini-actions button{flex:1;min-width:0;height:28px;padding:0;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font-size:17px;font-weight:700;line-height:1}
+.selected-card-mini-actions button:last-child{background:#171717;border-color:#171717;color:#fff}
+.detail-deck-qty-controls{display:flex;align-items:center;gap:8px;margin-top:16px}
+.detail-deck-qty-controls #detail-deck-remove-button{width:44px;height:42px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:24px;font-weight:700}
+.detail-deck-qty-controls #detail-add-to-deck-button{flex:1;min-height:42px}
+#detail-user-tag-options{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.detail-user-tag-label{display:inline-flex!important;align-items:center;gap:5px;margin:0!important;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;font-weight:400!important}
+.detail-user-tag-label input{margin:0}
+.rule-term{display:inline;border:0;padding:0 1px;background:transparent;color:inherit;font:inherit;text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+.rule-term:hover,.rule-term:focus{background:#fff1a8;color:#111}
+.rule-term-tooltip{display:inline-block;margin:3px;padding:5px 8px;border:1px solid #b9a76b;border-radius:5px;background:#fff8d7;color:#222;font-size:12px;line-height:1.55;vertical-align:middle}
+@media(max-width:600px){.card-sort-field select{max-width:104px;font-size:11px}.card-sort-field>span{display:none}.selected-card-mini{flex-basis:70px}.selected-card-mini-actions{gap:3px;padding:3px}.selected-card-mini-actions button{height:26px}}
