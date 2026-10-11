@@ -104,6 +104,46 @@ function validateTerritoryDeckCards(cards) {
   }
 }
 
+function getTerritoryCardDetails(card) {
+  const rawId = String(card?.itemId || card?.territory_id || "").replace(/^territory:/, "");
+  const territoryData = window.appState?.allTerritories || [];
+  const item = territoryData.find(candidate => String(candidate.territory_id) === rawId);
+  const name = String(item?.territory_name || card?.territory_name || card?.name || rawId).trim();
+  const speciesText = String(item?.species ?? card?.species ?? "").trim();
+  const speciesValues = speciesText.split(/[,、|｜]/).map(value => value.trim());
+  return { name, isBasic: speciesValues.includes("基礎") };
+}
+
+function territoryDeckLimitStatus(cards) {
+  const list = Array.isArray(cards) ? cards : [];
+  const total = list.reduce((sum, card) => sum + Math.max(1, Number(card?.quantity) || 1), 0);
+  const byName = new Map();
+  list.forEach(card => {
+    const info = getTerritoryCardDetails(card);
+    if (!info.name || info.isBasic) return;
+    const key = info.name.toLocaleLowerCase("ja-JP");
+    const entry = byName.get(key) || { name: info.name, quantity: 0 };
+    entry.quantity += Math.max(1, Number(card?.quantity) || 1);
+    byName.set(key, entry);
+  });
+  return { total, byName };
+}
+
+function canAddTerritoryCardToList(item, cards) {
+  const status = territoryDeckLimitStatus(cards);
+  if (status.total >= 10) return false;
+  const info = getTerritoryCardDetails({
+    itemId: item?.territory_id || item?.card_id || item?.id,
+    territory_id: item?.territory_id,
+    territory_name: item?.territory_name,
+    name: item?.territory_name || item?.card_name || item?.name,
+    species: item?.species
+  });
+  if (info.isBasic) return true;
+  const currentCount = status.byName.get(info.name.toLocaleLowerCase("ja-JP"))?.quantity || 0;
+  return currentCount < 4;
+}
+
 function setStatus(elementId, message) {
   const element = byId(elementId);
   if (element) element.textContent = message;
@@ -555,11 +595,17 @@ window.animalDeckApp = {
     selectedDeck = { ...selectedDeck, name: safeName, isPublic: Boolean(isPublic), tags: normalizeTags(tags) };
     return this.current();
   },
+  territoryLimitStatus() {
+    return territoryDeckLimitStatus(selectedDeck?.territoryCards || []);
+  },
+  canAddTerritoryCard(item) {
+    return canAddTerritoryCardToList(item, selectedDeck?.territoryCards || []);
+  },
   async saveCards(cards, pile = "main") {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
     if (!Array.isArray(cards) || cards.length > 200) throw new Error("デッキに登録できる種類数の上限を超えています。");
     const field = pile === "territory" ? "territoryCards" : "cards";
-    if (pile === "territory") validateTerritoryDeckCards(cards);
+    // Older decks may already exceed a limit. Allow removals and reordering; additions are checked in addCard().
     await updateDoc(doc(db, "decks", selectedDeckId), { [field]: cards, updatedAt: serverTimestamp() });
     selectedDeck = { ...selectedDeck, [field]: cards };
     renderOwnedDeckCards();
@@ -573,6 +619,7 @@ window.animalDeckApp = {
     if (!rawId || !name) throw new Error("カードIDを確認できませんでした。");
     const field = pile === "territory" ? "territoryCards" : "cards";
     const cards = [...(selectedDeck[field] || [])];
+    if (pile === "territory" && !canAddTerritoryCardToList(item, cards)) return this.current();
     const found = cards.find(card => String(card.itemId) === id);
     if (found) found.quantity = Math.min(99, Number(found.quantity || 1) + 1);
     else cards.push({ itemId: id, name, quantity: 1 });
