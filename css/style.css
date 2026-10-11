@@ -107,3 +107,35 @@
   .a4-print-row{display:flex!important;align-items:center!important;justify-content:center!important;gap:2mm!important;width:193mm!important;height:88mm!important}
   .a4-print-card{display:block!important;flex:0 0 63mm!important;width:63mm!important;height:88mm!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;object-fit:fill!important;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+
+/* Search controls, accessible filter operators, and sortable card lists. */
+.card-sort-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:3px 0 10px}
+.card-sort-field{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;min-width:0}
+.card-sort-field select{max-width:230px;min-height:36px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#222;font:inherit}
+.builder-sort-field{flex:0 1 auto}
+.filter-mode-control{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 13px 0;color:var(--muted);font-size:12px}
+.filter-mode-control select{min-height:32px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;color:#222;font:inherit}
+.preview-copy-toggle{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.preview-copy-toggle input{width:16px;height:16px}
+@media(max-width:760px){.card-sort-toolbar{justify-content:stretch}.card-sort-field{width:100%;justify-content:space-between}.card-sort-field select{flex:1;min-width:0;max-width:none}.builder-sort-field{flex:1 1 100%}.builder-sort-field select{max-width:none}.preview-toolbar{flex-wrap:wrap}.preview-copy-toggle{flex:1 1 100%;order:3}}
+
+/* Selected deck cards: details on image tap, plus/minus controls below, drag-and-drop reorder only. */
+.selected-card-mini{display:flex;flex-direction:column;flex:0 0 94px;height:auto;overflow:hidden;align-self:flex-start;background:#fff}
+.selected-card-mini-image{position:relative;inset:auto;display:block;flex:0 0 auto;width:100%;height:auto;aspect-ratio:.72;padding:0;border:0;border-radius:0;background:transparent;color:inherit;text-align:center}
+.selected-card-mini-image img{display:block;width:100%;height:auto;aspect-ratio:.72;object-fit:cover}
+.selected-card-mini-image .mini-empty{display:grid;place-items:center;min-height:65px;padding:5px;font-size:11px}
+.selected-card-mini .selected-card-quantity{top:3px;right:3px;bottom:auto;z-index:3}
+.selected-card-mini-actions{display:flex;gap:3px;padding:4px;background:#fff;border-top:1px solid #bbb}
+.selected-card-quantity-button{flex:1 1 0;min-width:0;height:27px;padding:0;border:1px solid #aaa;border-radius:4px;background:#f4f4f2;color:#111;font-size:18px;font-weight:800;line-height:1}
+.selected-card-quantity-button.selected-card-quantity-add{background:#171717;border-color:#171717;color:#fff}
+.selected-card-mini-reorder{display:none!important}
+.selected-card-mini-image.has-controls{bottom:auto}
+@media(max-width:760px){.selected-card-mini{flex-basis:72px}.selected-card-quantity-button{height:25px;font-size:16px}}
+
+/* Official comprehensive-rule terms in card detail text. Tap to pin a tooltip; hover/focus also reveals it. */
+.rules-term{position:relative;display:inline;border-bottom:1px dotted #356ca5;color:#174f85;cursor:help}
+.rules-term::after{content:attr(data-tooltip);display:none;position:absolute;z-index:20;left:0;bottom:calc(100% + 7px);width:min(300px,78vw);padding:9px 11px;border:1px solid #999;border-radius:6px;background:#fff;color:#222;text-align:left;font-size:12px;font-weight:400;line-height:1.6;white-space:normal;box-shadow:0 5px 20px #0003}
+.rules-term:hover::after,.rules-term:focus::after,.rules-term.is-open::after{display:block}
+.deck-tag-list-item{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0}
+.deck-tag-delete-button{flex:0 0 auto;margin:0!important;padding:5px 9px!important;font-size:12px}
