@@ -78,6 +78,32 @@ function sharedDeckTagDocument(value) {
   };
 }
 
+function validateTerritoryDeckCards(cards) {
+  const list = Array.isArray(cards) ? cards : [];
+  const total = list.reduce((sum, card) => sum + Math.max(1, Number(card?.quantity) || 1), 0);
+  if (total > 10) {
+    throw new Error("領土デッキは最大10枚です。領土カードを減らしてから追加してください。");
+  }
+
+  const territoryData = window.appState?.allTerritories || [];
+  const countsByName = new Map();
+  for (const card of list) {
+    const rawId = String(card?.itemId || card?.territory_id || "").replace(/^territory:/, "");
+    const item = territoryData.find(candidate => String(candidate.territory_id) === rawId);
+    const name = String(item?.territory_name || card?.name || rawId).trim();
+    const speciesText = String(item?.species ?? card?.species ?? "").trim();
+    const speciesValues = speciesText.split(/[,、|｜]/).map(value => value.trim());
+    const isBasic = speciesValues.includes("基礎");
+    if (isBasic) continue;
+
+    const key = name.toLocaleLowerCase("ja-JP");
+    countsByName.set(key, (countsByName.get(key) || 0) + Math.max(1, Number(card?.quantity) || 1));
+    if (countsByName.get(key) > 4) {
+      throw new Error("種属が「基礎」ではない領土カードは、同じカード名を最大4枚までしか入れられません（「" + name + "」）。");
+    }
+  }
+}
+
 function setStatus(elementId, message) {
   const element = byId(elementId);
   if (element) element.textContent = message;
@@ -440,7 +466,7 @@ window.animalDeckApp = {
     }
 
     if (migratedLegacyTags) snapshot = await getDocs(collection(db, "deckTagCatalog"));
-    return normalizeSharedDeckTags(snapshot.docs.map(item => item.data().name));
+    return normalizeSharedDeckTags(snapshot.docs.filter(item => item.data().deleted !== true).map(item => item.data().name));
   },
   async addDeckTag(value) {
     if (!signedInUser) throw new Error("共通デッキタグを登録するにはログインしてください。");
@@ -449,7 +475,10 @@ window.animalDeckApp = {
 
     const ref = doc(db, "deckTagCatalog", sharedDeckTagDocumentId(tag));
     const existing = await getDoc(ref);
-    if (existing.exists()) return this.listDeckTags();
+    if (existing.exists()) {
+      if (existing.data().deleted === true) await updateDoc(ref, { deleted: false });
+      return this.listDeckTags();
+    }
 
     try {
       await setDoc(ref, sharedDeckTagDocument(tag));
@@ -457,6 +486,16 @@ window.animalDeckApp = {
       // A simultaneous registration of the same tag may have created the same document.
       const concurrent = await getDoc(ref);
       if (!concurrent.exists()) throw error;
+    }
+    return this.listDeckTags();
+  },
+  async deleteDeckTag(value) {
+    const tag = String(value || "").trim().slice(0, 24);
+    if (!tag) throw new Error("削除するタグ名を確認できませんでした。");
+    const ref = doc(db, "deckTagCatalog", sharedDeckTagDocumentId(tag));
+    const snapshot = await getDoc(ref);
+    if (snapshot.exists() && snapshot.data().deleted !== true) {
+      await updateDoc(ref, { deleted: true });
     }
     return this.listDeckTags();
   },
@@ -520,6 +559,7 @@ window.animalDeckApp = {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
     if (!Array.isArray(cards) || cards.length > 200) throw new Error("デッキに登録できる種類数の上限を超えています。");
     const field = pile === "territory" ? "territoryCards" : "cards";
+    if (pile === "territory") validateTerritoryDeckCards(cards);
     await updateDoc(doc(db, "decks", selectedDeckId), { [field]: cards, updatedAt: serverTimestamp() });
     selectedDeck = { ...selectedDeck, [field]: cards };
     renderOwnedDeckCards();

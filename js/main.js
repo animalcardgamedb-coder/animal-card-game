@@ -160,12 +160,18 @@ document.addEventListener(
       ======================================
     */
 
-    document.getElementById(
-      "search-box"
-    )?.addEventListener(
-      "input",
-      searchCards
-    );
+    const searchBox = document.getElementById("search-box");
+    searchBox?.addEventListener("input", searchCards);
+    searchBox?.addEventListener("keydown", event => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      searchCards();
+      searchBox.blur();
+    });
+
+    ["condition-match-mode", "keyword-match-mode", "effect-match-mode", "card-sort-select"].forEach(id => {
+      document.getElementById(id)?.addEventListener("change", searchCards);
+    });
 
 
     /*

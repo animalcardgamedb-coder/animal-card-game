@@ -14,7 +14,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261010-7"
+    href="css/style.css?v=20261011-1"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -161,7 +161,7 @@
     <button id="account-open-button" type="button">ログイン</button>
     <button id="settings-open-button" type="button">設定</button>
     <button id="a4-layout-open-button" type="button">デッキを読み込んでA4サイズに配置</button>
-    <button id="deck-tags-open-button" type="button">共通デッキタグ登録</button>
+    <button id="deck-tags-open-button" type="button">デッキタグ一覧</button>
     <button id="bulk-import-open-button" type="button">新カードの追加・データ登録</button>
     <p id="menu-account-status" role="status"></p>
   </div>
@@ -169,8 +169,8 @@
   <div id="deck-tags-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="deck-tags-title">
     <section class="feature-modal-content">
       <button class="feature-close-button" data-close-modal="deck-tags-modal" type="button" aria-label="閉じる">×</button>
-      <h2 id="deck-tags-title">共通デッキタグ登録</h2>
-      <p>ここで登録したタグは全利用者共通の一覧に追加され、すべてのデッキ編集画面から選べるようになります。タグ一覧にない項目を追加してください。</p>
+      <h2 id="deck-tags-title">デッキタグ一覧</h2>
+      <p>登録済みの共通デッキタグは誰でも削除できます。新しいタグの登録にはログインが必要です。</p>
       <h3>登録済みの共通タグ</h3>
       <form id="deck-tag-form" class="deck-create-row"><input id="deck-tag-name" type="text" maxlength="24" placeholder="例：大会用" aria-label="新しいデッキタグ"><button class="primary-button" type="submit">タグを登録</button></form>
       <ul id="deck-tag-list"></ul><p id="deck-tag-status" class="feature-status" role="status"></p>
@@ -293,6 +293,16 @@
 
 
     <div id="result-count"></div>
+    <div class="card-sort-toolbar"><label class="card-sort-field" for="card-sort-select"><span>並び替え</span><select id="card-sort-select">
+      <option value="source">元の順序</option>
+      <option value="id-asc">ID・昇順</option><option value="id-desc">ID・降順</option>
+      <option value="name-asc">名前・昇順</option><option value="name-desc">名前・降順</option>
+      <option value="type-asc">カードタイプ・昇順</option><option value="type-desc">カードタイプ・降順</option>
+      <option value="species-asc">種族・昇順</option><option value="species-desc">種族・降順</option>
+      <option value="cost-asc">コスト・昇順</option><option value="cost-desc">コスト・降順</option>
+      <option value="atk-asc">ATK・昇順</option><option value="atk-desc">ATK・降順</option>
+      <option value="def-asc">DEF・昇順</option><option value="def-desc">DEF・降順</option>
+    </select></label></div>
 
 
     <div
@@ -334,10 +344,20 @@
     <div class="deck-summary-panel"><div><strong id="deck-total-count">0</strong><span>枚</span></div><div id="deck-visibility-badge" class="visibility-badge">非公開</div><button id="builder-visibility-button" type="button" class="outline-button">公開設定</button></div>
     <div id="deck-type-stats" class="deck-type-stats"></div>
     <div id="deck-pile-tabs" class="segmented-tabs deck-pile-tabs" role="tablist" aria-label="編集するデッキ"><button id="main-pile-tab" class="active" type="button" role="tab" aria-selected="true">メインデッキ</button><button id="territory-pile-tab" type="button" role="tab" aria-selected="false">領地デッキ</button></div>
-    <p id="selected-pile-count" class="status-line"></p><p class="reorder-help">カード画像をドラッグ＆ドロップして順番を変更できます。矢印ボタンも使えます。</p><div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
+    <p id="selected-pile-count" class="status-line"></p><p class="reorder-help">カード画像をドラッグ＆ドロップして順番を変更できます。</p><div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
     <div id="builder-tools" class="toolbar-panel">
       <button id="builder-filter-button" class="toolbar-icon-button" type="button" aria-label="検索条件を開く" title="カード種別などの条件">⌄</button>
       <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input type="search" id="builder-search" placeholder="カード名やテキストで検索" autocomplete="off"></label>
+      <label class="card-sort-field builder-sort-field" for="builder-sort-select"><span>並び替え</span><select id="builder-sort-select">
+        <option value="source">元の順序</option>
+        <option value="id-asc">ID・昇順</option><option value="id-desc">ID・降順</option>
+        <option value="name-asc">名前・昇順</option><option value="name-desc">名前・降順</option>
+        <option value="type-asc">カードタイプ・昇順</option><option value="type-desc">カードタイプ・降順</option>
+        <option value="species-asc">種族・昇順</option><option value="species-desc">種族・降順</option>
+        <option value="cost-asc">コスト・昇順</option><option value="cost-desc">コスト・降順</option>
+        <option value="atk-asc">ATK・昇順</option><option value="atk-desc">ATK・降順</option>
+        <option value="def-asc">DEF・昇順</option><option value="def-desc">DEF・降順</option>
+      </select></label>
       <button id="builder-grid-button" class="toolbar-icon-button" type="button" aria-label="リスト表示とアイコン表示を切り替え" title="リスト／アイコン">▦</button>
     </div>
     <div id="builder-card-list" class="builder-card-grid"></div>
@@ -347,7 +367,7 @@
 
   <section id="deck-preview-screen" class="app-screen" hidden>
     <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div>
-    <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
+    <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><label class="preview-copy-toggle"><input id="preview-expand-copies" type="checkbox"> 枚数分カードを個別表示</label><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
     <p id="preview-updated-at" class="preview-meta"></p>
     <div class="preview-count"><span>デッキ合計</span><strong id="preview-total-count"></strong></div>
     <div id="preview-card-list" class="preview-card-grid"></div>
@@ -429,7 +449,7 @@
 
       </div>
 
-      <div class="filter"><div class="filter-title">コンディション</div><div id="condition-filter" class="multi-select"></div></div>
+      <div class="filter"><div class="filter-title">コンディション</div><label class="filter-mode-control">複数選択時 <select id="condition-match-mode"><option value="and">AND（すべて）</option><option value="or">OR（いずれか）</option></select></label><div id="condition-filter" class="multi-select"></div></div>
 
 
       <!--
@@ -521,6 +541,7 @@
         <div class="filter-title">
           カード：キーワード能力
         </div>
+        <label class="filter-mode-control">複数選択時 <select id="keyword-match-mode"><option value="or">OR（いずれか）</option><option value="and">AND（すべて）</option></select></label>
 
         <div
           id="card-keyword-filter"
@@ -559,6 +580,7 @@
         <div class="filter-title">
           カード：効果分類
         </div>
+        <label class="filter-mode-control">複数選択時 <select id="effect-match-mode"><option value="or">OR（いずれか）</option><option value="and">AND（すべて）</option></select></label>
 
         <div
           id="card-effect-filter"
@@ -854,12 +876,12 @@
 
   <script src="js/api.js"></script>
 
-  <script src="js/search.js?v=20261010-7"></script>
+  <script src="js/search.js?v=20261011-1"></script>
 
-  <script src="js/display.js?v=20261010-7"></script>
+  <script src="js/display.js?v=20261011-1"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261010-12"></script>
+  <script src="js/deck-ui.js?v=20261011-1"></script>
 
   <script type="module" src="firebase.js"></script>
 
