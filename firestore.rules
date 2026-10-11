@@ -88,7 +88,9 @@ service cloud.firestore {
         && request.resource.data.normalized.size() <= 24
         && request.resource.data.createdAt is timestamp
         && request.resource.data.createdByUid == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false;
+      // Shared tag removal is intentionally open to all visitors, as requested.
+      allow delete: if true;
     }
 
     match /users/{userId} {
