@@ -40,14 +40,13 @@ const RULE_GLOSSARY = {
   "領土デッキ": "領土カードのみで構築します。公式総合ルールでは10枚ちょうどと定義されています。"
 };
 
+const regexpSpecialChars = ".+?^$(){}|[]\\";
 const ruleTermPattern = new RegExp(
   Object.keys(RULE_GLOSSARY).sort((a, b) => b.length - a.length)
-    .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, "\\/*
-  アイコンの列数を適用
-*/")).join("|"),
+    .map(term => Array.from(term, character => regexpSpecialChars.includes(character) ? "\\" + character : character).join(""))
+    .join("|"),
   "g"
 );
-
 function setRuleGlossaryText(element, value) {
   if (!element) return;
   const text = String(value ?? "");
