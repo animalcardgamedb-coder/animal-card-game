@@ -14,7 +14,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261011-1"
+    href="css/style.css?v=20261011-2"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -560,6 +560,8 @@
           領地：キーワード能力
         </div>
 
+        <label class="filter-logic-control" for="territory-keyword-match-mode">複数選択の一致方法</label>
+        <select id="territory-keyword-match-mode" class="filter-mode-select"><option value="or">OR（いずれか）</option><option value="and">AND（すべて）</option></select>
         <div
           id="territory-keyword-filter"
           class="multi-select"
@@ -600,6 +602,8 @@
           領地：効果分類
         </div>
 
+        <label class="filter-logic-control" for="territory-effect-match-mode">複数選択の一致方法</label>
+        <select id="territory-effect-match-mode" class="filter-mode-select"><option value="or">OR（いずれか）</option><option value="and">AND（すべて）</option></select>
         <div
           id="territory-effect-filter"
           class="multi-select"
@@ -877,12 +881,12 @@
 
   <script src="js/api.js"></script>
 
-  <script src="js/search.js?v=20261011-1"></script>
+  <script src="js/search.js?v=20261011-2"></script>
 
-  <script src="js/display.js?v=20261011-1"></script>
+  <script src="js/display.js?v=20261011-2"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261011-1"></script>
+  <script src="js/deck-ui.js?v=20261011-2"></script>
 
   <script type="module" src="firebase.js"></script>
 
