@@ -1,4 +1,133 @@
 /*
+ * 用語解説は公式「アニマルカードゲーム 総合ルール ver.6.0」（2026-07-23）を参照した短い要約です。
+ */
+const RULE_GLOSSARY = {
+  "《平野》": "条件キーワード能力。カードをプレイする時、平野条件の1つとして数えられます。",
+  "《山岳》": "条件キーワード能力。カードをプレイする時、山岳条件の1つとして数えられます。",
+  "《水生》": "条件キーワード能力。カードをプレイする時、水生条件の1つとして数えられます。",
+  "《森林》": "条件キーワード能力。カードをプレイする時、森林条件の1つとして数えられます。",
+  "《夜》": "条件キーワード能力。カードをプレイする時、夜条件の1つとして数えられます。",
+  "《敏捷》": "手札にあるこのカードは、自分が優先権を持っていればいつでもプレイできます。",
+  "《唯一》": "同じ名前の存在や領土が複数ある場合、ルール処理で1つを残し、それ以外を墓地に置きます。",
+  "《装備》": "指定された対象に装備して戦場に出る能力です。適正に装備されていない場合などはルール処理の対象になります。",
+  "《鉄壁》": "公式ルールで定義されたキーワード能力です。詳しい適用条件は総合ルールの「キーワード能力」を参照してください。",
+  "《突破》": "戦闘で防御側に割り振ったATKが許容ダメージ量を超えた時、その超過分に関わる戦闘ダメージの処理を行う能力です。",
+  "《有翼》": "この能力を持つ動物だけで集団攻撃する場合、防御できる動物に制限が生じます。",
+  "《対空》": "《有翼》への防御条件に関わるキーワード能力です。",
+  "《隠密》": "この能力を持つ動物だけで集団攻撃する場合、防御できるかどうかに関わる能力です。",
+  "《有毒》": "戦闘ダメージの処理で、相手が受けるダメージ量に関わるキーワード能力です。",
+  "《不可侵》": "一部のルールや効果による移動・妨害の扱いに制限があり、能力を失わないなどの特性を持つ能力です。",
+  "《不壊》": "この存在はルールでも効果でも破壊されません。",
+  "《忌み地》": "特定の効果を持たない常時能力で、この能力を持つカード／トークンとして参照するためのキーワードです。",
+  "《孤高》": "自分の戦場に存在が複数ある場合、指定された処理によって1つを選び、それ以外を墓地に置きます。",
+  "優先権": "プレイヤーがカードのプレイや能力の発動などを行える権利です。行動やフェイズ進行のルールに関わります。",
+  "カードをプレイする": "ルールに従ってカードを使用する手順です。条件の達成やコストの支払いなどを伴います。",
+  "発動する": "能力や効果をルールに従って開始することを示す用語です。",
+  "妨害する": "プレイや効果の解決を妨げる処理です。",
+  "対象にする": "効果の処理対象としてカードや存在などを指定することです。",
+  "選ぶ": "指定された範囲の中から処理するものを選択することです。",
+  "夜状態": "カード・トークンの状態の一つです。状態の変更や夜を明ける処理が総合ルールで定義されています。",
+  "ウェイク状態": "カード・トークンの状態の一つです。ウェイクする処理が総合ルールで定義されています。",
+  "ムーブ状態": "カード・トークンの状態の一つです。ムーブする処理が総合ルールで定義されています。",
+  "戦闘ダメージ": "戦闘時に攻撃・防御している動物などが与えたり受けたりするダメージです。",
+  "効果ダメージ": "効果によって与えられるダメージです。戦闘ダメージとは別に定義されています。",
+  "ライフ": "プレイヤーの数値情報です。ライフの増減や支払い、敗北条件などに関わります。",
+  "トークン": "カードや効果によって生成されるものです。トークンの情報や領域での扱いが定義されています。",
+  "カウンター": "カードやトークンの上に置く目印です。種類ごとにルールや効果が定義されています。",
+  "ループ": "特定の処理を複数回、または無限回処理できる状況です。",
+  "同形反復": "ゲームの状況が変化しない、または以前と同じ状況に戻る反復です。",
+  "基礎デッキ": "40枚以上で構築し、同じカード名は予備デッキを含めて最大4枚まで入れられます。",
+  "領土デッキ": "領土カードのみで構築します。公式総合ルールでは10枚ちょうどと定義されています。"
+};
+
+const ruleTermPattern = new RegExp(
+  Object.keys(RULE_GLOSSARY).sort((a, b) => b.length - a.length)
+    .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, "\\/*
+  アイコンの列数を適用
+*/")).join("|"),
+  "g"
+);
+
+function setRuleGlossaryText(element, value) {
+  if (!element) return;
+  const text = String(value ?? "");
+  element.replaceChildren();
+  let cursor = 0;
+  for (const match of text.matchAll(ruleTermPattern)) {
+    const term = match[0];
+    const index = match.index ?? 0;
+    if (index > cursor) element.append(document.createTextNode(text.slice(cursor, index)));
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "rule-term";
+    button.textContent = term;
+    button.title = RULE_GLOSSARY[term];
+    button.setAttribute("aria-label", `${term}：${RULE_GLOSSARY[term]}`);
+    button.addEventListener("click", event => {
+      event.stopPropagation();
+      const next = button.nextElementSibling;
+      if (next?.classList.contains("rule-term-tooltip")) {
+        next.remove();
+        return;
+      }
+      element.querySelectorAll(".rule-term-tooltip").forEach(node => node.remove());
+      const tip = document.createElement("span");
+      tip.className = "rule-term-tooltip";
+      tip.textContent = RULE_GLOSSARY[term];
+      button.insertAdjacentElement("afterend", tip);
+    });
+    element.append(button);
+    cursor = index + term.length;
+  }
+  if (cursor < text.length) element.append(document.createTextNode(text.slice(cursor)));
+}
+
+function userTagKeyForCard(item) {
+  const territory = Boolean(item?.territory_id);
+  return `${territory ? "territory" : "card"}:${territory ? item.territory_id : item.card_id}`;
+}
+
+function renderDetailUserTags(item) {
+  const container = document.getElementById("detail-user-tag-options");
+  const status = document.getElementById("detail-user-tags-status");
+  if (!container) return;
+  container.replaceChildren();
+  const tags = window.registeredUserTags || [];
+  const assigned = new Set((window.userTagAssignments || {})[userTagKeyForCard(item)] || []);
+  if (!tags.length) {
+    container.textContent = "タグはまだありません。メニューの「ユーザータグ」から登録できます。";
+    return;
+  }
+  tags.forEach(tag => {
+    const label = document.createElement("label");
+    label.className = "detail-user-tag-label";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = assigned.has(tag);
+    input.addEventListener("change", async () => {
+      const selection = Array.from(container.querySelectorAll("input:checked")).map(control => control.value);
+      input.value = tag;
+      container.querySelectorAll("input").forEach(control => { control.disabled = true; });
+      if (status) status.textContent = "カードのタグを保存しています……";
+      try {
+        await window.setCardUserTags(item, selection);
+        await window.loadUserTagData?.();
+        renderDetailUserTags(item);
+        if (window.refreshUserTagFilter) window.refreshUserTagFilter();
+        if (status) status.textContent = "カードのユーザータグを保存しました。";
+      } catch (error) {
+        if (status) status.textContent = error.message || "カードのユーザータグを保存できませんでした。";
+        await window.loadUserTagData?.().catch(() => undefined);
+        renderDetailUserTags(item);
+      }
+    });
+    input.value = tag;
+    label.append(input, document.createTextNode(tag));
+    container.append(label);
+  });
+}
+
+/*
   アイコンの列数を適用
 */
 function applyIconGrid() {
@@ -258,12 +387,14 @@ function showCardDetail(
   item,
   options = {}
 ) {
+  const qtyControls = document.getElementById("detail-deck-qty-controls");
   const addToDeckButton = document.getElementById("detail-add-to-deck-button");
-  if (addToDeckButton) {
-    addToDeckButton.hidden = !options.deckBuilder;
-    addToDeckButton.textContent = item?.territory_id
-      ? "この領地をデッキに追加"
-      : "このカードをデッキに追加";
+  const removeFromDeckButton = document.getElementById("detail-deck-remove-button");
+  if (qtyControls) qtyControls.hidden = !options.deckBuilder;
+  if (addToDeckButton) addToDeckButton.textContent = item?.territory_id ? "＋ 領地を追加" : "＋ カードを追加";
+  if (removeFromDeckButton) {
+    removeFromDeckButton.disabled = !(Number(options.quantity) > 0);
+    removeFromDeckButton.title = item?.territory_id ? "領土デッキから1枚減らす" : "メインデッキから1枚減らす";
   }
 
   const modal =
@@ -374,10 +505,7 @@ function showCardDetail(
   /*
     種属
   */
-  document.getElementById(
-    "detail-species"
-  ).textContent =
-    item.species || "";
+  setRuleGlossaryText(document.getElementById("detail-species"), item.species || "");
 
 
   /*
@@ -405,39 +533,25 @@ function showCardDetail(
   /*
     Condition（スプレッドシートの列）
   */
-  document.getElementById(
-    "detail-condition"
-  ).textContent =
-    getCardConditionText(item);
+  setRuleGlossaryText(document.getElementById("detail-condition"), getCardConditionText(item));
 
 
   /*
     効果
   */
-  document.getElementById(
-    "detail-effect"
-  ).textContent =
-    item.effect_text || "";
+  setRuleGlossaryText(document.getElementById("detail-effect"), item.effect_text || "");
 
 
   /*
     公式キーワード
   */
-  document.getElementById(
-    "detail-keywords"
-  ).textContent =
-    item.official_keywords ||
-    "なし";
+  setRuleGlossaryText(document.getElementById("detail-keywords"), item.official_keywords || "なし");
 
 
   /*
     公式効果
   */
-  document.getElementById(
-    "detail-effects"
-  ).textContent =
-    item.official_effects ||
-    "なし";
+  setRuleGlossaryText(document.getElementById("detail-effects"), item.official_effects || "なし");
 
 
   /*
@@ -559,6 +673,15 @@ function showCardDetail(
       "none";
   }
 
+
+  renderDetailUserTags(item);
+  const userTagLoader = window.loadUserTagData;
+  if (typeof userTagLoader === "function") {
+    userTagLoader().then(() => renderDetailUserTags(item)).catch(error => {
+      const status = document.getElementById("detail-user-tags-status");
+      if (status) status.textContent = error.message || "ユーザータグを読み込めませんでした。";
+    });
+  }
 
   /*
     モーダルを表示
