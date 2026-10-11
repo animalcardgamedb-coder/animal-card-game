@@ -246,6 +246,7 @@ function createFilterOptions() {
   );
 
   createMultiFilter("condition-filter", getConditionFilterValues(allData));
+  createMultiFilter("user-tag-filter", window.registeredUserTags || []);
 
 
   /*
@@ -423,8 +424,9 @@ function getSearchData() {
   const hasTerritorySpecificFilters =
     getSelectedValues("territory-keyword-filter").length > 0 ||
     getSelectedValues("territory-effect-filter").length > 0;
+  const hasUserTagFilters = getSelectedValues("user-tag-filter").length > 0;
 
-  if (hasCardSpecificFilters || hasTerritorySpecificFilters) {
+  if (hasCardSpecificFilters || hasTerritorySpecificFilters || hasUserTagFilters) {
     if (appState.allData?.length) return appState.allData;
     return [
       ...(appState.allCards || []),
@@ -454,6 +456,38 @@ function getSearchData() {
 
 }
 
+
+function sortSearchResults(items, options = {}) {
+  const fieldId = options.builderInternal ? "builder-sort-select" : "card-sort-select";
+  const directionId = options.builderInternal ? "builder-sort-direction" : "card-sort-direction";
+  const field = document.getElementById(fieldId)?.value || "id";
+  const direction = document.getElementById(directionId)?.dataset.direction === "desc" ? -1 : 1;
+  const valueFor = item => {
+    const territory = isTerritory(item);
+    switch (field) {
+      case "name": return territory ? item.territory_name || "" : item.card_name || "";
+      case "type": return territory ? item.territory_type || "" : item.card_type || "";
+      case "species": return item.species || "";
+      case "cost": return item.cost ?? "";
+      case "atk": return item.atk ?? "";
+      case "def": return item.def ?? "";
+      case "id": default: return territory ? item.territory_id || "" : item.card_id || "";
+    }
+  };
+  const numeric = ["cost", "atk", "def"].includes(field);
+  return [...items].sort((a, b) => {
+    const av = valueFor(a), bv = valueFor(b);
+    let order;
+    if (numeric) order = (Number(av) || 0) - (Number(bv) || 0);
+    else order = String(av).localeCompare(String(bv), "ja", { numeric: true, sensitivity: "base" });
+    return order * direction;
+  });
+}
+
+window.refreshUserTagFilter = function() {
+  createMultiFilter("user-tag-filter", window.registeredUserTags || []);
+  searchCards();
+};
 
 /*
   カード・領地検索
@@ -573,6 +607,10 @@ function searchCards(options = {}) {
     );
 
   const selectedConditions = getSelectedValues("condition-filter");
+  const conditionMode = document.getElementById("condition-match-mode")?.value || "and";
+  const keywordMode = document.getElementById("keyword-match-mode")?.value || "or";
+  const effectMode = document.getElementById("effect-match-mode")?.value || "or";
+  const selectedUserTags = getSelectedValues("user-tag-filter");
 
   const selectedSpecies =
     getSelectedValues(
@@ -781,9 +819,13 @@ function searchCards(options = {}) {
           selectedCardTypes.length === 0 ||
           splitValues(itemType).some(type => selectedCardTypes.includes(type));
 
-        const matchesCondition = selectedConditions.every(selected =>
-          normalizeWithFullWidth(getCardConditionText(item)).includes(normalizeWithFullWidth(selected))
-        );
+        const matchesCondition =
+          selectedConditions.length === 0 ||
+          (conditionMode === "or" ? selectedConditions.some(selected =>
+            normalizeWithFullWidth(getCardConditionText(item)).includes(normalizeWithFullWidth(selected))
+          ) : selectedConditions.every(selected =>
+            normalizeWithFullWidth(getCardConditionText(item)).includes(normalizeWithFullWidth(selected))
+          ));
 
 
         /*
@@ -840,16 +882,12 @@ function searchCards(options = {}) {
             ? selectedTerritoryKeywords
             : selectedCardKeywords;
 
+        const keywordValues = splitValues(item.official_keywords);
         const matchesKeyword =
           selectedKeywords.length === 0 ||
-          selectedKeywords.some(
-            selected =>
-              splitValues(
-                item.official_keywords
-              ).includes(
-                selected
-              )
-          );
+          (keywordMode === "and"
+            ? selectedKeywords.every(selected => keywordValues.includes(selected))
+            : selectedKeywords.some(selected => keywordValues.includes(selected)));
 
 
         /*
@@ -866,22 +904,24 @@ function searchCards(options = {}) {
             ? selectedTerritoryEffects
             : selectedCardEffects;
 
+        const effectValues = splitValues(item.official_effects);
         const matchesEffect =
           selectedEffects.length === 0 ||
-          selectedEffects.some(
-            selected =>
-              splitValues(
-                item.official_effects
-              ).includes(
-                selected
-              )
-          );
+          (effectMode === "and"
+            ? selectedEffects.every(selected => effectValues.includes(selected))
+            : selectedEffects.some(selected => effectValues.includes(selected)));
 
         const matchesCategorySpecificFilters =
           !hasCategorySpecificFilters ||
           (territory
             ? hasTerritorySpecificFilters
             : hasCardSpecificFilters);
+
+        const tagKey = `${territory ? "territory" : "card"}:${territory ? item.territory_id : item.card_id}`;
+        const assignedTags = (window.userTagAssignments || {})[tagKey] || [];
+        const matchesUserTag =
+          selectedUserTags.length === 0 ||
+          selectedUserTags.some(tag => assignedTags.includes(tag));
 
 
         /*
@@ -1014,6 +1054,7 @@ function searchCards(options = {}) {
           matchesCategorySpecificFilters &&
           matchesKeyword &&
           matchesEffect &&
+          matchesUserTag &&
           matchesAtk &&
           matchesDef
         );
@@ -1028,17 +1069,19 @@ function searchCards(options = {}) {
     ======================================
   */
 
+  const sortedData = sortSearchResults(filteredData, options);
+
   if (options.builderInternal) {
-    return filteredData;
+    return sortedData;
   }
 
   appState.currentSearchResults =
-    filteredData;
+    sortedData;
 
   window.dispatchEvent(new Event("animaldeck:searchresultschange"));
 
   displayCards(
-    filteredData
+    sortedData
   );
 
 }
