@@ -331,7 +331,7 @@
       detailButton.addEventListener("click", () => {
         state.pendingCard = item;
         if (typeof window.showCardDetail === "function") {
-          window.showCardDetail(item, { deckBuilder: !state.publicView });
+          window.showCardDetail(item, { deckBuilder: !state.publicView, quantity });
         }
       });
 
@@ -463,7 +463,7 @@
     const textCards = state.previewDuplicates
       ? cards.map(card => escapeHTML(card.name || "カード"))
       : cards.map(card => `${escapeHTML(card.name || "カード")} × ${Number(card.quantity || 1)}`);
-    $("preview-text-list").innerHTML = `<h2>${escapeHTML(deck.name)}</h2><p>合計 ${count(deck)}枚 / ${state.previewDuplicates ? cards.length : groupedCards.length}種類表示</p><ol>${textCards.map(name => `<li>${name}</li>`).join("")}</ol>`;
+    $("preview-text-list").innerHTML = `<h2>${escapeHTML(deck.name)}</h2><p>合計 ${count(deck)}枚 / ${state.previewDuplicates ? cards.length + "枚を個別表示" : groupedCards.length + "種類を表示"}</p><ol>${textCards.map(name => `<li>${name}</li>`).join("")}</ol>`;
     $("preview-text-list").hidden = !state.previewText; grid.hidden = state.previewText;
     applySharedIconColumns(window.appState?.currentIconColumns, false);
   }
@@ -847,6 +847,14 @@
       if (state.screen === "builder" && !state.publicView && state.pendingCard) {
         addCard(state.pendingCard);
       }
+    });
+    $("detail-deck-remove-button").addEventListener("click", () => {
+      if (state.screen !== "builder" || state.publicView || !state.pendingCard) return;
+      const item = state.pendingCard;
+      const itemId = state.pile === "territory"
+        ? `territory:${item.territory_id}`
+        : `card:${item.card_id}`;
+      void changeQty(itemId, -1);
     });
     const selectedDeckTags = () => readTagChecks("builder-deck-tag-options");
     $("main-pile-tab").addEventListener("click", () => setBuilderPile("main"));
