@@ -24,107 +24,104 @@ function applyIconGrid() {
 }
 
 /*
- * Card-text glossary based on the official ACG Comprehensive Rules v6.0
- * (2026-07-23). Definitions are concise summaries, not substitutes for the full rules.
+ * 用語リンクは「アニマルカードゲーム@ウィキ」の用語集に実際に掲載されている語のみ。
+ * リンク先は各用語の個別ページ。定義をここで再記述せず、更新された記事を直接参照する。
  */
-const RULE_GLOSSARY = {
-  "《平野》": "カードをプレイする時、このカード／トークンを平野条件の1つとして数えられます（総合ルール1602-1）。",
-  "《山岳》": "カードをプレイする時、このカード／トークンを山岳条件の1つとして数えられます（総合ルール1602-2）。",
-  "《水生》": "カードをプレイする時、このカード／トークンを水生条件の1つとして数えられます（総合ルール1602-3）。",
-  "《森林》": "カードをプレイする時、このカード／トークンを森林条件の1つとして数えられます（総合ルール1602-4）。",
-  "《夜》": "カードをプレイする時、このカード／トークンを夜条件の1つとして数えられます（総合ルール1602-5）。",
-  "《敏捷》": "あなたが優先権を持っているなら、このカードをいつでもプレイできる能力です（総合ルール1603）。",
-  "《唯一》": "同名の存在・領土が指定領域に複数存在する場合などに、ルール処理で整理する能力です。詳細は総合ルール1604を参照してください。",
-  "《装備（対象）》": "指定された対象を装備するキーワード能力です。対象や装備の条件は総合ルール1605を参照してください。",
-  "《鉄壁》": "指定されたタイプ・種属などの条件に関係するキーワード能力です。詳細な適用条件は総合ルール1606を参照してください。",
-  "《突破》": "攻撃動物が1点以上の戦闘ダメージを与え、その量が防御動物の許容ダメージ量を超えた場合、超過分に等しい戦闘ダメージを相手に与えます（総合ルール1607）。",
-  "領土デッキ": "領土カードのみで構築するデッキです。公式ルールでは10枚ちょうどで、同名カードは原則最大4枚、種属「基礎」は例外です（総合ルール503）。",
-  "基礎デッキ": "動物・縄張り・道具・場面・特技カードで構築するデッキです。公式ルールでは40枚以上で、上限はありません（総合ルール502）。",
-  "予備デッキ": "原則としてゲーム中には使用せず、デッキ調整に使用するカードの束です（総合ルール504）。",
-  "基礎": "種属が「基礎」の領土カードは、領土デッキと予備デッキに同名カードを4枚より多く入れられる例外です（総合ルール503.3a）。",
-  "戦闘ダメージ": "戦闘の処理で発生するダメージです。効果ダメージとは区別して扱います（総合ルール207-7）。",
-  "効果ダメージ": "効果によって発生するダメージです。戦闘ダメージとは区別して扱います（総合ルール207-8）。",
-  "夜状態": "戦場・領地にあるカードが裏面を上にして置かれている状態です（総合ルール204-1）。",
-  "ウェイク状態": "カードがウェイク状態として扱われている状態です。移動やコスト支払いなどの処理に関係します（総合ルール204-4）。",
-  "ムーブ状態": "カードがムーブ状態として扱われている状態です。詳細は総合ルール204-6、204-7を参照してください。",
-  "行動待機": "カードが行動待機として扱われる状態・ルール用語です（総合ルール204-8）。",
-  "生贄に捧げる": "指定されたカードなどを、生贄に捧げる処理によって領域移動させることです（総合ルール205-12）。",
-  "能力を失う": "カード・トークンが持つ能力を失わせる処理です。元の能力か得た能力かで扱いが異なる場合があります（総合ルール206-9）。",
-  "対象にする": "効果などで、処理の対象となるカード・プレイヤーなどを指定することです（総合ルール206-4）。",
-  "発動する": "カードが持つ能力から効果を生成することです（総合ルール206-2）。",
-  "妨害する": "プレイや処理を妨害することです。妨害されたプレイは原則として解決されません（総合ルール206-3、903）。",
-  "追加のターン": "通常の進行に加えて行うターンです（総合ルール206-14）。",
-  "条件域": "戦場・領地の存在・領土が持つ条件キーワード能力の数を表します（総合ルール207-16）。",
-  "記憶": "指定された情報・数値などを参照するためのルール用語です（総合ルール207-17）。",
-  "コントローラー": "カード・トークン・効果をコントロールしているプレイヤーです（総合ルール202-6）。",
-  "コントロール": "カード・トークン・効果を、どのプレイヤーがコントロールしているかを示す概念です（総合ルール202-5）。",
-  "持ち主": "カードを所有しているプレイヤーです（総合ルール202-4）。",
-  "自身": "効果などの文章から参照される対象自身を示す用語です（総合ルール202-7）。",
-  "あなた": "その能力・効果を参照しているプレイヤーを指します（総合ルール202-2）。",
-  "相手": "その文章で指定される、あなたに対する相手プレイヤーです（総合ルール202-3）。",
-  "元の能力": "カード・トークンが元から持つ能力です（総合ルール203-2）。",
-  "得た能力": "効果やルールによってカード・トークンが一時的に得た能力です（総合ルール203-3）。",
-  "能力": "カード・トークンが持つルール上の機能です（総合ルール203-1）。",
-  "効果": "プレイや能力によってパイルに置かれるものです。カードそのものとは区別して扱います（総合ルール203-4）。",
-  "引く": "基礎デッキの上からカードを手札に移動することです（総合ルール205-2）。",
-  "捨てる": "カードを「捨てる」処理によって領域移動させることです。特に指定がなければ墓地に置かれます（総合ルール205-3）。",
-  "加える": "カードを指定の領域から別の指定領域へ移動することです（総合ルール205-4）。",
-  "探す": "指定された領域から条件に合うカードを探す処理です（総合ルール205-5）。",
-  "見る": "指定されたカードの内容を確認する処理です。公開する処理とは区別されます（総合ルール205-6）。",
-  "公開する": "指定のカードを、すべてのプレイヤーが確認できる状態にすることです（総合ルール205-7）。",
-  "置く": "カードを指定された領域や位置に配置する処理です（総合ルール205-8）。",
-  "出す": "カードを指定された領域などへ移動させる処理です（総合ルール205-9）。",
-  "離れる": "カードが現在置かれている領域から別の領域へ移動することです（総合ルール205-10）。",
-  "破壊する": "カードを破壊する処理です。特に指定がなければ、そのカードは墓地へ移動します（総合ルール205-11）。",
-  "除外する": "カードを除外領域へ移動させる処理です（総合ルール205-13）。",
-  "戻す": "カードを指定された領域へ戻す処理です（総合ルール205-16）。",
-  "複製する": "指定されたカード・効果などを複製する処理です（総合ルール205-17）。",
-  "移す": "カードをあるプレイヤーの領域などから別の領域へ移動させる処理です（総合ルール205-18）。",
-  "選ぶ": "指定された条件に合うものなどから、プレイヤーが選択する処理です（総合ルール206-5）。",
-  "取り除く": "指定されたカード・効果・カウンターなどを現在の場所から取り除く処理です（総合ルール206-7）。",
-  "得る": "カード・トークンが指定された能力や情報などを得る処理です（総合ルール206-8）。",
-  "装備する": "カードなどを指定された対象に装備させる処理です（総合ルール206-12）。",
-  "宣言する": "指定された名称などを宣言する処理です（総合ルール206-13）。",
-  "解決する": "パイルに置かれたプレイ・効果の処理を実行することです（総合ルール901、904）。",
-  "回復する": "現在のライフを、指定された値だけ増加させる処理です（総合ルール207-5）。",
-  "ダメージ": "プレイヤー・存在が受ける値です。ライフを支払うことやライフを失うこととは区別します（総合ルール207-6）。",
-  "ライフ": "プレイヤーのライフ値です。ダメージ・ライフを支払う・ライフを失うは別の処理として扱います（総合ルール207-4、207-12、207-13）。",
-  "トークン": "効果などによって生成される、ルール上カードに準じて扱われるものです（総合ルール208-1）。",
-  "カウンター": "カードなどの上に置かれ、数や効果を記録するものです（総合ルール208-2）。"
+const WIKI_GLOSSARY_URLS = {
+  "○○域": "https://w.atwiki.jp/animalcardgame/pages/242.html",
+  "ウェイク": "https://w.atwiki.jp/animalcardgame/pages/197.html",
+  "カウンター": "https://w.atwiki.jp/animalcardgame/pages/275.html",
+  "狩りフェイズ": "https://w.atwiki.jp/animalcardgame/pages/110.html",
+  "カードタイプ": "https://w.atwiki.jp/animalcardgame/pages/57.html",
+  "キーワード能力": "https://w.atwiki.jp/animalcardgame/pages/56.html",
+  "ゲーム": "https://w.atwiki.jp/animalcardgame/pages/104.html",
+  "効果": "https://w.atwiki.jp/animalcardgame/pages/169.html",
+  "攻撃": "https://w.atwiki.jp/animalcardgame/pages/119.html",
+  "攻撃ステップ": "https://w.atwiki.jp/animalcardgame/pages/116.html",
+  "行動待機": "https://w.atwiki.jp/animalcardgame/pages/183.html",
+  "コスト": "https://w.atwiki.jp/animalcardgame/pages/194.html",
+  "コントローラー": "https://w.atwiki.jp/animalcardgame/pages/203.html",
+  "山岳領土": "https://w.atwiki.jp/animalcardgame/pages/204.html",
+  "種族": "https://w.atwiki.jp/animalcardgame/pages/201.html",
+  "種別": "https://w.atwiki.jp/animalcardgame/pages/59.html",
+  "種別のない領土": "https://w.atwiki.jp/animalcardgame/pages/195.html",
+  "準備フェイズ": "https://w.atwiki.jp/animalcardgame/pages/108.html",
+  "除外": "https://w.atwiki.jp/animalcardgame/pages/208.html",
+  "森林領土": "https://w.atwiki.jp/animalcardgame/pages/205.html",
+  "水生領土": "https://w.atwiki.jp/animalcardgame/pages/206.html",
+  "戦闘準備ステップ": "https://w.atwiki.jp/animalcardgame/pages/115.html",
+  "戦闘宣言": "https://w.atwiki.jp/animalcardgame/pages/239.html",
+  "戦闘フェイズ": "https://w.atwiki.jp/animalcardgame/pages/113.html",
+  "存在": "https://w.atwiki.jp/animalcardgame/pages/175.html",
+  "存在カード": "https://w.atwiki.jp/animalcardgame/pages/175.html",
+  "存在プレイ": "https://w.atwiki.jp/animalcardgame/pages/175.html",
+  "ターン": "https://w.atwiki.jp/animalcardgame/pages/58.html",
+  "脱出カウンター": "https://w.atwiki.jp/animalcardgame/pages/96.html",
+  "ダメージ判定": "https://w.atwiki.jp/animalcardgame/pages/121.html",
+  "ダメージ判定ステップ": "https://w.atwiki.jp/animalcardgame/pages/118.html",
+  "デッキ": "https://w.atwiki.jp/animalcardgame/pages/91.html",
+  "手札": "https://w.atwiki.jp/animalcardgame/pages/209.html",
+  "道具": "https://w.atwiki.jp/animalcardgame/pages/189.html",
+  "動物": "https://w.atwiki.jp/animalcardgame/pages/191.html",
+  "トークン": "https://w.atwiki.jp/animalcardgame/pages/268.html",
+  "特技": "https://w.atwiki.jp/animalcardgame/pages/187.html",
+  "能力": "https://w.atwiki.jp/animalcardgame/pages/105.html",
+  "場": "https://w.atwiki.jp/animalcardgame/pages/192.html",
+  "パイル": "https://w.atwiki.jp/animalcardgame/pages/199.html",
+  "場面": "https://w.atwiki.jp/animalcardgame/pages/188.html",
+  "非存在": "https://w.atwiki.jp/animalcardgame/pages/176.html",
+  "非存在カード": "https://w.atwiki.jp/animalcardgame/pages/176.html",
+  "非存在プレイ": "https://w.atwiki.jp/animalcardgame/pages/176.html",
+  "プレイ": "https://w.atwiki.jp/animalcardgame/pages/140.html",
+  "平野領土": "https://w.atwiki.jp/animalcardgame/pages/207.html",
+  "妨害": "https://w.atwiki.jp/animalcardgame/pages/99.html",
+  "防御": "https://w.atwiki.jp/animalcardgame/pages/120.html",
+  "防御ステップ": "https://w.atwiki.jp/animalcardgame/pages/117.html",
+  "補充フェイズ": "https://w.atwiki.jp/animalcardgame/pages/109.html",
+  "墓地": "https://w.atwiki.jp/animalcardgame/pages/193.html",
+  "ムーブ": "https://w.atwiki.jp/animalcardgame/pages/196.html",
+  "優先権": "https://w.atwiki.jp/animalcardgame/pages/200.html",
+  "予備デッキ": "https://w.atwiki.jp/animalcardgame/pages/92.html",
+  "夜状態": "https://w.atwiki.jp/animalcardgame/pages/180.html",
+  "夜領土": "https://w.atwiki.jp/animalcardgame/pages/182.html",
+  "ライフ": "https://w.atwiki.jp/animalcardgame/pages/211.html",
+  "領地": "https://w.atwiki.jp/animalcardgame/pages/100.html",
+  "領土カード": "https://w.atwiki.jp/animalcardgame/pages/101.html",
+  "領土条件": "https://w.atwiki.jp/animalcardgame/pages/98.html",
+  "領土デッキ": "https://w.atwiki.jp/animalcardgame/pages/93.html",
+  "ルール処理": "https://w.atwiki.jp/animalcardgame/pages/198.html",
+  "ATK": "https://w.atwiki.jp/animalcardgame/pages/212.html"
 };
 
 function applyRulesTooltips(element) {
   if (!element) return;
   const text = element.textContent || "";
   if (!text) return;
-  const terms = Object.keys(RULE_GLOSSARY).sort((a, b) => b.length - a.length);
-  const pattern = new RegExp("(" + terms.join("|") + ")", "g");
+  const terms = Object.keys(WIKI_GLOSSARY_URLS).sort((a, b) => b.length - a.length);
+  const escapeRegExp = value => value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&");
+  const pattern = new RegExp("(" + terms.map(escapeRegExp).join("|") + ")", "g");
   element.replaceChildren();
   text.split(pattern).forEach(part => {
-    if (!Object.prototype.hasOwnProperty.call(RULE_GLOSSARY, part)) {
+    const url = WIKI_GLOSSARY_URLS[part];
+    if (!url) {
       element.append(document.createTextNode(part));
       return;
     }
-    const term = document.createElement("span");
+    const term = document.createElement("a");
     term.className = "rules-term";
     term.textContent = part;
-    term.dataset.tooltip = RULE_GLOSSARY[part];
-    term.title = RULE_GLOSSARY[part];
-    term.tabIndex = 0;
-    term.setAttribute("role", "button");
-    term.setAttribute("aria-label", part + "：ルールの解説を表示");
+    term.href = url;
+    term.target = "_blank";
+    term.rel = "noopener noreferrer";
+    term.title = "アニマルカードゲーム@ウィキの「" + part + "」を開く";
+    term.setAttribute("aria-label", part + "：用語集ページを小窓で開く");
     term.addEventListener("click", event => {
       event.stopPropagation();
-      const wasOpen = term.classList.contains("is-open");
-      document.querySelectorAll(".rules-term.is-open").forEach(openTerm => openTerm.classList.remove("is-open"));
-      if (!wasOpen) term.classList.add("is-open");
-    });
-    term.addEventListener("keydown", event => {
-      if (event.key === "Escape") term.classList.remove("is-open");
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        term.click();
-      }
+      // Open the actual wiki article in a small window. If pop-ups are blocked,
+      // the anchor's normal target=_blank behavior remains as a fallback.
+      const popup = window.open(url, "animalCardGameWikiGlossary",
+        "popup=yes,width=760,height=720,resizable=yes,scrollbars=yes");
+      if (popup) event.preventDefault();
     });
     element.append(term);
   });
