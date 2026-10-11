@@ -139,3 +139,9 @@
 .rules-term:hover::after,.rules-term:focus::after,.rules-term.is-open::after{display:block}
 .deck-tag-list-item{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0}
 .deck-tag-delete-button{flex:0 0 auto;margin:0!important;padding:5px 9px!important;font-size:12px}
+
+
+/* Link card-text terms to their individual ACG community wiki glossary pages. */
+.rules-term{color:#174f85;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer}
+.rules-term:hover,.rules-term:focus-visible{color:#0b3964;text-decoration-style:solid;outline:2px solid #8cb9df;outline-offset:2px;border-radius:2px}
+.rules-term::after{content:none!important;display:none!important}
