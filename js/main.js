@@ -173,7 +173,7 @@ document.addEventListener(
       searchCards();
     });
 
-    ["condition-match-mode", "keyword-match-mode", "effect-match-mode"].forEach(id => {
+    ["condition-match-mode", "keyword-match-mode", "territory-keyword-match-mode", "effect-match-mode", "territory-effect-match-mode"].forEach(id => {
       document.getElementById(id)?.addEventListener("change", searchCards);
     });
 
