@@ -67,6 +67,10 @@ function loadCards() {
         ...appState.allTerritories
       ];
 
+      appState.userTags = Array.isArray(data.userTags) ? data.userTags : [];
+      appState.cardUserTags = Array.isArray(data.cardUserTags) ? data.cardUserTags : [];
+      window.applyUserTagsToData?.();
+
 
       /*
         現在の検索結果も
@@ -82,6 +86,7 @@ function loadCards() {
       */
 
       createFilterOptions();
+      window.renderUserTagFilter?.();
 
 
       /*
