@@ -608,8 +608,10 @@ function searchCards(options = {}) {
 
   const selectedConditions = getSelectedValues("condition-filter");
   const conditionMode = document.getElementById("condition-match-mode")?.value || "and";
-  const keywordMode = document.getElementById("keyword-match-mode")?.value || "or";
-  const effectMode = document.getElementById("effect-match-mode")?.value || "or";
+  const cardKeywordMode = document.getElementById("keyword-match-mode")?.value || "or";
+  const territoryKeywordMode = document.getElementById("territory-keyword-match-mode")?.value || "or";
+  const cardEffectMode = document.getElementById("effect-match-mode")?.value || "or";
+  const territoryEffectMode = document.getElementById("territory-effect-match-mode")?.value || "or";
   const selectedUserTags = getSelectedValues("user-tag-filter");
 
   const selectedSpecies =
@@ -885,7 +887,7 @@ function searchCards(options = {}) {
         const keywordValues = splitValues(item.official_keywords);
         const matchesKeyword =
           selectedKeywords.length === 0 ||
-          (keywordMode === "and"
+          ((territory ? territoryKeywordMode : cardKeywordMode) === "and"
             ? selectedKeywords.every(selected => keywordValues.includes(selected))
             : selectedKeywords.some(selected => keywordValues.includes(selected)));
 
@@ -907,7 +909,7 @@ function searchCards(options = {}) {
         const effectValues = splitValues(item.official_effects);
         const matchesEffect =
           selectedEffects.length === 0 ||
-          (effectMode === "and"
+          ((territory ? territoryEffectMode : cardEffectMode) === "and"
             ? selectedEffects.every(selected => effectValues.includes(selected))
             : selectedEffects.some(selected => effectValues.includes(selected)));
 
