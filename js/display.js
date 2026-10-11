@@ -17,7 +17,6 @@ const RULE_GLOSSARY = {
   "《放浪者》": "特定の効果を持たない常時能力で、《放浪者》を持つカード／トークンとして参照できる印です。",
   "《バッファロー軍》": "特定の効果を持たない常時能力で、《バッファロー軍》を持つカード／トークンとして参照できる印です。",
   "《ライノ軍》": "特定の効果を持たない常時能力で、《ライノ軍》を持つカード／トークンとして参照できる印です。",
-  "《駿足》": "この動物は行動待機の影響を受けません。",
   "《鉄壁》": "公式ルールで定義されたキーワード能力です。詳しい適用条件は総合ルールの「キーワード能力」を参照してください。",
   "《突破》": "すべての攻撃動物がこの能力を持つ場合、攻撃動物が防御動物の許容ダメージ量を超える戦闘ダメージを与えた時、その超過分を相手に与えます。",
   "《有翼》": "この能力を持つ動物だけで集団攻撃する場合、防御できる動物に制限が生じます。",
@@ -67,7 +66,7 @@ const regexpSpecialChars = ".+?^$(){}|[]\\";
 const ruleTermPatterns = Object.keys(RULE_GLOSSARY)
   .sort((a, b) => b.length - a.length)
   .map(term => Array.from(term, character => regexpSpecialChars.includes(character) ? "\\" + character : character).join(""));
-ruleTermPatterns.push("《装備（[^）]+）》");
+ruleTermPatterns.push("《装備（[^）]+）》", "《鉄壁（[^）]+）》");
 const ruleTermPattern = new RegExp(ruleTermPatterns.join("|"), "g");
 function setRuleGlossaryText(element, value) {
   if (!element) return;
@@ -82,7 +81,7 @@ function setRuleGlossaryText(element, value) {
     button.type = "button";
     button.className = "rule-term";
     button.textContent = term;
-    const explanation = RULE_GLOSSARY[term] || RULE_GLOSSARY["《装備》"];
+    const explanation = RULE_GLOSSARY[term] || (term.startsWith("《装備") ? RULE_GLOSSARY["《装備》"] : RULE_GLOSSARY["《鉄壁》"]);
     button.title = explanation;
     button.setAttribute("aria-label", `${term}：${explanation}`);
     button.addEventListener("click", event => {
