@@ -83,6 +83,26 @@ function setStatus(elementId, message) {
   if (element) element.textContent = message;
 }
 
+function validateTerritoryDeckCards(cards) {
+  const entries = Array.isArray(cards) ? cards : [];
+  const total = entries.reduce((sum, card) => sum + Math.max(0, Number(card.quantity) || 0), 0);
+  if (total > 10) throw new Error("領土デッキは最大10枚です。");
+
+  const countsByName = new Map();
+  for (const card of entries) {
+    const rawId = String(card.itemId || "");
+    const id = rawId.replace(/^territory:/, "");
+    const item = (window.appState?.allTerritories || []).find(candidate => String(candidate.territory_id) === id);
+    const species = String(item?.species ?? card.species ?? "").split(/[,、|｜\n]/).map(value => value.trim());
+    if (species.includes("基礎")) continue;
+    const name = String(item?.territory_name || card.name || id);
+    countsByName.set(name, (countsByName.get(name) || 0) + Math.max(0, Number(card.quantity) || 0));
+  }
+  for (const [name, quantity] of countsByName) {
+    if (quantity > 4) throw new Error(`領土カード「${name}」は最大4枚までです（種属「基礎」を除く）。`);
+  }
+}
+
 function showModal(id) {
   const modal = byId(id);
   if (modal) modal.style.display = "block";
@@ -460,6 +480,12 @@ window.animalDeckApp = {
     }
     return this.listDeckTags();
   },
+  async deleteDeckTag(value) {
+    const tag = String(value || "").trim().slice(0, 24);
+    if (!tag) throw new Error("削除するタグ名を確認できません。");
+    await deleteDoc(doc(db, "deckTagCatalog", sharedDeckTagDocumentId(tag)));
+    return this.listDeckTags();
+  },
   async select(id) {
     await loadSelectedDeck(id);
     if (!selectedDeck || selectedDeckId !== id) throw new Error("permission-denied");
@@ -536,6 +562,7 @@ window.animalDeckApp = {
     const found = cards.find(card => String(card.itemId) === id);
     if (found) found.quantity = Math.min(99, Number(found.quantity || 1) + 1);
     else cards.push({ itemId: id, name, quantity: 1 });
+    if (pile === "territory") validateTerritoryDeckCards(cards);
     return this.saveCards(cards, pile);
   },
   async changeQuantity(itemId, change, pile = "main") {
@@ -547,6 +574,7 @@ window.animalDeckApp = {
     const quantity = Number(found.quantity || 1) + Number(change || 0);
     if (quantity <= 0) cards.splice(cards.indexOf(found), 1);
     else found.quantity = Math.min(99, quantity);
+    if (pile === "territory" && Number(change || 0) > 0) validateTerritoryDeckCards(cards);
     return this.saveCards(cards, pile);
   },
   async deleteCurrent() {
