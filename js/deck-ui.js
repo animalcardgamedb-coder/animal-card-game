@@ -235,61 +235,60 @@
         });
       }
 
-      const imageButton = document.createElement(state.publicView ? "div" : "button");
+      const imageButton = document.createElement("button");
+      imageButton.type = "button";
       imageButton.className = "selected-card-mini-image";
-      if (!state.publicView) {
-        imageButton.classList.add("has-controls");
-        imageButton.type = "button";
-        imageButton.draggable = true;
-        imageButton.title = `${card.name}：ドラッグで順番変更／クリックで1枚減らす`;
-        imageButton.setAttribute("aria-label", `${card.name}をドラッグして並べ替え、クリックで1枚減らす`);
-        imageButton.addEventListener("click", () => {
-          if (Date.now() < state.ignoreRemoveUntil) return;
-          changeQty(card.itemId, -1);
-        });
-      }
+      imageButton.title = String(card.name || "カード") + "：タップして詳細を表示";
+      imageButton.setAttribute("aria-label", String(card.name || "カード") + "の詳細を表示");
+      imageButton.draggable = false;
       imageButton.innerHTML = item?.image_url
-        ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}">`
-        : `<span class="mini-empty">${escapeHTML(card.name)}</span>`;
+        ? '<img src="' + escapeHTML(item.image_url) + '" alt="' + escapeHTML(card.name) + '">'
+        : '<span class="mini-empty">' + escapeHTML(card.name) + '</span>';
+      imageButton.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (Date.now() < state.ignoreRemoveUntil || !item) return;
+        state.pendingCard = item;
+        if (typeof window.showCardDetail === "function") {
+          window.showCardDetail(item, { deckBuilder: !state.publicView });
+        }
+      });
 
       const quantityMark = document.createElement("span");
       quantityMark.className = "selected-card-quantity";
-      quantityMark.textContent = `×${Number(card.quantity || 1)}`;
-
+      quantityMark.textContent = "×" + Number(card.quantity || 1);
       mini.append(imageButton, quantityMark);
 
       if (!state.publicView) {
-        const reorder = document.createElement("div");
-        reorder.className = "selected-card-mini-reorder";
+        const actions = document.createElement("div");
+        actions.className = "selected-card-mini-actions";
 
-        const previous = document.createElement("button");
-        previous.type = "button";
-        previous.className = "selected-card-move-button";
-        previous.textContent = "←";
-        previous.title = "前の位置へ移動";
-        previous.setAttribute("aria-label", `${card.name}を前の位置へ移動`);
-        previous.disabled = index === 0;
-        previous.addEventListener("click", event => {
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "selected-card-quantity-button";
+        removeButton.textContent = "−";
+        removeButton.title = String(card.name || "カード") + "を1枚減らす";
+        removeButton.setAttribute("aria-label", String(card.name || "カード") + "を1枚減らす");
+        removeButton.addEventListener("click", event => {
           event.preventDefault();
           event.stopPropagation();
-          moveCard(card.itemId, -1);
+          void changeQty(card.itemId, -1);
         });
 
-        const next = document.createElement("button");
-        next.type = "button";
-        next.className = "selected-card-move-button";
-        next.textContent = "→";
-        next.title = "次の位置へ移動";
-        next.setAttribute("aria-label", `${card.name}を次の位置へ移動`);
-        next.disabled = index === activeCards.length - 1;
-        next.addEventListener("click", event => {
+        const addButton = document.createElement("button");
+        addButton.type = "button";
+        addButton.className = "selected-card-quantity-button selected-card-quantity-add";
+        addButton.textContent = "＋";
+        addButton.title = String(card.name || "カード") + "を1枚増やす";
+        addButton.setAttribute("aria-label", String(card.name || "カード") + "を1枚増やす");
+        addButton.addEventListener("click", event => {
           event.preventDefault();
           event.stopPropagation();
-          moveCard(card.itemId, 1);
+          if (item) void addCard(item);
         });
 
-        reorder.append(previous, next);
-        mini.append(reorder);
+        actions.append(removeButton, addButton);
+        mini.append(actions);
       }
 
       strip.append(mini);
@@ -306,6 +305,7 @@
       ? (window.searchCards({
           data: source,
           keywordInputId: "builder-search",
+          sortSelectId: "builder-sort-select",
           builderInternal: true
         }) || [])
       : source;
@@ -449,15 +449,35 @@
   }
 
   function renderPreview() {
-    const deck = state.deck; if (!deck) return;
+    const deck = state.deck;
+    if (!deck) return;
     $("preview-deck-name").textContent = deck.name || "デッキ";
-    $("preview-total-count").textContent = `${count(deck)}枚`;
-    const stamp = deck.updatedAt?.toDate?.(); $("preview-updated-at").textContent = `${stamp ? `更新日：${stamp.toLocaleDateString("ja-JP")}　` : ""}${deck.isPublic ? "公開デッキ" : "非公開デッキ"}`;
-    const cards = [...deckCards(deck), ...territoryCards(deck)]; const grid = $("preview-card-list"); grid.replaceChildren();
-    if (!cards.length) grid.innerHTML = `<div class="empty-state">デッキにカードがありません。</div>`;
-    cards.forEach(card => { const item = byItemId(card.itemId); const el = document.createElement("div"); el.className = "preview-card"; el.innerHTML = `${item?.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(card.name)}">` : ""}<span>${escapeHTML(card.name || "カード")}</span><b>×${Number(card.quantity || 1)}</b>`; grid.append(el); });
-    $("preview-text-list").innerHTML = `<h2>${escapeHTML(deck.name)}</h2><p>合計 ${count(deck)}枚 / ${cards.length}種類</p><ol>${cards.map(card => `<li>${escapeHTML(card.name)} × ${Number(card.quantity || 1)}</li>`).join("")}</ol>`;
-    $("preview-text-list").hidden = !state.previewText; grid.hidden = state.previewText;
+    $("preview-total-count").textContent = count(deck) + "枚";
+    const stamp = deck.updatedAt?.toDate?.();
+    $("preview-updated-at").textContent = (stamp ? "更新日：" + stamp.toLocaleDateString("ja-JP") + "　" : "") + (deck.isPublic ? "公開デッキ" : "非公開デッキ");
+    const cards = [...deckCards(deck), ...territoryCards(deck)];
+    const expandCopies = Boolean($("preview-expand-copies")?.checked);
+    const displayCards = expandCopies
+      ? cards.flatMap(card => Array.from({ length: Math.max(1, Number(card.quantity) || 1) }, (_, copyIndex) => ({ ...card, copyIndex })))
+      : cards;
+    const grid = $("preview-card-list");
+    grid.replaceChildren();
+    if (!displayCards.length) grid.innerHTML = '<div class="empty-state">デッキにカードがありません。</div>';
+    displayCards.forEach(card => {
+      const item = byItemId(card.itemId);
+      const el = document.createElement("div");
+      el.className = "preview-card";
+      el.innerHTML = (item?.image_url ? '<img loading="lazy" src="' + escapeHTML(item.image_url) + '" alt="' + escapeHTML(card.name) + '">' : "") +
+        '<span>' + escapeHTML(card.name || "カード") + '</span>' +
+        (expandCopies ? "" : '<b>×' + Number(card.quantity || 1) + '</b>');
+      grid.append(el);
+    });
+    const textCards = expandCopies ? displayCards : cards;
+    $("preview-text-list").innerHTML = '<h2>' + escapeHTML(deck.name) + '</h2><p>合計 ' + count(deck) + '枚 / ' +
+      (expandCopies ? displayCards.length + "枚を個別表示" : cards.length + "種類") + '</p><ol>' +
+      textCards.map(card => '<li>' + escapeHTML(card.name) + (expandCopies ? "" : ' × ' + Number(card.quantity || 1)) + '</li>').join("") + '</ol>';
+    $("preview-text-list").hidden = !state.previewText;
+    grid.hidden = state.previewText;
     applySharedIconColumns(window.appState?.currentIconColumns, false);
   }
   function openModal(id) { const modal = $(id); if (modal) modal.style.display = "block"; }
@@ -501,7 +521,25 @@
       list.replaceChildren();
       state.registeredTags.forEach(tag => {
         const item = document.createElement("li");
-        item.textContent = tag;
+        const name = document.createElement("span");
+        name.textContent = tag;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "danger-button deck-tag-delete-button";
+        remove.textContent = "削除";
+        remove.setAttribute("aria-label", String(tag) + "を共通デッキタグから削除");
+        remove.addEventListener("click", async () => {
+          if (!window.confirm('共通デッキタグ「' + tag + '」を削除しますか？')) return;
+          try {
+            await app().deleteDeckTag(tag);
+            await refreshTagOptions();
+            $("deck-tag-status").textContent = "「" + tag + "」を共通一覧から削除しました。";
+          } catch (error) {
+            $("deck-tag-status").textContent = error.message || "タグを削除できませんでした。";
+          }
+        });
+        item.classList.add("deck-tag-list-item");
+        item.append(name, remove);
         list.append(item);
       });
       if (!state.registeredTags.length && !loadError) list.textContent = "共通タグはまだ登録されていません。";
@@ -741,6 +779,13 @@
     document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => setScreen(button.dataset.back === "builder" ? "builder" : "decks")));
     const applyBuilderSearch = () => { state.builderQuery = $("builder-search").value; renderBuilderCards(); };
     $("builder-search").addEventListener("input", applyBuilderSearch);
+    $("builder-search").addEventListener("keydown", event => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      applyBuilderSearch();
+      $("builder-search").blur();
+    });
+    $("builder-sort-select").addEventListener("change", applyBuilderSearch);
     $("reset-button").addEventListener("click", () => {
       if (state.screen === "builder") {
         state.builderQuery = "";
@@ -766,6 +811,7 @@
     $("preview-deck-button").addEventListener("click", () => setScreen("preview")); $("print-deck-button").addEventListener("click", () => window.print());
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
+    $("preview-expand-copies").addEventListener("change", renderPreview);
     window.addEventListener("animaldeck:authchange", () => { refreshTagOptions(); if (state.screen === "decks") refreshDecks(); });
   });
 })();
