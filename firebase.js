@@ -520,10 +520,13 @@ window.animalDeckApp = {
       if (!itemId || !name) throw new Error("読み込むデッキにカードIDまたはカード名がありません。");
       return { itemId: `${pile}:${itemId.replace(/^(card|territory):/, "")}`, name, quantity };
     });
+    const cleanedMain = clean(main, "card");
+    const cleanedTerritory = clean(territory, "territory");
+    validateTerritoryDeckCards(cleanedTerritory);
     const created = await this.create(`${String(data.name || "読み込みデッキ").slice(0, 44)} のコピー`, normalizeTags(data.tags));
     try {
-      await this.saveCards(clean(main, "card"), "main");
-      await this.saveCards(clean(territory, "territory"), "territory");
+      await this.saveCards(cleanedMain, "main");
+      await this.saveCards(cleanedTerritory, "territory");
       return this.current();
     } catch (error) {
       throw error;
@@ -545,6 +548,7 @@ window.animalDeckApp = {
   async saveCards(cards, pile = "main") {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
     if (!Array.isArray(cards) || cards.length > 200) throw new Error("デッキに登録できる種類数の上限を超えています。");
+    if (pile === "territory") validateTerritoryDeckCards(cards);
     const field = pile === "territory" ? "territoryCards" : "cards";
     await updateDoc(doc(db, "decks", selectedDeckId), { [field]: cards, updatedAt: serverTimestamp() });
     selectedDeck = { ...selectedDeck, [field]: cards };
@@ -558,7 +562,7 @@ window.animalDeckApp = {
     const name = String(item?.card_name || item?.territory_name || item?.name || "");
     if (!rawId || !name) throw new Error("カードIDを確認できませんでした。");
     const field = pile === "territory" ? "territoryCards" : "cards";
-    const cards = [...(selectedDeck[field] || [])];
+    const cards = (selectedDeck[field] || []).map(card => ({ ...card }));
     const found = cards.find(card => String(card.itemId) === id);
     if (found) found.quantity = Math.min(99, Number(found.quantity || 1) + 1);
     else cards.push({ itemId: id, name, quantity: 1 });
@@ -568,7 +572,7 @@ window.animalDeckApp = {
   async changeQuantity(itemId, change, pile = "main") {
     if (!selectedDeck) throw new Error("先にデッキを選択してください。");
     const field = pile === "territory" ? "territoryCards" : "cards";
-    const cards = [...(selectedDeck[field] || [])];
+    const cards = (selectedDeck[field] || []).map(card => ({ ...card }));
     const found = cards.find(card => String(card.itemId) === String(itemId));
     if (!found) return this.current();
     const quantity = Number(found.quantity || 1) + Number(change || 0);
