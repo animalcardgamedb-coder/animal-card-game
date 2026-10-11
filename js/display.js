@@ -30,6 +30,7 @@ function applyIconGrid() {
 const WIKI_GLOSSARY_URLS = {
   "○○域": "https://w.atwiki.jp/animalcardgame/pages/242.html",
   "ウェイク": "https://w.atwiki.jp/animalcardgame/pages/197.html",
+  "裏向き除外": "https://w.atwiki.jp/animalcardgame/pages/526.html",
   "カウンター": "https://w.atwiki.jp/animalcardgame/pages/275.html",
   "狩りフェイズ": "https://w.atwiki.jp/animalcardgame/pages/110.html",
   "カードタイプ": "https://w.atwiki.jp/animalcardgame/pages/57.html",
@@ -42,13 +43,17 @@ const WIKI_GLOSSARY_URLS = {
   "コスト": "https://w.atwiki.jp/animalcardgame/pages/194.html",
   "コントローラー": "https://w.atwiki.jp/animalcardgame/pages/203.html",
   "山岳領土": "https://w.atwiki.jp/animalcardgame/pages/204.html",
+  "集団攻撃": "https://w.atwiki.jp/animalcardgame/pages/297.html",
   "種族": "https://w.atwiki.jp/animalcardgame/pages/201.html",
+  "所有者": "https://w.atwiki.jp/animalcardgame/pages/202.html",
   "種別": "https://w.atwiki.jp/animalcardgame/pages/59.html",
   "種別のない領土": "https://w.atwiki.jp/animalcardgame/pages/195.html",
+  "マッチ": "https://w.atwiki.jp/animalcardgame/pages/181.html",
   "準備フェイズ": "https://w.atwiki.jp/animalcardgame/pages/108.html",
   "除外": "https://w.atwiki.jp/animalcardgame/pages/208.html",
   "森林領土": "https://w.atwiki.jp/animalcardgame/pages/205.html",
   "水生領土": "https://w.atwiki.jp/animalcardgame/pages/206.html",
+  "ステップ": "https://w.atwiki.jp/animalcardgame/pages/114.html",
   "戦闘準備ステップ": "https://w.atwiki.jp/animalcardgame/pages/115.html",
   "戦闘宣言": "https://w.atwiki.jp/animalcardgame/pages/239.html",
   "戦闘フェイズ": "https://w.atwiki.jp/animalcardgame/pages/113.html",
@@ -56,6 +61,9 @@ const WIKI_GLOSSARY_URLS = {
   "存在カード": "https://w.atwiki.jp/animalcardgame/pages/175.html",
   "存在プレイ": "https://w.atwiki.jp/animalcardgame/pages/175.html",
   "ターン": "https://w.atwiki.jp/animalcardgame/pages/58.html",
+  "起床フェイズ": "https://w.atwiki.jp/animalcardgame/pages/107.html",
+  "日没フェイズ": "https://w.atwiki.jp/animalcardgame/pages/111.html",
+  "夜警フェイズ": "https://w.atwiki.jp/animalcardgame/pages/112.html",
   "ターンプレイヤー": "https://w.atwiki.jp/animalcardgame/pages/210.html",
   "脱出カウンター": "https://w.atwiki.jp/animalcardgame/pages/96.html",
   "ダメージ判定": "https://w.atwiki.jp/animalcardgame/pages/121.html",
@@ -67,6 +75,7 @@ const WIKI_GLOSSARY_URLS = {
   "トークン": "https://w.atwiki.jp/animalcardgame/pages/268.html",
   "特技": "https://w.atwiki.jp/animalcardgame/pages/187.html",
   "能力": "https://w.atwiki.jp/animalcardgame/pages/105.html",
+  "夜牢カウンター": "https://w.atwiki.jp/animalcardgame/pages/159.html",
   "縄張り": "https://w.atwiki.jp/animalcardgame/pages/190.html",
   "パイル": "https://w.atwiki.jp/animalcardgame/pages/199.html",
   "場面": "https://w.atwiki.jp/animalcardgame/pages/188.html",
@@ -95,7 +104,9 @@ const WIKI_GLOSSARY_URLS = {
   "領土条件": "https://w.atwiki.jp/animalcardgame/pages/98.html",
   "領土デッキ": "https://w.atwiki.jp/animalcardgame/pages/93.html",
   "ルール処理": "https://w.atwiki.jp/animalcardgame/pages/198.html",
-  "ATK": "https://w.atwiki.jp/animalcardgame/pages/212.html"
+  "ATK": "https://w.atwiki.jp/animalcardgame/pages/212.html",
+  "BO1,BO3,ABO1": "https://w.atwiki.jp/animalcardgame/pages/511.html",
+  "DEF": "https://w.atwiki.jp/animalcardgame/pages/213.html"
 };
 
 function applyRulesTooltips(element) {
