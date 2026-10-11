@@ -170,11 +170,14 @@
   <div id="deck-tags-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="deck-tags-title">
     <section class="feature-modal-content">
       <button class="feature-close-button" data-close-modal="deck-tags-modal" type="button" aria-label="閉じる">×</button>
-      <h2 id="deck-tags-title">共通デッキタグ登録</h2>
-      <p>ここで登録したタグは全利用者共通の一覧に追加され、すべてのデッキ編集画面から選べるようになります。タグ一覧にない項目を追加してください。</p>
+      <h2 id="deck-tags-title">デッキタグ一覧</h2>
+      <p>全利用者で共有するデッキタグの一覧です。登録済みタグの削除もできます。デッキ編集画面からタグを選択してください。</p>
       <h3>登録済みの共通タグ</h3>
+      <ul id="deck-tag-list"></ul>
+      <h3>共通デッキタグ登録</h3>
       <form id="deck-tag-form" class="deck-create-row"><input id="deck-tag-name" type="text" maxlength="24" placeholder="例：大会用" aria-label="新しいデッキタグ"><button class="primary-button" type="submit">タグを登録</button></form>
-      <ul id="deck-tag-list"></ul><p id="deck-tag-status" class="feature-status" role="status"></p>
+      <p id="deck-tag-status" class="feature-status" role="status"></p>
+      <p class="display-settings-help">タグ削除には確認が必要です。削除してもデッキに保存済みの文字列は残る場合があります。</p>
     </section>
   </div>
 
@@ -869,6 +872,7 @@
       <div id="detail-user-tags-row" class="detail-row"><span class="detail-label">ユーザータグ：</span><div id="detail-user-tag-options"></div></div>
       <p id="detail-user-tags-status" class="feature-status" role="status"></p>
       <div id="detail-deck-qty-controls" class="detail-deck-qty-controls" hidden><button id="detail-deck-remove-button" type="button" aria-label="デッキから1枚減らす">−</button><button id="detail-add-to-deck-button" class="primary-button" type="button">＋ デッキに追加</button></div>
+      <p class="display-settings-help">用語解説は<a href="https://acgtcg.com/pdf/ACG_CR.pdf?20260723" target="_blank" rel="noopener noreferrer">公式総合ルール</a>を参照しています。</p>
 
     </div>
 
