@@ -98,29 +98,7 @@ function applyRulesTooltips(element) {
   const text = element.textContent || "";
   if (!text) return;
   const terms = Object.keys(RULE_GLOSSARY).sort((a, b) => b.length - a.length);
-  const escapeRegExp = value => value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\function applyIconGrid() {
-  const cardList =
-    document.getElementById(
-      "card-list"
-    );
-
-  if (
-    !cardList ||
-    !cardList.classList.contains(
-      "icon-mode"
-    )
-  ) {
-    return;
-  }
-
-  const columns =
-    appState.currentIconColumns;
-
-  cardList.style.gridTemplateColumns =
-    `repeat(${columns}, minmax(0, 1fr))`;
-}
-");
-  const pattern = new RegExp("(" + terms.map(escapeRegExp).join("|") + ")", "g");
+  const pattern = new RegExp("(" + terms.join("|") + ")", "g");
   element.replaceChildren();
   text.split(pattern).forEach(part => {
     if (!Object.prototype.hasOwnProperty.call(RULE_GLOSSARY, part)) {
