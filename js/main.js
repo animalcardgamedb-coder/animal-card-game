@@ -167,6 +167,25 @@ document.addEventListener(
       searchCards
     );
 
+    document.getElementById("search-box")?.addEventListener("keydown", event => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      searchCards();
+    });
+
+    ["condition-match-mode", "keyword-match-mode", "effect-match-mode"].forEach(id => {
+      document.getElementById(id)?.addEventListener("change", searchCards);
+    });
+
+    document.getElementById("card-sort-select")?.addEventListener("change", searchCards);
+    document.getElementById("card-sort-direction")?.addEventListener("click", event => {
+      const button = event.currentTarget;
+      const next = button.dataset.direction === "asc" ? "desc" : "asc";
+      button.dataset.direction = next;
+      button.textContent = next === "asc" ? "昇順 ↑" : "降順 ↓";
+      searchCards();
+    });
+
 
     /*
       ======================================
