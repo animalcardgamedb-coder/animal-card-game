@@ -14,7 +14,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261010-7"
+    href="css/style.css?v=20261011-1"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -161,7 +161,8 @@
     <button id="account-open-button" type="button">ログイン</button>
     <button id="settings-open-button" type="button">設定</button>
     <button id="a4-layout-open-button" type="button">デッキを読み込んでA4サイズに配置</button>
-    <button id="deck-tags-open-button" type="button">共通デッキタグ登録</button>
+    <button id="deck-tags-open-button" type="button">デッキタグ一覧</button>
+    <button id="user-tags-open-button" type="button">ユーザータグ</button>
     <button id="bulk-import-open-button" type="button">新カードの追加・データ登録</button>
     <p id="menu-account-status" role="status"></p>
   </div>
@@ -174,6 +175,17 @@
       <h3>登録済みの共通タグ</h3>
       <form id="deck-tag-form" class="deck-create-row"><input id="deck-tag-name" type="text" maxlength="24" placeholder="例：大会用" aria-label="新しいデッキタグ"><button class="primary-button" type="submit">タグを登録</button></form>
       <ul id="deck-tag-list"></ul><p id="deck-tag-status" class="feature-status" role="status"></p>
+    </section>
+  </div>
+
+  <div id="user-tags-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="user-tags-title">
+    <section class="feature-modal-content">
+      <button class="feature-close-button" data-close-modal="user-tags-modal" type="button" aria-label="閉じる">×</button>
+      <h2 id="user-tags-title">ユーザータグ</h2>
+      <p>登録したタグはカード詳細からカードに付けられ、検索条件にも表示されます。タグは全利用者共通です。</p>
+      <form id="user-tag-form" class="deck-create-row"><input id="user-tag-name" type="text" maxlength="24" placeholder="例：採用候補" aria-label="新しいユーザータグ"><button class="primary-button" type="submit">タグを登録</button></form>
+      <h3>登録済みユーザータグ</h3>
+      <ul id="user-tag-list"></ul><p id="user-tag-status" class="feature-status" role="status"></p>
     </section>
   </div>
 
@@ -287,6 +299,8 @@
     <div id="search-toolbar" class="toolbar-panel">
       <button id="search-open-button" type="button" aria-label="検索条件を開く" title="カード種別などの条件">⌄</button>
       <label class="search-field" for="search-box"><span aria-hidden="true">⌕</span><input type="search" id="search-box" placeholder="カード名やテキストで検索" autocomplete="off"></label>
+      <label class="sort-field card-sort-field" for="card-sort-select"><span>並び替え</span><select id="card-sort-select"><option value="id">ID順</option><option value="name">名前順</option><option value="type">カードタイプ順</option><option value="species">種族順</option><option value="cost">コスト順</option><option value="atk">ATK順</option><option value="def">DEF順</option></select></label>
+      <button id="card-sort-direction" type="button" class="toolbar-icon-button" aria-label="昇順／降順を切り替え" data-direction="asc">昇順 ↑</button>
       <button id="display-toggle-button" type="button" class="toolbar-icon-button" aria-label="リスト表示とアイコン表示を切り替え" title="リスト／アイコン">▦</button>
       <input id="icon-column-input" class="icon-column-input" type="number" min="1" max="12" value="5" inputmode="numeric" aria-label="アイコン表示の列数" title="アイコン表示の列数" hidden>
     </div>
@@ -334,10 +348,12 @@
     <div class="deck-summary-panel"><div><strong id="deck-total-count">0</strong><span>枚</span></div><div id="deck-visibility-badge" class="visibility-badge">非公開</div><button id="builder-visibility-button" type="button" class="outline-button">公開設定</button></div>
     <div id="deck-type-stats" class="deck-type-stats"></div>
     <div id="deck-pile-tabs" class="segmented-tabs deck-pile-tabs" role="tablist" aria-label="編集するデッキ"><button id="main-pile-tab" class="active" type="button" role="tab" aria-selected="true">メインデッキ</button><button id="territory-pile-tab" type="button" role="tab" aria-selected="false">領地デッキ</button></div>
-    <p id="selected-pile-count" class="status-line"></p><p class="reorder-help">カード画像をドラッグ＆ドロップして順番を変更できます。矢印ボタンも使えます。</p><div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
+    <p id="selected-pile-count" class="status-line"></p><p class="reorder-help">カード画像をドラッグ＆ドロップして順番を変更できます。</p><div id="selected-cards-strip" class="selected-cards-strip" aria-label="デッキに入っているカード"></div>
     <div id="builder-tools" class="toolbar-panel">
       <button id="builder-filter-button" class="toolbar-icon-button" type="button" aria-label="検索条件を開く" title="カード種別などの条件">⌄</button>
       <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input type="search" id="builder-search" placeholder="カード名やテキストで検索" autocomplete="off"></label>
+      <label class="sort-field card-sort-field" for="builder-sort-select"><span>並び替え</span><select id="builder-sort-select"><option value="id">ID順</option><option value="name">名前順</option><option value="type">カードタイプ順</option><option value="species">種族順</option><option value="cost">コスト順</option><option value="atk">ATK順</option><option value="def">DEF順</option></select></label>
+      <button id="builder-sort-direction" type="button" class="toolbar-icon-button" aria-label="昇順／降順を切り替え" data-direction="asc">昇順 ↑</button>
       <button id="builder-grid-button" class="toolbar-icon-button" type="button" aria-label="リスト表示とアイコン表示を切り替え" title="リスト／アイコン">▦</button>
     </div>
     <div id="builder-card-list" class="builder-card-grid"></div>
@@ -347,7 +363,7 @@
 
   <section id="deck-preview-screen" class="app-screen" hidden>
     <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div>
-    <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
+    <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><label class="preview-duplicates-setting"><input id="preview-duplicates-toggle" type="checkbox"> 同じカードを1枚ずつ表示</label><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
     <p id="preview-updated-at" class="preview-meta"></p>
     <div class="preview-count"><span>デッキ合計</span><strong id="preview-total-count"></strong></div>
     <div id="preview-card-list" class="preview-card-grid"></div>
@@ -429,7 +445,7 @@
 
       </div>
 
-      <div class="filter"><div class="filter-title">コンディション</div><div id="condition-filter" class="multi-select"></div></div>
+      <div class="filter"><div class="filter-title">コンディション</div><div class="filter-body"><label class="filter-logic-control" for="condition-match-mode">選択した条件</label><select id="condition-match-mode" class="filter-mode-select"><option value="and">AND（すべて）</option><option value="or">OR（いずれか）</option></select><div id="condition-filter" class="multi-select"></div></div></div>
 
 
       <!--
@@ -522,6 +538,8 @@
           カード：キーワード能力
         </div>
 
+        <label class="filter-logic-control" for="keyword-match-mode">複数選択の一致方法</label>
+        <select id="keyword-match-mode" class="filter-mode-select"><option value="or">OR（いずれか）</option><option value="and">AND（すべて）</option></select>
         <div
           id="card-keyword-filter"
           class="multi-select"
@@ -560,6 +578,8 @@
           カード：効果分類
         </div>
 
+        <label class="filter-logic-control" for="effect-match-mode">複数選択の一致方法</label>
+        <select id="effect-match-mode" class="filter-mode-select"><option value="or">OR（いずれか）</option><option value="and">AND（すべて）</option></select>
         <div
           id="card-effect-filter"
           class="multi-select"
@@ -841,7 +861,9 @@
 
       </div>
 
-      <button id="detail-add-to-deck-button" class="primary-button" type="button" hidden>このカードをデッキに追加</button>
+      <div id="detail-user-tags-row" class="detail-row"><span class="detail-label">ユーザータグ：</span><div id="detail-user-tag-options"></div></div>
+      <p id="detail-user-tags-status" class="feature-status" role="status"></p>
+      <div id="detail-deck-qty-controls" class="detail-deck-qty-controls" hidden><button id="detail-deck-remove-button" type="button" aria-label="デッキから1枚減らす">−</button><button id="detail-add-to-deck-button" class="primary-button" type="button">＋ デッキに追加</button></div>
 
     </div>
 
@@ -854,12 +876,12 @@
 
   <script src="js/api.js"></script>
 
-  <script src="js/search.js?v=20261010-7"></script>
+  <script src="js/search.js?v=20261011-1"></script>
 
-  <script src="js/display.js?v=20261010-7"></script>
+  <script src="js/display.js?v=20261011-1"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261010-12"></script>
+  <script src="js/deck-ui.js?v=20261011-1"></script>
 
   <script type="module" src="firebase.js"></script>
 
