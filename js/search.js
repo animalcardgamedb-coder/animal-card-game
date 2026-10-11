@@ -142,10 +142,15 @@ function sortCardResults(data, sortValue) {
     const second = valueFor(b.item);
     let comparison;
     if (["cost", "atk", "def"].includes(field)) {
-      const firstNumber = first === "" || first == null ? Number.NEGATIVE_INFINITY : Number(first);
-      const secondNumber = second === "" || second == null ? Number.NEGATIVE_INFINITY : Number(second);
-      comparison = firstNumber - secondNumber;
-      if (!Number.isFinite(comparison)) comparison = 0;
+      const firstMissing = first === "" || first == null || !Number.isFinite(Number(first));
+      const secondMissing = second === "" || second == null || !Number.isFinite(Number(second));
+      if (firstMissing || secondMissing) {
+        // Keep cards without a numeric stat at the end in either direction.
+        comparison = firstMissing === secondMissing ? 0 : (firstMissing ? 1 : -1);
+        if (comparison !== 0) return comparison;
+      } else {
+        comparison = Number(first) - Number(second);
+      }
     } else {
       comparison = String(first).localeCompare(String(second), "ja", { numeric: true, sensitivity: "base" });
     }
