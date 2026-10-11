@@ -117,6 +117,43 @@ function getConditionFilterValues(data) {
   return [...values].sort((a, b) => a.localeCompare(b, "ja"));
 }
 
+function getFilterMatchMode(elementId) {
+  return document.getElementById(elementId)?.value === "and" ? "and" : "or";
+}
+
+function sortCardResults(data, sortValue) {
+  if (!sortValue || sortValue === "source") return data;
+  const [field, direction] = String(sortValue).split("-");
+  const descending = direction === "desc";
+  const valueFor = item => {
+    switch (field) {
+      case "id": return item.card_id ?? item.territory_id ?? "";
+      case "name": return item.card_name ?? item.territory_name ?? "";
+      case "type": return item.card_type ?? item.territory_type ?? "";
+      case "species": return item.species ?? "";
+      case "cost": return item.cost;
+      case "atk": return item.atk;
+      case "def": return item.def;
+      default: return "";
+    }
+  };
+  return data.map((item, index) => ({ item, index })).sort((a, b) => {
+    const first = valueFor(a.item);
+    const second = valueFor(b.item);
+    let comparison;
+    if (["cost", "atk", "def"].includes(field)) {
+      const firstNumber = first === "" || first == null ? Number.NEGATIVE_INFINITY : Number(first);
+      const secondNumber = second === "" || second == null ? Number.NEGATIVE_INFINITY : Number(second);
+      comparison = firstNumber - secondNumber;
+      if (!Number.isFinite(comparison)) comparison = 0;
+    } else {
+      comparison = String(first).localeCompare(String(second), "ja", { numeric: true, sensitivity: "base" });
+    }
+    if (comparison === 0) return a.index - b.index;
+    return descending ? -comparison : comparison;
+  }).map(entry => entry.item);
+}
+
 
 /*
   フィルターの選択肢を表示
@@ -573,6 +610,9 @@ function searchCards(options = {}) {
     );
 
   const selectedConditions = getSelectedValues("condition-filter");
+  const conditionMatchMode = getFilterMatchMode("condition-match-mode");
+  const keywordMatchMode = getFilterMatchMode("keyword-match-mode");
+  const effectMatchMode = getFilterMatchMode("effect-match-mode");
 
   const selectedSpecies =
     getSelectedValues(
@@ -781,9 +821,14 @@ function searchCards(options = {}) {
           selectedCardTypes.length === 0 ||
           splitValues(itemType).some(type => selectedCardTypes.includes(type));
 
-        const matchesCondition = selectedConditions.every(selected =>
-          normalizeWithFullWidth(getCardConditionText(item)).includes(normalizeWithFullWidth(selected))
+        const conditionText = normalizeWithFullWidth(getCardConditionText(item));
+        const conditionMatches = selectedConditions.map(selected =>
+          conditionText.includes(normalizeWithFullWidth(selected))
         );
+        const matchesCondition = selectedConditions.length === 0 ||
+          (conditionMatchMode === "and"
+            ? conditionMatches.every(Boolean)
+            : conditionMatches.some(Boolean));
 
 
         /*
@@ -840,16 +885,12 @@ function searchCards(options = {}) {
             ? selectedTerritoryKeywords
             : selectedCardKeywords;
 
+        const itemKeywords = splitValues(item.official_keywords);
         const matchesKeyword =
           selectedKeywords.length === 0 ||
-          selectedKeywords.some(
-            selected =>
-              splitValues(
-                item.official_keywords
-              ).includes(
-                selected
-              )
-          );
+          (keywordMatchMode === "and"
+            ? selectedKeywords.every(selected => itemKeywords.includes(selected))
+            : selectedKeywords.some(selected => itemKeywords.includes(selected)));
 
 
         /*
@@ -866,16 +907,12 @@ function searchCards(options = {}) {
             ? selectedTerritoryEffects
             : selectedCardEffects;
 
+        const itemEffects = splitValues(item.official_effects);
         const matchesEffect =
           selectedEffects.length === 0 ||
-          selectedEffects.some(
-            selected =>
-              splitValues(
-                item.official_effects
-              ).includes(
-                selected
-              )
-          );
+          (effectMatchMode === "and"
+            ? selectedEffects.every(selected => itemEffects.includes(selected))
+            : selectedEffects.some(selected => itemEffects.includes(selected)));
 
         const matchesCategorySpecificFilters =
           !hasCategorySpecificFilters ||
@@ -1028,17 +1065,16 @@ function searchCards(options = {}) {
     ======================================
   */
 
+  const sortSelectId = options.sortSelectId || (options.builderInternal ? "builder-sort-select" : "card-sort-select");
+  const sortValue = document.getElementById(sortSelectId)?.value || "source";
+  const sortedData = sortCardResults(filteredData, sortValue);
+
   if (options.builderInternal) {
-    return filteredData;
+    return sortedData;
   }
 
-  appState.currentSearchResults =
-    filteredData;
-
+  appState.currentSearchResults = sortedData;
   window.dispatchEvent(new Event("animaldeck:searchresultschange"));
-
-  displayCards(
-    filteredData
-  );
+  displayCards(sortedData);
 
 }
