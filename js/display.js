@@ -79,14 +79,12 @@ const WIKI_GLOSSARY_URLS = {
   "縄張り": "https://w.atwiki.jp/animalcardgame/pages/190.html",
   "パイル": "https://w.atwiki.jp/animalcardgame/pages/199.html",
   "場面": "https://w.atwiki.jp/animalcardgame/pages/188.html",
+  "場": "https://w.atwiki.jp/animalcardgame/pages/192.html",
   "非存在": "https://w.atwiki.jp/animalcardgame/pages/176.html",
   "非存在カード": "https://w.atwiki.jp/animalcardgame/pages/176.html",
   "非存在プレイ": "https://w.atwiki.jp/animalcardgame/pages/176.html",
   "プレイ": "https://w.atwiki.jp/animalcardgame/pages/140.html",
   "フェイズ": "https://w.atwiki.jp/animalcardgame/pages/106.html",
-  "起床フェイズ": "https://w.atwiki.jp/animalcardgame/pages/106.html",
-  "日没フェイズ": "https://w.atwiki.jp/animalcardgame/pages/106.html",
-  "夜警フェイズ": "https://w.atwiki.jp/animalcardgame/pages/106.html",
   "平野領土": "https://w.atwiki.jp/animalcardgame/pages/207.html",
   "妨害": "https://w.atwiki.jp/animalcardgame/pages/99.html",
   "防御": "https://w.atwiki.jp/animalcardgame/pages/120.html",
@@ -116,12 +114,27 @@ function applyRulesTooltips(element) {
   const terms = Object.keys(WIKI_GLOSSARY_URLS).sort((a, b) => b.length - a.length);
   const pattern = new RegExp("(" + terms.join("|") + ")", "g");
   element.replaceChildren();
+  let textCursor = 0;
   text.split(pattern).forEach(part => {
+    const partIndex = text.indexOf(part, textCursor);
+    textCursor = partIndex + part.length;
     const url = WIKI_GLOSSARY_URLS[part];
     if (!url) {
       element.append(document.createTextNode(part));
       return;
     }
+
+    // 「場」は1文字なので「場合」「戦場」などの一部を用語と誤判定しない。
+    if (part === "場") {
+      const previous = text[partIndex - 1] || "";
+      const next = text[partIndex + part.length] || "";
+      const isKanji = character => /[一-龯々〆ヵヶ]/.test(character);
+      if (isKanji(previous) || isKanji(next)) {
+        element.append(document.createTextNode(part));
+        return;
+      }
+    }
+
     const term = document.createElement("a");
     term.className = "rules-term";
     term.textContent = part;
