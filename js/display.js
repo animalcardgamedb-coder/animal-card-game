@@ -98,8 +98,7 @@ function applyRulesTooltips(element) {
   const text = element.textContent || "";
   if (!text) return;
   const terms = Object.keys(WIKI_GLOSSARY_URLS).sort((a, b) => b.length - a.length);
-  const escapeRegExp = value => value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&");
-  const pattern = new RegExp("(" + terms.map(escapeRegExp).join("|") + ")", "g");
+  const pattern = new RegExp("(" + terms.join("|") + ")", "g");
   element.replaceChildren();
   text.split(pattern).forEach(part => {
     const url = WIKI_GLOSSARY_URLS[part];
