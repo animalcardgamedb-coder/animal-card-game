@@ -145,3 +145,16 @@
 .rules-term{color:#174f85;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer}
 .rules-term:hover,.rules-term:focus-visible{color:#0b3964;text-decoration-style:solid;outline:2px solid #8cb9df;outline-offset:2px;border-radius:2px}
 .rules-term::after{content:none!important;display:none!important}
+
+
+/* User-defined card and territory tags */
+.user-tag-list-item{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0}
+.user-tag-list-item span{overflow-wrap:anywhere}
+.user-tag-delete-button{flex:0 0 auto;margin:0!important;padding:5px 9px!important;font-size:12px}
+.card-user-tag-editor{margin:16px 0;padding:12px;border:1px solid var(--line);border-radius:7px;background:#fff}
+.card-user-tag-editor legend{padding:0 6px;font-weight:700}
+.user-tag-options{display:flex;flex-wrap:wrap;gap:7px}
+.user-tag-options label{display:inline-flex;align-items:center;gap:6px;margin:0;padding:6px 9px;border:1px solid var(--line);border-radius:5px;background:#fff;font-weight:400}
+.user-tag-options input[type=checkbox]{width:16px;height:16px;min-height:0;margin:0}
+.card-user-tag-editor .feature-status{margin:8px 0}
+#user-tag-filter:empty::before{content:"タグはまだありません。メニューから作成できます。";color:var(--muted);font-size:12px}
