@@ -73,9 +73,18 @@ function syncProductLinkSheets() {
       generated.yellow_submarine, generated.dragonstar, generated.ajito,
       generated.cardlabo, generated.gamers
     ];
+    const legacy = makeLegacyPurchaseSearchUrls_(item.name);
     return [
       item.type, item.id, item.name,
-      ...urlHeaders.map((header, index) => String(old[header] || defaults[index] || ""))
+      ...urlHeaders.map((header, index) => {
+        const oldValue = String(old[header] || "").trim();
+        // 以前の自動生成形式なら最新の指定形式へ更新します。
+        // 商品ページなど手入力URLは維持します。
+        if (!oldValue || oldValue === legacy[header]) return defaults[index] || "";
+        const legacyPrefix = legacySearchUrlPrefix_(header);
+        if (legacyPrefix && oldValue.startsWith(legacyPrefix)) return defaults[index] || "";
+        return oldValue;
+      })
     ];
   });
   replaceProductDataRows_(productSheet, ACG_PRODUCT_LINK_HEADERS_, productRows);
@@ -132,17 +141,42 @@ function replaceProductDataRows_(sheet, headers, rows) {
 }
 
 function makePurchaseSearchUrls_(name) {
-  const query = encodeURIComponent("アニマルカードゲーム " + String(name || "").trim());
+  const cleanName = String(name || "").trim();
+  const query = encodeURIComponent("アニマルカードゲーム " + cleanName);
+  const nameQuery = encodeURIComponent(cleanName);
   return {
     amazon: "https://www.amazon.co.jp/s?k=" + query,
     rakuten: "https://search.rakuten.co.jp/search/mall/" + query + "/",
     mercari: "https://jp.mercari.com/search?keyword=" + query,
     yellow_submarine: "https://shop.yellowsubmarine.co.jp/?mode=srh&keyword=" + query,
-    dragonstar: "https://dorasuta.jp/search?keyword=" + query,
-    ajito: "https://cardshop-ajito.jp/?s=" + query,
-    cardlabo: "https://www.c-labo-online.jp/products/list.php?name=" + query,
-    gamers: "https://www.gamers.co.jp/products/list.php?name=" + query
+    dragonstar: "https://dorasuta.jp/acgtcg/product-list?kw=" + nameQuery,
+    ajito: "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + nameQuery,
+    cardlabo: "https://www.c-labo-online.jp/product-list?keyword=" + nameQuery + "&Submit=",
+    gamers: "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + nameQuery
   };
+}
+
+function makeLegacyPurchaseSearchUrls_(name) {
+  const query = encodeURIComponent("アニマルカードゲーム " + String(name || "").trim());
+  return {
+    Amazon: "https://www.amazon.co.jp/s?k=" + query,
+    "楽天市場": "https://search.rakuten.co.jp/search/mall/" + query + "/",
+    "メルカリ": "https://jp.mercari.com/search?keyword=" + query,
+    "イエローサブマリン": "https://shop.yellowsubmarine.co.jp/?mode=srh&keyword=" + query,
+    "ドラゴンスター": "https://dorasuta.jp/search?keyword=" + query,
+    "カードショップアジト": "https://cardshop-ajito.jp/?s=" + query,
+    "カードラボ": "https://www.c-labo-online.jp/products/list.php?name=" + query,
+    "ゲーマーズ": "https://www.gamers.co.jp/products/list.php?name=" + query
+  };
+}
+
+function legacySearchUrlPrefix_(header) {
+  return {
+    "ドラゴンスター": "https://dorasuta.jp/search?keyword=",
+    "カードショップアジト": "https://cardshop-ajito.jp/?s=",
+    "カードラボ": "https://www.c-labo-online.jp/products/list.php?name=",
+    "ゲーマーズ": "https://www.gamers.co.jp/products/list.php?name="
+  }[header] || "";
 }
 
 /*
