@@ -69,6 +69,9 @@ function loadCards() {
 
       appState.userTags = Array.isArray(data.userTags) ? data.userTags : [];
       appState.cardUserTags = Array.isArray(data.cardUserTags) ? data.cardUserTags : [];
+      appState.productLinks = Array.isArray(data.productLinks) ? data.productLinks : [];
+      appState.affiliateLinks = Array.isArray(data.affiliateLinks) ? data.affiliateLinks : [];
+      appState.packLinks = Array.isArray(data.packLinks) ? data.packLinks : [];
       window.applyUserTagsToData?.();
 
 
