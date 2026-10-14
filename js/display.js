@@ -386,6 +386,24 @@ function displayCards(
 /*
   カード・領地の詳細を表示
 */
+function getCardDetailKeywordText(item) {
+  const saved = String(item?.official_keywords || "")
+    .split(/[、,，;；\n]+/)
+    .map(value => value.trim())
+    .filter(Boolean);
+  const effect = String(item?.effect_text || "")
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+  const leadingText = effect.split(/[〖【]/, 1)[0] || "";
+  const leading = [...leadingText.matchAll(/《([^》]+)》/g)]
+    .map(match => match[1].trim())
+    .filter(Boolean);
+  return [...new Set([...saved, ...leading])].join("、") || "なし";
+}
+
 function showCardDetail(
   item,
   options = {}
@@ -558,8 +576,7 @@ function showCardDetail(
   document.getElementById(
     "detail-keywords"
   ).textContent =
-    item.official_keywords ||
-    "なし";
+    getCardDetailKeywordText(item);
 
 
   /*
@@ -700,6 +717,8 @@ function showCardDetail(
     ユーザータグ編集欄
   */
   window.renderCardUserTagEditor?.(item);
+  window.renderPurchaseLinks?.(item);
+  window.renderRelatedPackLinks?.(item);
 
   /*
     モーダルを表示
