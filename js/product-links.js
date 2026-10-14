@@ -1,21 +1,21 @@
 /*
  * 購入先検索と収録パック・デッキの表示。
  * 商品リンクの行がGASから返ってきた場合は、そのURLを優先します。
- * アフィリエイト表示は、公式ガイドラインとの整合性が確認できるまで無効です。
+ * アフィリエイトURLが登録されていれば、カード詳細でそのURLを優先します。
  */
 (() => {
   "use strict";
 
-  const AFFILIATE_LINKS_ENABLED = false;
+  const AFFILIATE_LINKS_ENABLED = true;
   const STORES = [
-    { key: "amazon", label: "Amazon", build: q => "https://www.amazon.co.jp/s?k=" + q, affiliate: true },
-    { key: "rakuten", label: "楽天市場", build: q => "https://search.rakuten.co.jp/search/mall/" + q + "/", affiliate: true },
-    { key: "mercari", label: "メルカリ", build: q => "https://jp.mercari.com/search?keyword=" + q, affiliate: true },
-    { key: "yellow_submarine", label: "イエローサブマリン", build: q => "https://shop.yellowsubmarine.co.jp/?mode=srh&keyword=" + q },
-    { key: "dragonstar", label: "ドラゴンスター", build: q => "https://dorasuta.jp/search?keyword=" + q },
-    { key: "ajito", label: "カードショップアジト", build: q => "https://cardshop-ajito.jp/?s=" + q },
-    { key: "cardlabo", label: "カードラボ", build: q => "https://www.c-labo-online.jp/products/list.php?name=" + q },
-    { key: "gamers", label: "ゲーマーズ", build: q => "https://www.gamers.co.jp/products/list.php?name=" + q, affiliate: true }
+    { key: "amazon", label: "Amazon", build: (_, combined) => "https://www.amazon.co.jp/s?k=" + combined, affiliate: true },
+    { key: "rakuten", label: "楽天市場", build: (_, combined) => "https://search.rakuten.co.jp/search/mall/" + combined + "/", affiliate: true },
+    { key: "mercari", label: "メルカリ", build: (_, combined) => "https://jp.mercari.com/search?keyword=" + combined, affiliate: true },
+    { key: "yellow_submarine", label: "イエローサブマリン", build: (_, combined) => "https://shop.yellowsubmarine.co.jp/?mode=srh&keyword=" + combined },
+    { key: "dragonstar", label: "ドラゴンスター", build: name => "https://dorasuta.jp/acgtcg/product-list?kw=" + name },
+    { key: "ajito", label: "カードショップアジト", build: name => "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + name },
+    { key: "cardlabo", label: "カードラボ", build: name => "https://www.c-labo-online.jp/product-list?keyword=" + name + "&Submit=" },
+    { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true }
   ];
 
   function readValue(row, keys) {
@@ -81,6 +81,25 @@
     return rows.find(row => readValue(row, ["card_id", "カードID"]) === id) || null;
   }
 
+  // 旧版が自動生成した4店舗の検索URLは、新しい指定フォーマットへ読み替えます。
+  // 商品リンクシートに手入力されたURLのうち、通常の商品・販売ページURLはそのまま保持します。
+  function legacyGeneratedSearchUrl(storeKey, cardName) {
+    const query = encodeURIComponent("アニマルカードゲーム " + String(cardName || "").trim());
+    const knownPrefixes = {
+      dragonstar: "https://dorasuta.jp/search?keyword=",
+      ajito: "https://cardshop-ajito.jp/?s=",
+      cardlabo: "https://www.c-labo-online.jp/products/list.php?name=",
+      gamers: "https://www.gamers.co.jp/products/list.php?name="
+    };
+    return knownPrefixes[storeKey] ? knownPrefixes[storeKey] + query : "";
+  }
+
+  function isLegacyGeneratedSearchUrl(url, store, cardName) {
+    const current = safeHttpUrl(url);
+    const legacy = safeHttpUrl(legacyGeneratedSearchUrl(store.key, cardName));
+    return Boolean(current && legacy && current === legacy);
+  }
+
   function makeAnchor(label, href, className) {
     const url = safeHttpUrl(href);
     if (!url) return null;
@@ -108,14 +127,16 @@
     root.replaceChildren();
 
     const current = currentItem(item);
-    const query = encodeURIComponent("アニマルカードゲーム " + current.name);
+    const nameQuery = encodeURIComponent(current.name);
+    const combinedQuery = encodeURIComponent("アニマルカードゲーム " + current.name);
     const productRow = findProductRow(item);
     const affiliateRow = findAffiliateRow(item);
 
     STORES.forEach(store => {
       const affiliateUrl = store.affiliate ? safeHttpUrl(storeUrl(affiliateRow, store)) : "";
-      const registeredUrl = safeHttpUrl(storeUrl(productRow, store));
-      const href = affiliateUrl || registeredUrl || store.build(query);
+      let registeredUrl = safeHttpUrl(storeUrl(productRow, store));
+      if (isLegacyGeneratedSearchUrl(registeredUrl, store, current.name)) registeredUrl = "";
+      const href = affiliateUrl || registeredUrl || store.build(nameQuery, combinedQuery);
       const anchor = makeAnchor(store.label, href);
       if (anchor) {
         anchor.dataset.store = store.key;
