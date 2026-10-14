@@ -65,6 +65,46 @@ KeywordParsingFix.gs の内容を使い、既存 HtmlParser.gs の function extr
 
 お問い合わせフォームURLは js/site-menu.js の CONTACT_FORM_URL に設定済みです。公開サイトのメニューにある「お問い合わせフォーム」を押すと、指定されたGoogleフォームを新しいタブで開きます。
 
+
+## 6. カードリストと商品情報を毎月第4金曜日に自動同期する
+
+1. `MonthlyOfficialSync.gs` を既存GASプロジェクトに新しいスクリプトファイルとして追加し、GitHubの同名ファイルを全文貼り付けます。
+2. `Import.gs`、`ProductLinks.gs`、`OfficialProductImport.gs`、`MonthlyOfficialSync.gs` を同じGASプロジェクトに保存します。
+3. Apps Script の「プロジェクトの設定」でタイムゾーンを `Asia/Tokyo` に設定します。
+4. 関数一覧から `runMonthlyOfficialSyncNow` を手動実行し、権限を承認して最初の同期結果を確認します。
+5. エラーがないことを確認したら、`installMonthlyOfficialSyncTrigger` を一度実行します。
+
+定期トリガーは毎週金曜日の午前4時〜5時ごろに起動しますが、処理本体は第4金曜日（22〜28日）と判定した月だけ実行します。これにより、毎月第4金曜日にのみカードリスト・購入リンク・公式商品カタログをまとめて同期します。毎月の同期はカードIDを基準に既存カードを更新するため、同じカードIDの行を重複追加しません。自動同期結果は `自動同期ログ` シートに記録されます。
+
+不要になった場合は `removeMonthlyOfficialSyncTrigger` を実行してトリガーを削除してください。インストーラーは、以前に設定した `importOfficialProductCatalog` の単独トリガーも削除し、商品情報が週次で別に二重更新されるのを防ぎます。
+
+### キーワード抽出関数について
+
+添付いただいた `Import.gs` には、実際にカード取り込みで使われる `extractOfficialKeywordsForImport(effectLines)` が定義されています。複数の `《キーワード》` が同じ行にある場合にすべて保存するため、**既存の Import.gs にある同名関数を**次のコードに置き換えてください。別ファイルに同名関数を増やさないでください。
+
+```javascript
+function extractOfficialKeywordsForImport(effectLines) {
+  const result = [];
+
+  (Array.isArray(effectLines) ? effectLines : []).forEach(function(line) {
+    const text = String(line || "");
+    const regex = /《([^》]+)》/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const keyword = String(match[1] || "").trim();
+      if (keyword && result.indexOf(keyword) === -1) {
+        result.push(keyword);
+      }
+    }
+  });
+
+  return result;
+}
+```
+
+以前の案内どおり `HtmlParser.gs` に同名関数も追加していた場合は、重複定義を避け、修正版を Import.gs の既存関数へ統合してください。
+
 ## 注意
 
 商品リンクの初期URLは販売サイトで検索するためのURLです。検索パラメータが販売サイト側で変更された場合は、シート内のURLを直接修正できます。販売状況・商品名・在庫の有無は各販売サイトで確認してください。
