@@ -11,24 +11,34 @@
    - アフィリエイト: CardsシートにあるカードID・カード名を並べ、Amazon、楽天市場、メルカリ、ゲーマーズの列を用意します。URLは空欄のままなので手動で入力できます。
    - パック・デッキリンク: 商品種別、商品名、公式商品URL、各販売サイトURL、収録カードIDの列を用意します。商品ごとに1行を追加し、収録カードIDにはカードIDをカンマ区切りで入れてください。例: ACG-001,ACG-002,ACG-003
 
-syncProductLinkSheets を実行すれば、カード・領土の新規IDをシートに同期できます。手入力済みのリンク列は同じIDである限り維持されます。新カード登録のたびに自動同期したい場合は、既存 Main.gs の doPost で bulkImport が正常終了したあとに syncProductLinkSheets() を呼び出してください。
+syncProductLinkSheets を実行すれば、カード・領土の新規IDをシートに同期できます。手入力済みのリンク列は同じIDである限り維持されます。新カード登録のたびに自動同期するには、既存 Main.gs の doPost 内にある bulkImport 分岐を、次のように変更してください。ほかの分岐（addUserTag など）はそのまま残します。
+
+    if (body.action === "bulkImport") {
+      const html = body.html || "";
+      if (!html) throw new Error("HTMLデータが空です。");
+      const result = importBulkHtml(html);
+      if (result && result.success) syncProductLinkSheets();
+      return createJsonResponse(result);
+    }
+
+これにより、HTMLからのカード・領土登録が成功した後、商品リンク・アフィリエイトシートのID一覧も同期されます。
 
 ## 2. GET APIにリンクデータを追加する
 
-Main.gs の doGet がカード・領地などのデータをまとめているレスポンスオブジェクトに、次の3プロパティを追加してください。
+Main.gs の doGet では、既存の const data = { ... } が cards、territories、userTags、cardUserTags などをまとめています。その data オブジェクトを作成した直後、return createJsonResponse(data, prefix); の前に、次のコードを追加してください。
 
     const linkData = getPurchaseLinkDataForApi_();
-    responseData.productLinks = linkData.productLinks;
-    responseData.affiliateLinks = linkData.affiliateLinks;
-    responseData.packLinks = linkData.packLinks;
+    data.productLinks = linkData.productLinks;
+    data.affiliateLinks = linkData.affiliateLinks;
+    data.packLinks = linkData.packLinks;
 
-responseData は既存 doGet 内で cards、territories、userTags などを入れているレスポンスオブジェクト名に置き換えます。createJsonResponse(...) を呼ぶ前に追加してください。
+既存の data オブジェクト名はそのまま使います。
 
 ## 3. キーワード能力の取りこぼしを修正する
 
-KeywordParsingFix.gs の extractLeadingKeywordAbilities_ 関数を既存 HtmlParser.gs に追加します。次に、カード効果のHTML・テキストから official_keywords を作成している箇所で、この関数の結果を既存のキーワード一覧に統合し、重複を除いてから official_keywords 列へ書き込みます。統合例は KeywordParsingFix.gs 冒頭コメントにあります。
+KeywordParsingFix.gs の extractLeadingKeywordAbilities_ 関数を既存 HtmlParser.gs に追加します。既存 HtmlParser.gs の function extractOfficialKeywordsForImport(effectLines) 全体を、KeywordParsingFix.gs の内容で置き換えてください。別ファイルに同名関数を追加するのではなく、元の関数を置換します。
 
-この補助関数は、効果区分（〖...〗）より前にあるすべての 《キーワード》 を抽出するため、先頭にキーワードが複数ある場合も回収できます。既存パーサーの変数名に合わせて接続してください。
+原因は旧関数が各行に対して /^《([^》]+)》/ を使い、行頭にあるキーワードを1つしか取得していなかったことです。修正版は各行の 《...》 を末尾まで繰り返し取得するため、たとえば 《先制》 《貫通》 のように同じ行に複数のキーワードが並んでいても全て登録します。重複したキーワードは引き続き1回だけ記録します。
 
 ## 4. アフィリエイト表示について
 
