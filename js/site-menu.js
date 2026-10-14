@@ -4,7 +4,7 @@
  */
 (() => {
   "use strict";
-  const CONTACT_FORM_URL = "";
+  const CONTACT_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfLKJHIxJAL2eYq76iYS5BmuF2wbr8dOyTiJs8I77O2Lnym5Q/viewform?usp=publish-editor";
 
   function openModal(id) {
     const modal = document.getElementById(id);
