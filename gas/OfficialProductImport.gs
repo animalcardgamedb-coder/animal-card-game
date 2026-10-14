@@ -296,42 +296,97 @@ function opiClassifyProduct_(name, plainText) {
 function opiFindCardIds_(html, plainText, masterItems) {
   const source = String(html || "");
   const found = [];
-  const allIds = {};
+  const allIds = [];
   const cardNameToId = {};
 
   (masterItems || []).forEach(item => {
     const id = String(item.id || "").trim();
     const name = String(item.name || "").trim();
-    if (id) allIds[id] = true;
+    if (id && allIds.indexOf(id) === -1) allIds.push(id);
     if (id && name) cardNameToId[name] = id;
   });
 
-  // a/imgタグ属性内のカードID、カード名（alt/title等）を確認する。
+  /*
+   * Official pages contain links/images with filenames such as
+   * /img/ACG-001.png and /img/ACG-001F.png.
+   * Match attribute values against IDs already present in the Cards
+   * and Territories sheets.
+   */
   const tagRegex = /<(?:a|img)\b[^>]*>/gi;
   let tagMatch;
+
   while ((tagMatch = tagRegex.exec(source)) !== null) {
     const tag = tagMatch[0];
+    const attributeValues = [];
+    const attributeRegex =
+      /([:\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+    let attributeMatch;
 
-    Object.keys(allIds).forEach(id => {
-      if (tag.indexOf(id) !== -1 && found.indexOf(id) === -1) {
+    while ((attributeMatch = attributeRegex.exec(tag)) !== null) {
+      const attributeName = String(attributeMatch[1] || "").toLowerCase();
+      const value = String(
+        attributeMatch[2] || attributeMatch[3] ||
+        attributeMatch[4] || ""
+      ).trim();
+
+      if (!value) continue;
+
+      if (
+        /^(href|src|srcset|alt|title|data-src|data-original|data-lazy-src|data-image|content)$/i.test(attributeName)
+      ) {
+        attributeValues.push(value);
+      }
+    }
+
+    allIds.forEach(id => {
+      const escapedId = id.split("").map(character =>
+        "\\^$.*+?()[]{}|".indexOf(character) !== -1
+          ? "\\" + character
+          : character
+      ).join("");
+
+      /*
+       * Do not match a different alphanumeric ID such as ACG-0010
+       * when searching ACG-001. Allow trailing F in image names
+       * such as ACG-001F.png for foil variants.
+       */
+      const idPattern = new RegExp(
+        "(^|[^A-Za-z0-9])" +
+        escapedId +
+        "(?:F(?=\\.(?:png|jpe?g|webp|gif)(?:[?#]|$)))?" +
+        "(?=$|[^A-Za-z0-9])",
+        "i"
+      );
+
+      if (
+        attributeValues.some(value => idPattern.test(value)) &&
+        found.indexOf(id) === -1
+      ) {
         found.push(id);
       }
     });
 
     Object.keys(cardNameToId).forEach(name => {
-      if (name.length >= 2 && tag.indexOf(name) !== -1) {
+      if (name.length < 2) return;
+      if (
+        attributeValues.some(value => value.indexOf(name) !== -1)
+      ) {
         const id = cardNameToId[name];
         if (found.indexOf(id) === -1) found.push(id);
       }
     });
   }
 
-  // 「下記の5枚が固定です」など、固定収録を明示している名前を確認する。
+  /*
+   * Also use card names explicitly listed in a fixed-card note.
+   */
   const fixedMatch = String(plainText || "").match(
-    /固定(?:です|されています)[。！!]?([\s\S]{0,350})/i
+    /固定(?:です|されています)[。！!]?([\s\S]{0,500})/i
   );
+
   if (fixedMatch) {
     const fixedText = fixedMatch[1];
+
     Object.keys(cardNameToId).forEach(name => {
       if (name.length >= 2 && fixedText.indexOf(name) !== -1) {
         const id = cardNameToId[name];
@@ -342,7 +397,6 @@ function opiFindCardIds_(html, plainText, masterItems) {
 
   return found;
 }
-
 
 /**
  * 指定ラベルの後ろから行末までを取り出す。
