@@ -185,7 +185,7 @@ function opiExtractProductUrls_(html) {
     const url = opiAbsoluteUrl_(href);
 
     if (!url) continue;
-    if (!/\/products_\d+\.html$/i.test(url)) continue;
+    if (!/^https:\/\/acgtcg\.com\/products_\d+\.html$/i.test(url)) continue;
 
     if (urls.indexOf(url) === -1) urls.push(url);
   }
