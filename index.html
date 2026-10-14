@@ -10,11 +10,12 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>ANIMALCARDGAME　DeckBuilder</title>
+  <title>ANIMALCARDGAME DeckBuilder | 非公式ファンサイト</title>
+  <meta name="description" content="アニマルカードゲームの非公式ファンサイト。カード検索やデッキ構築を支援する個人制作のツールです。公式運営とは関係ありません。">
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261011-4"
+    href="css/style.css?v=20261015-1"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -148,7 +149,7 @@
 
   <header id="app-header">
     <button id="home-button" class="app-brand" type="button" aria-label="ホームへ戻る">
-      <span>ANIMALCARDGAME</span><small>DeckBuilder</small>
+      <span>ANIMALCARDGAME</span><small>DeckBuilder</small><small class="fan-site-tag">非公式ファンサイト</small>
     </button>
     <nav class="header-actions" aria-label="メインメニュー">
       <button id="deck-mode-button" class="header-icon-button" type="button" aria-label="デッキ制作モード" title="デッキ制作モード"><span aria-hidden="true">▤</span><small>デッキ</small></button>
@@ -158,6 +159,13 @@
   </header>
 
   <div id="menu-panel" hidden>
+    <div id="menu-site-title">
+      <strong>ANIMALCARDGAME DeckBuilder</strong>
+      <span>非公式ファンサイト</span>
+    </div>
+    <p id="menu-unofficial-notice">本サイトは個人が運営する非公式ファンサイトです。公式運営・公式サービスとは関係ありません。</p>
+    <button id="copyright-guidelines-open-button" type="button">著作物利用ガイドライン</button>
+    <button id="contact-form-open-button" type="button">お問い合わせフォーム</button>
     <button id="account-open-button" type="button">ログイン</button>
     <button id="settings-open-button" type="button">設定</button>
     <button id="a4-layout-open-button" type="button">デッキを読み込んでA4サイズに配置</button>
@@ -165,6 +173,27 @@
     <button id="user-tags-open-button" type="button">ユーザータグ一覧</button>
     <button id="bulk-import-open-button" type="button">新カードの追加・データ登録</button>
     <p id="menu-account-status" role="status"></p>
+  </div>
+
+  <div id="copyright-guidelines-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="copyright-guidelines-title">
+    <section class="feature-modal-content">
+      <button class="feature-close-button" data-close-modal="copyright-guidelines-modal" type="button" aria-label="閉じる">×</button>
+      <h2 id="copyright-guidelines-title">著作物利用ガイドライン</h2>
+      <p>本サイトは、個人が運営するアニマルカードゲームの非公式ファンサイトです。公式運営・公式サービスとは関係なく、公式の認定・協賛・提携を受けたものではありません。</p>
+      <p>大興印刷株式会社の「トレーディングカードゲーム商品等の著作物利用に関するガイドライン」を確認し、ガイドラインに沿った運営を心掛けています。カード画像やカード情報の利用方法などに問題がある場合は、必要な修正・公開停止等の対応を行います。</p>
+      <p><a href="https://www.daiko-printing.co.jp/pdf/CopyrightGuidelines.pdf" target="_blank" rel="noopener noreferrer">公式ガイドラインを読む（PDF）</a></p>
+      <p class="guideline-note">本サイトは公式運営とは関係のない個人制作のツールです。</p>
+    </section>
+  </div>
+
+  <div id="contact-form-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
+    <section class="feature-modal-content">
+      <button class="feature-close-button" data-close-modal="contact-form-modal" type="button" aria-label="閉じる">×</button>
+      <h2 id="contact-form-title">お問い合わせ</h2>
+      <p>ご意見・不具合の報告などはこちらからお送りください。</p>
+      <p id="contact-form-link-status" class="feature-status" role="status">Googleフォームの公開URLは準備中です。フォームURLの設定後、このメニューから開けるようになります。</p>
+      <p>フォーム公開までは、<a href="mailto:animalcardgame.db@gmail.com?subject=ANIMALCARDGAME%20DeckBuilder%20%E3%81%AE%E3%81%8A%E5%95%8F%E3%81%84%E5%90%88%E3%82%8F%E3%81%9B">メールでお問い合わせ</a>をご利用ください。</p>
+    </section>
   </div>
 
   <div id="deck-tags-modal" class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="deck-tags-title">
@@ -669,14 +698,16 @@
       </h2>
 
 
-      <p>
-        公式サイトから保存したHTMLファイルを選択してください。
-      </p>
-
-
-      <p>
-        ACGカード・RYO領地を自動判別して登録します。
-      </p>
+      <div class="bulk-import-instructions">
+        <p><strong>カード・領地の登録手順</strong></p>
+        <ol>
+          <li><a href="https://acgtcg.com/cardlist_SD1.html" target="_blank" rel="noopener noreferrer">公式カードリスト（例：構築済みデッキ SD1）</a>を開き、追加したいカードが収録されているカードパック・構築済みデッキのカードリストページへ移動します。</li>
+          <li>そのページをブラウザーで開いた状態で、Windowsは <kbd>Ctrl</kbd>+<kbd>S</kbd>、Macは <kbd>⌘</kbd>+<kbd>S</kbd> を押して保存します。保存形式は「HTMLのみ」または「Webページ、HTMLのみ」を選んでください。</li>
+          <li>保存した <code>.html</code> または <code>.htm</code> ファイルを、下のファイル選択欄から選びます。</li>
+          <li>「一括登録」を押すと、HTMLを解析し、カードと領地を判別してスプレッドシートに登録・更新します。</li>
+        </ol>
+        <p class="bulk-import-note">公式ページの内容を正しく読み取るため、画面をスクリーンショットで保存するのではなく、ページ自体をHTMLファイルとして保存してください。登録結果に解析エラーや未登録キーワードが表示された場合は、内容を確認してください。</p>
+      </div>
 
 
       <input
@@ -891,6 +922,17 @@
 
       </div>
 
+      <section id="detail-purchase-section" class="detail-link-section" aria-labelledby="detail-purchase-title">
+        <h3 id="detail-purchase-title">購入先を探す</h3>
+        <p class="detail-link-help">各販売サイトの検索結果を開きます。価格・在庫・商品名を各サイトでご確認ください。</p>
+        <div id="detail-purchase-links" class="detail-link-list"></div>
+      </section>
+
+      <section id="detail-pack-section" class="detail-link-section" aria-labelledby="detail-pack-title">
+        <h3 id="detail-pack-title">収録パック・デッキ</h3>
+        <div id="detail-pack-links" class="related-pack-list"></div>
+      </section>
+
       <button id="detail-add-to-deck-button" class="primary-button" type="button" hidden>このカードをデッキに追加</button>
 
     </div>
@@ -902,12 +944,14 @@
     JavaScript
   -->
 
-  <script src="js/api.js?v=20261011-3"></script>
+  <script src="js/api.js?v=20261015-1"></script>
+  <script src="js/product-links.js?v=20261015-1"></script>
+  <script src="js/site-menu.js?v=20261015-1"></script>
   <script src="js/user-tags.js?v=20261011-3"></script>
 
   <script src="js/search.js?v=20261011-3"></script>
 
-  <script src="js/display.js?v=20261011-3"></script>
+  <script src="js/display.js?v=20261015-1"></script>
 
   <script src="js/main.js"></script>
   <script src="js/deck-ui.js?v=20261011-2"></script>

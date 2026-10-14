@@ -169,3 +169,46 @@
 .quantity-mark.over-limit{background:#7f0014!important;color:#fff!important;border:2px solid #ff8b8b!important;box-shadow:0 0 0 2px #ffb6b6}
 .builder-card-add:disabled,
 .selected-card-quantity-button:disabled{opacity:.38;cursor:not-allowed}
+
+
+/* 2026-10-15: fan-site transparency, guidance, contact, and responsive detail panel */
+.app-brand .fan-site-tag{font:600 10px/1.2 "Noto Sans JP",sans-serif;letter-spacing:0;text-transform:none;color:#f0d89a;border:1px solid #786842;border-radius:4px;padding:3px 5px}
+#menu-site-title{display:flex;flex-direction:column;gap:3px;padding:10px 12px 7px;border-bottom:1px solid var(--line)}
+#menu-site-title strong{font-size:14px;color:#171717}
+#menu-site-title span{align-self:flex-start;padding:2px 7px;border:1px solid #d4c59a;border-radius:4px;background:#fff9e8;color:#6c5520;font-size:11px;font-weight:700}
+#menu-unofficial-notice{margin:8px 12px 10px;color:#555;font-size:12px;line-height:1.6}
+#menu-panel{max-height:calc(100dvh - 78px);overflow-y:auto}
+.guideline-note{padding:10px;background:#f5f5f3;border-radius:6px;color:#555;font-size:12px}
+.bulk-import-instructions{line-height:1.7}
+.bulk-import-instructions ol{padding-left:1.5em}
+.bulk-import-instructions li{margin:8px 0}
+.bulk-import-instructions kbd,.bulk-import-instructions code{padding:1px 4px;border:1px solid #ddd;border-radius:4px;background:#f7f7f7;font-size:.92em}
+.bulk-import-note{padding:10px;background:#f7f7f5;border-radius:6px;color:#555;font-size:12px}
+.detail-link-section{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+.detail-link-section h3{margin:0 0 6px;font-size:16px}
+.detail-link-help{margin:0 0 10px;color:var(--muted);font-size:12px}
+.detail-link-list{display:flex;flex-wrap:wrap;gap:8px}
+.detail-link{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:1px solid #d5d5d5;border-radius:6px;background:#fff;color:#222;text-decoration:none;font-size:13px;font-weight:600}
+.detail-link:hover{background:#f2f2ef;border-color:#999}
+.related-pack-list{display:grid;gap:9px}
+.related-pack-item{padding:11px;border:1px solid #dedede;border-radius:7px;background:#fafaf9}
+.related-pack-item strong{display:block;margin-bottom:7px}
+.related-pack-item .detail-link-list{gap:6px}
+.related-pack-item .detail-link{min-height:32px;padding:5px 9px;font-size:12px}
+.related-pack-empty{margin:0;color:var(--muted);font-size:12px}
+#card-modal{padding:clamp(8px,2.5vh,24px) 10px;overflow-y:auto;overscroll-behavior:contain}
+#card-modal-content{box-sizing:border-box;width:min(720px,100%);max-width:100%;max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;padding:clamp(14px,3vw,24px)}
+#detail-image{display:block;max-width:100%;width:auto;height:auto;max-height:48dvh;object-fit:contain;margin:0 auto 14px}
+#detail-effect,#detail-condition,#detail-keywords,#detail-effects{overflow-wrap:anywhere;word-break:normal}
+@media(max-width:600px){
+  .app-brand{max-width:calc(100vw - 165px);flex-wrap:wrap;align-items:center;gap:3px 6px}
+  .app-brand span{font-size:19px}
+  .app-brand .fan-site-tag{font-size:9px;padding:2px 4px}
+  #card-modal{padding:8px 7px calc(8px + env(safe-area-inset-bottom))}
+  #card-modal-content{width:100%;max-height:calc(100dvh - 16px);padding:16px 12px}
+  #detail-image{max-width:100%;max-height:40dvh}
+  #card-modal-content h2{padding-right:32px;font-size:20px;overflow-wrap:anywhere}
+  #card-modal-content .detail-row{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;margin:8px 0}
+  #card-modal-content .detail-row .detail-label{font-size:12px;color:#666}
+  #card-modal-content .detail-link{max-width:100%;overflow-wrap:anywhere}
+}
