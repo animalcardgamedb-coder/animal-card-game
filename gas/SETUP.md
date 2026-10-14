@@ -36,7 +36,7 @@ Main.gs の doGet では、既存の const data = { ... } が cards、territorie
 
 ## 3. キーワード能力の取りこぼしを修正する
 
-KeywordParsingFix.gs の extractLeadingKeywordAbilities_ 関数を既存 HtmlParser.gs に追加します。既存 HtmlParser.gs の function extractOfficialKeywordsForImport(effectLines) 全体を、KeywordParsingFix.gs の内容で置き換えてください。別ファイルに同名関数を追加するのではなく、元の関数を置換します。
+KeywordParsingFix.gs の内容を使い、既存 HtmlParser.gs の function extractOfficialKeywordsForImport(effectLines) 全体を置き換えてください。別ファイルに同名関数を追加するのではなく、元の関数を置換します。
 
 原因は旧関数が各行に対して /^《([^》]+)》/ を使い、行頭にあるキーワードを1つしか取得していなかったことです。修正版は各行の 《...》 を末尾まで繰り返し取得するため、たとえば 《先制》 《貫通》 のように同じ行に複数のキーワードが並んでいても全て登録します。重複したキーワードは引き続き1回だけ記録します。
 
