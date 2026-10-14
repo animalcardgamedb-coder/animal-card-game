@@ -1,27 +1,27 @@
 /*
- * HtmlParser.gs 用: 効果先頭に複数あるキーワード能力をまとめて抽出します。
- * effectText は、可能ならタグを除去する前のテキスト、またはHTML文字列を渡してください。
+ * HtmlParser.gs にある既存の extractOfficialKeywordsForImport(effectLines) を
+ * この関数で丸ごと置き換えてください。
  *
- * 既存パーサーでキーワード一覧を作っているところで次のように統合してください。
- * const recovered = extractLeadingKeywordAbilities_(effectText);
- * const keywords = [...new Set([...(existingKeywords || []), ...recovered])];
- * official_keywords = keywords.join("、");
+ * 修正点:
+ * 旧版は /^《([^》]+)》/ で行頭のキーワードを1つだけ取っていました。
+ * この版では各行にある《...》をすべて取得するため、
+ * 《○○》《△△》のように連続する複数キーワードも漏れなく保存します。
  */
-function extractLeadingKeywordAbilities_(effectText) {
-  const text = String(effectText || "")
-    .replace(/<br\s*\/?\s*>/gi, "\n")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .trim();
-  const leadingBlock = (text.split(/[〖【]/, 1)[0] || "").trim();
-  const names = [];
-  const pattern = /《\s*([^》]+?)\s*》/g;
-  let match;
-  while ((match = pattern.exec(leadingBlock)) !== null) {
-    const keyword = String(match[1] || "").trim();
-    if (keyword && !names.includes(keyword)) names.push(keyword);
-  }
-  return names;
+function extractOfficialKeywordsForImport(effectLines) {
+  const result = [];
+
+  (Array.isArray(effectLines) ? effectLines : []).forEach(function(line) {
+    const text = String(line || "");
+    const regex = /《([^》]+)》/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const keyword = String(match[1] || "").trim();
+      if (keyword && result.indexOf(keyword) === -1) {
+        result.push(keyword);
+      }
+    }
+  });
+
+  return result;
 }
