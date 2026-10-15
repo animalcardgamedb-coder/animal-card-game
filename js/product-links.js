@@ -7,6 +7,22 @@
   "use strict";
 
   const AFFILIATE_LINKS_ENABLED = true;
+
+  // REALiZE requires EUC-JP percent encoding. The vendored encoding-japanese library
+  // is loaded before this script; never silently fall back to UTF-8 for Japanese text.
+  function buildRealizeSearchUrl(combined) {
+    if (!window.Encoding || typeof window.Encoding.convert !== "function" ||
+        typeof window.Encoding.urlEncode !== "function") return "";
+    const query = String(combined || "").trim();
+    const bytes = window.Encoding.convert(query, {
+      to: "EUCJP",
+      from: "UNICODE",
+      type: "array"
+    });
+    const encoded = window.Encoding.urlEncode(bytes).replace(/%20/g, "+");
+    return "https://realize-tcg.com/?mode=srh&cid=2956432%2C0&keyword=" +
+      encoded + "&encode=EUC-JP";
+  }
   const STORES = [
     { key: "amazon", label: "Amazon", build: (_, combined) => "https://www.amazon.co.jp/s?k=" + combined, affiliate: true },
     { key: "rakuten", label: "楽天市場", build: (_, combined) => "https://search.rakuten.co.jp/search/mall/" + combined + "/", affiliate: true },
@@ -16,7 +32,7 @@
     { key: "ajito", label: "カードショップアジト", build: name => "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + name },
     { key: "cardlabo", label: "カードラボ", build: name => "https://www.c-labo-online.jp/product-list?keyword=" + name + "&Submit=" },
     { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true },
-    { key: "realize", label: "REALiZE", build: (name, combined) => "https://realize-tcg.com/?mode=srh&cid=2956432%2C0&keyword=" + encodeURIComponent((String(combined).match(/ACG-[A-Z0-9-]+/i) || [String(combined)])[0]).replace(/%20/g, "+") + "&encode=EUC-JP" },
+    { key: "realize", label: "REALiZE", build: (name, combined) => buildRealizeSearchUrl(combined) },
     { key: "surugaya", label: "駿河屋", build: (name, combined) => "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(combined).replace(/%20/g, "+"), affiliate: true }
   ];
 
