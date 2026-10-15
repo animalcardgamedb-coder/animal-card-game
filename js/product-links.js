@@ -142,7 +142,9 @@
       if (store.key === "yellow_submarine") registeredUrl = store.build(nameQuery, combinedQuery);
       if (isLegacyGeneratedSearchUrl(registeredUrl, store, current.name)) registeredUrl = "";
       const href = affiliateUrl || registeredUrl || store.build(nameQuery, combinedQuery);
-      const anchor = makeAnchor(store.label, href);
+      // アフィリエイトURLが実際に採用されるボタンにはPR表記を付けます。
+      const buttonLabel = (affiliateUrl ? "【PR】" : "") + store.label;
+      const anchor = makeAnchor(buttonLabel, href);
       if (anchor) {
         anchor.dataset.store = store.key;
         if (affiliateUrl) anchor.dataset.linkType = "affiliate";
