@@ -121,9 +121,11 @@
       const parsed = new URL(currentUrl);
       if (store.key === "realize" &&
           parsed.hostname === "realize-tcg.com" &&
-          parsed.searchParams.get("mode") === "srh" &&
-          parsed.searchParams.get("encode") === "EUC-JP") {
-        return (parsed.searchParams.get("keyword") || "") === String(item.id || "").trim();
+          parsed.searchParams.get("mode") === "srh") {
+        // REALiZEの検索URLはカテゴリ・文字コード・検索語を本サイト側で統一して生成する。
+        // 旧URL（cid空欄 / UTF-8 / カードIDだけの検索語など）がシートに残っていても、
+        // 登録URLを優先せず、buildRealizeSearchUrl() で正しい検索URLを再生成する。
+        return true;
       }
       if (store.key === "surugaya" &&
           parsed.hostname === "www.suruga-ya.jp" &&
