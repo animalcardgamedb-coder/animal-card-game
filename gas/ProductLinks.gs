@@ -68,7 +68,7 @@ function syncProductLinkSheets() {
   const urlHeaders = ACG_PRODUCT_LINK_HEADERS_.slice(3);
   const productRows = items.map(item => {
     const old = oldProducts.get(item.type + "|" + item.id) || {};
-    const generated = makePurchaseSearchUrls_(item.name);
+    const generated = makePurchaseSearchUrls_(item);
     const defaults = [
       generated.amazon, generated.rakuten, generated.mercari,
       generated.yellow_submarine, generated.dragonstar, generated.ajito,
@@ -84,6 +84,10 @@ function syncProductLinkSheets() {
         // 以前の自動生成形式なら最新の指定形式へ更新します。
         // 商品ページなど手入力URLは維持します。
         if (!oldValue || oldValue === legacy[header]) return defaults[index] || "";
+        if (isLegacyRealizeSearchUrl_(oldValue, item.id) ||
+            isLegacySurugayaSearchUrl_(oldValue, item.id, item.name)) {
+          return defaults[index] || "";
+        }
         const legacyPrefix = legacySearchUrlPrefix_(header);
         if (legacyPrefix && oldValue.startsWith(legacyPrefix)) return defaults[index] || "";
         return oldValue;
@@ -143,10 +147,12 @@ function replaceProductDataRows_(sheet, headers, rows) {
   if (rows.length) sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
 }
 
-function makePurchaseSearchUrls_(name) {
-  const cleanName = String(name || "").trim();
+function makePurchaseSearchUrls_(item) {
+  const cardId = String(item && item.id || "").trim();
+  const cleanName = String(item && item.name || "").trim();
   const query = encodeURIComponent("アニマルカードゲーム " + cleanName);
   const nameQuery = encodeURIComponent(cleanName);
+  const surugayaQuery = encodeURIComponent([cardId, cleanName].filter(Boolean).join(" ")).replace(/%20/g, "+");
   return {
     amazon: "https://www.amazon.co.jp/s?k=" + query,
     rakuten: "https://search.rakuten.co.jp/search/mall/" + query + "/",
@@ -156,9 +162,34 @@ function makePurchaseSearchUrls_(name) {
     ajito: "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + nameQuery,
     cardlabo: "https://www.c-labo-online.jp/product-list?keyword=" + nameQuery + "&Submit=",
     gamers: "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + nameQuery,
-    realize: "https://realize-tcg.com/?mode=srh&cid=2956432%2C0&keyword=" + encodeURIComponent(card.id).replace(/%20/g, "+") + "&encode=EUC-JP",
-    surugaya: "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(card.id + " " + card.name).replace(/%20/g, "+")
+    // REALiZE's EUC-JP URL is generated in the browser using the bundled encoder.
+    realize: "",
+    surugaya: "https://www.suruga-ya.jp/search?category=&search_word=" + surugayaQuery
   };
+}
+
+function isLegacyRealizeSearchUrl_(raw, cardId) {
+  const value = String(raw || "").trim();
+  if (!/^https?:\/\/realize-tcg\.com\//i.test(value)) return false;
+  if (!/[?&]mode=srh(?:&|$)/i.test(value) || !/[?&]encode=EUC-JP(?:&|$)/i.test(value)) return false;
+  const match = value.match(/[?&]keyword=([^&]*)/i);
+  if (!match) return false;
+  let keyword = match[1];
+  try { keyword = decodeURIComponent(keyword.replace(/\+/g, "%20")); } catch (_) {}
+  return keyword === String(cardId || "").trim();
+}
+
+function isLegacySurugayaSearchUrl_(raw, cardId, cardName) {
+  const value = String(raw || "").trim();
+  if (!/^https?:\/\/www\.suruga-ya\.jp\/search(?:[?#]|$)/i.test(value)) return false;
+  const match = value.match(/[?&]search_word=([^&]*)/i);
+  if (!match) return false;
+  let keyword = match[1];
+  try { keyword = decodeURIComponent(keyword.replace(/\+/g, "%20")); } catch (_) {}
+  keyword = keyword.trim();
+  return keyword === ("アニマルカードゲーム " + String(cardName || "").trim()) ||
+    keyword === String(cardName || "").trim() ||
+    keyword === String(cardId || "").trim();
 }
 
 function makeLegacyPurchaseSearchUrls_(name) {
