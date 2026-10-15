@@ -1,14 +1,8 @@
 /*
- * 商品リンク関連シートの初期化・同期・GET API用データ。
+ * アフィリエイト・パック／デッキリンクシートの初期化・同期・GET API用データ。
  * 既存のスプレッドシートに紐づいたGASプロジェクトへ追加してください。
  */
 
-const ACG_PRODUCT_LINK_HEADERS_ = [
-  "種別", "カードID/領土ID", "カード名/領土名",
-  "Amazon", "楽天市場", "メルカリ", "イエローサブマリン",
-  "ドラゴンスター", "カードショップアジト", "カードラボ", "ゲーマーズ",
-  "REALiZE", "駿河屋"
-];
 const ACG_AFFILIATE_HEADERS_ = [
   "カードID", "カード名", "Amazon", "楽天市場", "メルカリ", "ゲーマーズ", "駿河屋"
 ];
@@ -22,7 +16,6 @@ const ACG_PACK_LINK_HEADERS_ = [
 function setupProductLinkSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error("スプレッドシートに紐づいたGASから実行してください。");
-  ensureProductHeaderSheet_(ss, "商品リンク", ACG_PRODUCT_LINK_HEADERS_);
   ensureProductHeaderSheet_(ss, "アフィリエイト", ACG_AFFILIATE_HEADERS_);
   ensureProductHeaderSheet_(ss, "パック・デッキリンク", ACG_PACK_LINK_HEADERS_);
   syncProductLinkSheets();
@@ -47,54 +40,11 @@ function ensureProductHeaderSheet_(ss, name, headers) {
 
 function syncProductLinkSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const productSheet = ss.getSheetByName("商品リンク");
   const affiliateSheet = ss.getSheetByName("アフィリエイト");
   const packSheet = ss.getSheetByName("パック・デッキリンク");
-  if (!productSheet || !affiliateSheet || !packSheet) {
+  if (!affiliateSheet || !packSheet) {
     throw new Error("先に setupProductLinkSheets() を実行してください。");
   }
-
-  const items = []
-    .concat(readProductMasterIndex_("Cards", "カード", "card_id", "card_name"))
-    .concat(readProductMasterIndex_("Territories", "領土", "territory_id", "territory_name"));
-
-  const oldProductRows = readProductRowsByHeader_(productSheet);
-  const oldProducts = new Map();
-  oldProductRows.forEach(row => {
-    const key = String(row["種別"] || "") + "|" + String(row["カードID/領土ID"] || "");
-    if (key !== "|") oldProducts.set(key, row);
-  });
-
-  const urlHeaders = ACG_PRODUCT_LINK_HEADERS_.slice(3);
-  const productRows = items.map(item => {
-    const old = oldProducts.get(item.type + "|" + item.id) || {};
-    const generated = makePurchaseSearchUrls_(item);
-    const defaults = [
-      generated.amazon, generated.rakuten, generated.mercari,
-      generated.yellow_submarine, generated.dragonstar, generated.ajito,
-      generated.cardlabo, generated.gamers, generated.realize, generated.surugaya
-    ];
-    const legacy = makeLegacyPurchaseSearchUrls_(item.name);
-    return [
-      item.type, item.id, item.name,
-      ...urlHeaders.map((header, index) => {
-        const oldValue = String(old[header] || "").trim();
-        // イエローサブマリンは、カード単品通販の固定案内URLへ必ず統一します。
-        if (header === "イエローサブマリン") return defaults[index] || "";
-        // 以前の自動生成形式なら最新の指定形式へ更新します。
-        // 商品ページなど手入力URLは維持します。
-        if (!oldValue || oldValue === legacy[header]) return defaults[index] || "";
-        if (isLegacyRealizeSearchUrl_(oldValue, item.id) ||
-            isLegacySurugayaSearchUrl_(oldValue, item.id, item.name)) {
-          return defaults[index] || "";
-        }
-        const legacyPrefix = legacySearchUrlPrefix_(header);
-        if (legacyPrefix && oldValue.startsWith(legacyPrefix)) return defaults[index] || "";
-        return oldValue;
-      })
-    ];
-  });
-  replaceProductDataRows_(productSheet, ACG_PRODUCT_LINK_HEADERS_, productRows);
 
   const oldAffiliateRows = readProductRowsByHeader_(affiliateSheet);
   const oldAffiliates = new Map();
@@ -147,74 +97,6 @@ function replaceProductDataRows_(sheet, headers, rows) {
   if (rows.length) sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
 }
 
-function makePurchaseSearchUrls_(item) {
-  const cardId = String(item && item.id || "").trim();
-  const cleanName = String(item && item.name || "").trim();
-  const query = encodeURIComponent("アニマルカードゲーム " + cleanName);
-  const nameQuery = encodeURIComponent(cleanName);
-  const surugayaQuery = encodeURIComponent([cardId, cleanName].filter(Boolean).join(" ")).replace(/%20/g, "+");
-  return {
-    amazon: "https://www.amazon.co.jp/s?k=" + query,
-    rakuten: "https://search.rakuten.co.jp/search/mall/" + query + "/",
-    mercari: "https://jp.mercari.com/search?keyword=" + query,
-    yellow_submarine: "https://shop.yellowsubmarine.co.jp/products/list?category_id=702040884",
-    dragonstar: "https://dorasuta.jp/acgtcg/product-list?kw=" + nameQuery,
-    ajito: "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + nameQuery,
-    cardlabo: "https://www.c-labo-online.jp/product-list?keyword=" + nameQuery + "&Submit=",
-    gamers: "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + nameQuery,
-    // REALiZE's EUC-JP URL is generated in the browser using the bundled encoder.
-    realize: "",
-    surugaya: "https://www.suruga-ya.jp/search?category=&search_word=" + surugayaQuery
-  };
-}
-
-function isLegacyRealizeSearchUrl_(raw, cardId) {
-  const value = String(raw || "").trim();
-  if (!/^https?:\/\/realize-tcg\.com\//i.test(value)) return false;
-  if (!/[?&]mode=srh(?:&|$)/i.test(value) || !/[?&]encode=EUC-JP(?:&|$)/i.test(value)) return false;
-  const match = value.match(/[?&]keyword=([^&]*)/i);
-  if (!match) return false;
-  let keyword = match[1];
-  try { keyword = decodeURIComponent(keyword.replace(/\+/g, "%20")); } catch (_) {}
-  return keyword === String(cardId || "").trim();
-}
-
-function isLegacySurugayaSearchUrl_(raw, cardId, cardName) {
-  const value = String(raw || "").trim();
-  if (!/^https?:\/\/www\.suruga-ya\.jp\/search(?:[?#]|$)/i.test(value)) return false;
-  const match = value.match(/[?&]search_word=([^&]*)/i);
-  if (!match) return false;
-  let keyword = match[1];
-  try { keyword = decodeURIComponent(keyword.replace(/\+/g, "%20")); } catch (_) {}
-  keyword = keyword.trim();
-  return keyword === ("アニマルカードゲーム " + String(cardName || "").trim()) ||
-    keyword === String(cardName || "").trim() ||
-    keyword === String(cardId || "").trim();
-}
-
-function makeLegacyPurchaseSearchUrls_(name) {
-  const query = encodeURIComponent("アニマルカードゲーム " + String(name || "").trim());
-  return {
-    Amazon: "https://www.amazon.co.jp/s?k=" + query,
-    "楽天市場": "https://search.rakuten.co.jp/search/mall/" + query + "/",
-    "メルカリ": "https://jp.mercari.com/search?keyword=" + query,
-    "イエローサブマリン": "https://shop.yellowsubmarine.co.jp/?mode=srh&keyword=" + query,
-    "ドラゴンスター": "https://dorasuta.jp/search?keyword=" + query,
-    "カードショップアジト": "https://cardshop-ajito.jp/?s=" + query,
-    "カードラボ": "https://www.c-labo-online.jp/products/list.php?name=" + query,
-    "ゲーマーズ": "https://www.gamers.co.jp/products/list.php?name=" + query
-  };
-}
-
-function legacySearchUrlPrefix_(header) {
-  return {
-    "ドラゴンスター": "https://dorasuta.jp/search?keyword=",
-    "カードショップアジト": "https://cardshop-ajito.jp/?s=",
-    "カードラボ": "https://www.c-labo-online.jp/products/list.php?name=",
-    "ゲーマーズ": "https://www.gamers.co.jp/products/list.php?name="
-  }[header] || "";
-}
-
 /*
  * Main.gs の doGet() が createJsonResponse() を呼ぶ前に次の3プロパティをレスポンスへ追加します。
  * const linkData = getPurchaseLinkDataForApi_();
@@ -227,24 +109,8 @@ function legacySearchUrlPrefix_(header) {
 function getPurchaseLinkDataForApi_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   return {
-    productLinks: (function () {
-      const sheet = ss.getSheetByName("商品リンク");
-      return readProductRowsByHeader_(sheet).map(row => ({
-        item_type: row["種別"] === "領土" ? "territory" : "card",
-        item_id: String(row["カードID/領土ID"] || ""),
-        item_name: String(row["カード名/領土名"] || ""),
-        amazon_url: String(row["Amazon"] || ""),
-        rakuten_url: String(row["楽天市場"] || ""),
-        mercari_url: String(row["メルカリ"] || ""),
-        yellow_submarine_url: String(row["イエローサブマリン"] || ""),
-        dragonstar_url: String(row["ドラゴンスター"] || ""),
-        ajito_url: String(row["カードショップアジト"] || ""),
-        cardlabo_url: String(row["カードラボ"] || ""),
-        gamers_url: String(row["ゲーマーズ"] || ""),
-        realize_url: String(row["REALiZE"] || ""),
-        surugaya_url: String(row["駿河屋"] || "")
-      }));
-    })(),
+    // 互換性のため空配列を返します。通常の購入検索URLはフロントエンドで生成します。
+    productLinks: [],
     affiliateLinks: (function () {
       const sheet = ss.getSheetByName("アフィリエイト");
       return readProductRowsByHeader_(sheet).map(row => ({
