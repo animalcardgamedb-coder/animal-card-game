@@ -6,16 +6,17 @@
 const ACG_PRODUCT_LINK_HEADERS_ = [
   "種別", "カードID/領土ID", "カード名/領土名",
   "Amazon", "楽天市場", "メルカリ", "イエローサブマリン",
-  "ドラゴンスター", "カードショップアジト", "カードラボ", "ゲーマーズ"
+  "ドラゴンスター", "カードショップアジト", "カードラボ", "ゲーマーズ",
+  "REALiZE", "駿河屋"
 ];
 const ACG_AFFILIATE_HEADERS_ = [
-  "カードID", "カード名", "Amazon", "楽天市場", "メルカリ", "ゲーマーズ"
+  "カードID", "カード名", "Amazon", "楽天市場", "メルカリ", "ゲーマーズ", "駿河屋"
 ];
 const ACG_PACK_LINK_HEADERS_ = [
   "商品種別", "商品名", "公式商品URL",
   "Amazon", "楽天市場", "メルカリ", "イエローサブマリン",
   "ドラゴンスター", "カードショップアジト", "カードラボ", "ゲーマーズ",
-  "収録カードID"
+  "収録カードID", "REALiZE", "駿河屋"
 ];
 
 function setupProductLinkSheets() {
@@ -71,13 +72,15 @@ function syncProductLinkSheets() {
     const defaults = [
       generated.amazon, generated.rakuten, generated.mercari,
       generated.yellow_submarine, generated.dragonstar, generated.ajito,
-      generated.cardlabo, generated.gamers
+      generated.cardlabo, generated.gamers, generated.realize, generated.surugaya
     ];
     const legacy = makeLegacyPurchaseSearchUrls_(item.name);
     return [
       item.type, item.id, item.name,
       ...urlHeaders.map((header, index) => {
         const oldValue = String(old[header] || "").trim();
+        // イエローサブマリンは、カード単品通販の固定案内URLへ必ず統一します。
+        if (header === "イエローサブマリン") return defaults[index] || "";
         // 以前の自動生成形式なら最新の指定形式へ更新します。
         // 商品ページなど手入力URLは維持します。
         if (!oldValue || oldValue === legacy[header]) return defaults[index] || "";
@@ -100,7 +103,7 @@ function syncProductLinkSheets() {
     const old = oldAffiliates.get(card.id) || {};
     return [
       card.id, card.name, old["Amazon"] || "", old["楽天市場"] || "",
-      old["メルカリ"] || "", old["ゲーマーズ"] || ""
+      old["メルカリ"] || "", old["ゲーマーズ"] || "", old["駿河屋"] || ""
     ];
   });
   replaceProductDataRows_(affiliateSheet, ACG_AFFILIATE_HEADERS_, affiliateRows);
@@ -148,11 +151,13 @@ function makePurchaseSearchUrls_(name) {
     amazon: "https://www.amazon.co.jp/s?k=" + query,
     rakuten: "https://search.rakuten.co.jp/search/mall/" + query + "/",
     mercari: "https://jp.mercari.com/search?keyword=" + query,
-    yellow_submarine: "https://shop.yellowsubmarine.co.jp/?mode=srh&keyword=" + query,
+    yellow_submarine: "https://shop.yellowsubmarine.co.jp/products/list?category_id=702040884",
     dragonstar: "https://dorasuta.jp/acgtcg/product-list?kw=" + nameQuery,
     ajito: "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + nameQuery,
     cardlabo: "https://www.c-labo-online.jp/product-list?keyword=" + nameQuery + "&Submit=",
-    gamers: "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + nameQuery
+    gamers: "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + nameQuery,
+    realize: "https://realize-tcg.com/?mode=srh&cid=&keyword=" + nameQuery + "&encode=UTF-8",
+    surugaya: "https://www.suruga-ya.jp/search?category=&search_word=" + nameQuery
   };
 }
 
@@ -203,7 +208,9 @@ function getPurchaseLinkDataForApi_() {
         dragonstar_url: String(row["ドラゴンスター"] || ""),
         ajito_url: String(row["カードショップアジト"] || ""),
         cardlabo_url: String(row["カードラボ"] || ""),
-        gamers_url: String(row["ゲーマーズ"] || "")
+        gamers_url: String(row["ゲーマーズ"] || ""),
+        realize_url: String(row["REALiZE"] || ""),
+        surugaya_url: String(row["駿河屋"] || "")
       }));
     })(),
     affiliateLinks: (function () {
@@ -214,7 +221,8 @@ function getPurchaseLinkDataForApi_() {
         amazon_url: String(row["Amazon"] || ""),
         rakuten_url: String(row["楽天市場"] || ""),
         mercari_url: String(row["メルカリ"] || ""),
-        gamers_url: String(row["ゲーマーズ"] || "")
+        gamers_url: String(row["ゲーマーズ"] || ""),
+        surugaya_url: String(row["駿河屋"] || "")
       }));
     })(),
     packLinks: (function () {
@@ -231,6 +239,8 @@ function getPurchaseLinkDataForApi_() {
         ajito_url: String(row["カードショップアジト"] || ""),
         cardlabo_url: String(row["カードラボ"] || ""),
         gamers_url: String(row["ゲーマーズ"] || ""),
+        realize_url: String(row["REALiZE"] || ""),
+        surugaya_url: String(row["駿河屋"] || ""),
         card_ids: String(row["収録カードID"] || "")
       }));
     })()
