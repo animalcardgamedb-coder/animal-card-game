@@ -87,15 +87,6 @@
     return ["card", "カード", "基礎"].includes(value);
   }
 
-  function findProductRow(item) {
-    const rows = Array.isArray(window.appState && window.appState.productLinks) ? window.appState.productLinks : [];
-    const current = currentItem(item);
-    return rows.find(row =>
-      readValue(row, ["item_id", "カードID/領土ID", "カードID", "領土ID", "ID"]) === current.id &&
-      typeMatches(readValue(row, ["item_type", "種別", "種類", "商品種別"]), current.type)
-    ) || null;
-  }
-
   function findAffiliateRow(item) {
     if (!AFFILIATE_LINKS_ENABLED || !item || item.territory_id) return null;
     const id = String(item.card_id || "").trim();
@@ -173,16 +164,14 @@
     const current = currentItem(item);
     const nameQuery = encodeURIComponent(current.name);
     const combinedQuery = encodeURIComponent("アニマルカードゲーム " + current.name);
-    const productRow = findProductRow(item);
     const affiliateRow = findAffiliateRow(item);
 
     STORES.forEach(store => {
       const affiliateUrl = store.affiliate ? safeHttpUrl(storeUrl(affiliateRow, store)) : "";
-      let registeredUrl = safeHttpUrl(storeUrl(productRow, store));
-      if (store.key === "yellow_submarine") registeredUrl = store.build(nameQuery, combinedQuery);
-      if (isLegacyGeneratedSearchUrl(registeredUrl, store, current)) registeredUrl = "";
       const searchHref = store.build(nameQuery, combinedQuery);
-      const href = affiliateUrl || registeredUrl || searchHref;
+      // 通常の検索URLはフロントエンドで生成し、商品リンクシートには依存しません。
+      // 実際のアフィリエイトURLが登録されている店舗だけ、そちらを優先します。
+      const href = affiliateUrl || searchHref;
       // アフィリエイトURLが実際に採用されるボタンにはPR表記を付けます。
       const buttonLabel = (affiliateUrl ? "【PR】" : "") + store.label;
       const anchor = makeAnchor(buttonLabel, href);
