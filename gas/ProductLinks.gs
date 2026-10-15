@@ -169,28 +169,27 @@ function makePurchaseSearchUrls_(item) {
 }
 
 function isLegacyRealizeSearchUrl_(raw, cardId) {
-  try {
-    const url = new URL(String(raw || ""));
-    if (url.hostname !== "realize-tcg.com" || url.searchParams.get("mode") !== "srh") return false;
-    if (url.searchParams.get("encode") !== "EUC-JP") return false;
-    const keyword = url.searchParams.get("keyword") || "";
-    return keyword === String(cardId || "").trim();
-  } catch (_) {
-    return false;
-  }
+  const value = String(raw || "").trim();
+  if (!/^https?:\/\/realize-tcg\.com\//i.test(value)) return false;
+  if (!/[?&]mode=srh(?:&|$)/i.test(value) || !/[?&]encode=EUC-JP(?:&|$)/i.test(value)) return false;
+  const match = value.match(/[?&]keyword=([^&]*)/i);
+  if (!match) return false;
+  let keyword = match[1];
+  try { keyword = decodeURIComponent(keyword.replace(/\+/g, "%20")); } catch (_) {}
+  return keyword === String(cardId || "").trim();
 }
 
 function isLegacySurugayaSearchUrl_(raw, cardId, cardName) {
-  try {
-    const url = new URL(String(raw || ""));
-    if (url.hostname !== "www.suruga-ya.jp" || !url.pathname.startsWith("/search")) return false;
-    const keyword = (url.searchParams.get("search_word") || "").trim();
-    return keyword === ("アニマルカードゲーム " + String(cardName || "").trim()) ||
-      keyword === String(cardName || "").trim() ||
-      keyword === String(cardId || "").trim();
-  } catch (_) {
-    return false;
-  }
+  const value = String(raw || "").trim();
+  if (!/^https?:\/\/www\.suruga-ya\.jp\/search(?:[?#]|$)/i.test(value)) return false;
+  const match = value.match(/[?&]search_word=([^&]*)/i);
+  if (!match) return false;
+  let keyword = match[1];
+  try { keyword = decodeURIComponent(keyword.replace(/\+/g, "%20")); } catch (_) {}
+  keyword = keyword.trim();
+  return keyword === ("アニマルカードゲーム " + String(cardName || "").trim()) ||
+    keyword === String(cardName || "").trim() ||
+    keyword === String(cardId || "").trim();
 }
 
 function makeLegacyPurchaseSearchUrls_(name) {
