@@ -13,7 +13,7 @@
   function buildRealizeSearchUrl(combined) {
     if (!window.Encoding || typeof window.Encoding.convert !== "function" ||
         typeof window.Encoding.urlEncode !== "function") return "";
-    const query = String(combined || "").trim();
+    const query = decodeURIComponent(String(combined || "").replace(/\+/g, "%20")).trim();
     const bytes = window.Encoding.convert(query, {
       to: "EUCJP",
       from: "UNICODE",
@@ -114,10 +114,30 @@
     return knownPrefixes[storeKey] ? knownPrefixes[storeKey] + query : "";
   }
 
-  function isLegacyGeneratedSearchUrl(url, store, cardName) {
-    const current = safeHttpUrl(url);
-    const legacy = safeHttpUrl(legacyGeneratedSearchUrl(store.key, cardName));
-    return Boolean(current && legacy && current === legacy);
+  function isLegacyGeneratedSearchUrl(url, store, item) {
+    const currentUrl = safeHttpUrl(url);
+    if (!currentUrl) return false;
+    try {
+      const parsed = new URL(currentUrl);
+      if (store.key === "realize" &&
+          parsed.hostname === "realize-tcg.com" &&
+          parsed.searchParams.get("mode") === "srh" &&
+          parsed.searchParams.get("encode") === "EUC-JP") {
+        return (parsed.searchParams.get("keyword") || "") === String(item.id || "").trim();
+      }
+      if (store.key === "surugaya" &&
+          parsed.hostname === "www.suruga-ya.jp" &&
+          parsed.pathname.startsWith("/search")) {
+        const keyword = (parsed.searchParams.get("search_word") || "").trim();
+        return keyword === ("アニマルカードゲーム " + String(item.name || "").trim()) ||
+          keyword === String(item.name || "").trim() ||
+          keyword === String(item.id || "").trim();
+      }
+    } catch (_) {
+      return false;
+    }
+    const legacy = safeHttpUrl(legacyGeneratedSearchUrl(store.key, item.name));
+    return Boolean(legacy && currentUrl === legacy);
   }
 
   function makeAnchor(label, href, className) {
@@ -149,6 +169,7 @@
     const current = currentItem(item);
     const nameQuery = encodeURIComponent(current.name);
     const combinedQuery = encodeURIComponent("アニマルカードゲーム " + current.name);
+    const realizeQuery = encodeURIComponent([current.id, current.name].filter(Boolean).join(" "));
     const productRow = findProductRow(item);
     const affiliateRow = findAffiliateRow(item);
 
@@ -156,8 +177,10 @@
       const affiliateUrl = store.affiliate ? safeHttpUrl(storeUrl(affiliateRow, store)) : "";
       let registeredUrl = safeHttpUrl(storeUrl(productRow, store));
       if (store.key === "yellow_submarine") registeredUrl = store.build(nameQuery, combinedQuery);
-      if (isLegacyGeneratedSearchUrl(registeredUrl, store, current.name)) registeredUrl = "";
-      const searchHref = store.build(nameQuery, combinedQuery);
+      if (isLegacyGeneratedSearchUrl(registeredUrl, store, current)) registeredUrl = "";
+      const searchHref = store.key === "realize"
+        ? store.build(nameQuery, realizeQuery)
+        : store.build(nameQuery, combinedQuery);
       const href = affiliateUrl || registeredUrl || searchHref;
       // アフィリエイトURLが実際に採用されるボタンにはPR表記を付けます。
       const buttonLabel = (affiliateUrl ? "【PR】" : "") + store.label;
