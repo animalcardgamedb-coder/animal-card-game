@@ -157,6 +157,10 @@ function importOfficialProductCatalog() {
     }
   }
 
+  // 商品情報の更新後、行全体を発売日の新しい順に並べ替える。
+  // 販売サイトURLや収録カードIDなどの手入力データも商品行と一緒に移動する。
+  opiSortPackLinkRowsByReleaseDate_(sheet, columnByHeader);
+
   const summary = {
     success: failed === 0,
     found: productUrls.length,
@@ -168,6 +172,90 @@ function importOfficialProductCatalog() {
 
   Logger.log(JSON.stringify(summary, null, 2));
   return summary;
+}
+
+
+/**
+ * 「パック・デッキリンク」の商品行を発売日の新しい順に整列。
+ * 日付が読み取れない商品は最後に配置する。
+ * 一時的な補助列で行全体を並べ替え、補助列の値は最後に消去する。
+ */
+function opiSortPackLinkRowsByReleaseDate_(sheet, columnByHeader) {
+  const releaseDateIndex = columnByHeader["発売日"];
+  if (releaseDateIndex === undefined) {
+    throw new Error("パック・デッキリンクに「発売日」列がありません。");
+  }
+
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow <= 2 || lastColumn < 1) return 0;
+
+  const dateValues = sheet
+    .getRange(2, releaseDateIndex + 1, lastRow - 1, 1)
+    .getDisplayValues();
+
+  const sortValues = dateValues.map(function(row) {
+    const timestamp = opiParseReleaseDateSortTimestamp_(row[0]);
+    // 発売日不明の商品は既知の日付より古い値として末尾へ送る。
+    return [timestamp ? new Date(timestamp) : new Date(0)];
+  });
+
+  const helperColumn = lastColumn + 1;
+  sheet.getRange(2, helperColumn, lastRow - 1, 1).setValues(sortValues);
+
+  try {
+    // ヘッダー行は除外し、商品行全体を一緒に並べ替える。
+    sheet.getRange(2, 1, lastRow - 1, helperColumn)
+      .sort({ column: helperColumn, ascending: false });
+  } finally {
+    // 一時列の値は残さない。元のデータ列には変更を加えない。
+    sheet.getRange(2, helperColumn, lastRow - 1, 1).clearContent();
+  }
+
+  return lastRow - 1;
+}
+
+
+/**
+ * 日本語表記・スラッシュ・ハイフン等の日付を並び替え用の時刻へ変換。
+ * 年月だけの場合はその月の1日として扱う。
+ */
+function opiParseReleaseDateSortTimestamp_(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value.getTime();
+  }
+
+  const text = String(value || "").trim();
+  if (!text) return 0;
+
+  const match = text.match(
+    /(\d{4})\s*(?:年|[/.－-])\s*(\d{1,2})\s*(?:月|[/.－-])?\s*(\d{1,2})?\s*日?/
+  );
+  if (!match) return 0;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = match[3] ? Number(match[3]) : 1;
+
+  if (
+    year < 1900 || year > 2200 ||
+    month < 1 || month > 12 ||
+    day < 1 || day > 31
+  ) {
+    return 0;
+  }
+
+  const timestamp = Date.UTC(year, month - 1, day);
+  const parsed = new Date(timestamp);
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return 0;
+  }
+
+  return timestamp;
 }
 
 
