@@ -13,7 +13,9 @@
   function buildRealizeSearchUrl(combined) {
     if (!window.Encoding || typeof window.Encoding.convert !== "function" ||
         typeof window.Encoding.urlEncode !== "function") return "";
-    const query = decodeURIComponent(String(combined || "").replace(/\+/g, "%20")).trim();
+    const query = decodeURIComponent(String(combined || "").replace(/\+/g, "%20"))
+      .trim()
+      .replace(/Ⅱ/g, "II");
     const bytes = window.Encoding.convert(query, {
       to: "EUCJP",
       from: "UNICODE",
@@ -32,7 +34,7 @@
     { key: "ajito", label: "カードショップアジト", build: name => "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + name },
     { key: "cardlabo", label: "カードラボ", build: name => "https://www.c-labo-online.jp/product-list?keyword=" + name + "&Submit=" },
     { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true },
-    { key: "realize", label: "REALiZE", build: (name, combined) => buildRealizeSearchUrl(combined) },
+    { key: "realize", label: "REALiZE", build: name => buildRealizeSearchUrl(name) },
     { key: "surugaya", label: "駿河屋", build: (name, combined) => "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(combined).replace(/%20/g, "+"), affiliate: true }
   ];
 
@@ -121,9 +123,11 @@
       const parsed = new URL(currentUrl);
       if (store.key === "realize" &&
           parsed.hostname === "realize-tcg.com" &&
-          parsed.searchParams.get("mode") === "srh" &&
-          parsed.searchParams.get("encode") === "EUC-JP") {
-        return (parsed.searchParams.get("keyword") || "") === String(item.id || "").trim();
+          parsed.searchParams.get("mode") === "srh") {
+        // REALiZEの検索URLはカテゴリ・文字コード・検索語を本サイト側で統一して生成する。
+        // 旧URL（cid空欄 / UTF-8 / カードIDだけの検索語など）がシートに残っていても、
+        // 登録URLを優先せず、buildRealizeSearchUrl() で正しい検索URLを再生成する。
+        return true;
       }
       if (store.key === "surugaya" &&
           parsed.hostname === "www.suruga-ya.jp" &&
@@ -169,7 +173,6 @@
     const current = currentItem(item);
     const nameQuery = encodeURIComponent(current.name);
     const combinedQuery = encodeURIComponent("アニマルカードゲーム " + current.name);
-    const realizeQuery = encodeURIComponent([current.id, current.name].filter(Boolean).join(" "));
     const productRow = findProductRow(item);
     const affiliateRow = findAffiliateRow(item);
 
@@ -178,9 +181,7 @@
       let registeredUrl = safeHttpUrl(storeUrl(productRow, store));
       if (store.key === "yellow_submarine") registeredUrl = store.build(nameQuery, combinedQuery);
       if (isLegacyGeneratedSearchUrl(registeredUrl, store, current)) registeredUrl = "";
-      const searchHref = store.key === "realize"
-        ? store.build(nameQuery, realizeQuery)
-        : store.build(nameQuery, combinedQuery);
+      const searchHref = store.build(nameQuery, combinedQuery);
       const href = affiliateUrl || registeredUrl || searchHref;
       // アフィリエイトURLが実際に採用されるボタンにはPR表記を付けます。
       const buttonLabel = (affiliateUrl ? "【PR】" : "") + store.label;
