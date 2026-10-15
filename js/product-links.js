@@ -16,7 +16,7 @@
     { key: "ajito", label: "カードショップアジト", build: name => "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + name },
     { key: "cardlabo", label: "カードラボ", build: name => "https://www.c-labo-online.jp/product-list?keyword=" + name + "&Submit=" },
     { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true },
-    { key: "realize", label: "REALiZE", build: (name, combined) => "https://realize-tcg.com/?mode=srh&cid=2956432%2C0&keyword=" + encodeURIComponent(combined).replace(/%20/g, "+") + "&encode=UTF-8" },
+    { key: "realize", label: "REALiZE", build: (name, combined) => "https://realize-tcg.com/?mode=srh&cid=2956432%2C0&keyword=" + encodeURIComponent((String(combined).match(/ACG-[A-Z0-9-]+/i) || [String(combined)])[0]).replace(/%20/g, "+") + "&encode=EUC-JP" },
     { key: "surugaya", label: "駿河屋", build: (name, combined) => "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(combined).replace(/%20/g, "+"), affiliate: true }
   ];
 
