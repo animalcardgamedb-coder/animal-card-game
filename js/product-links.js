@@ -72,8 +72,8 @@
   }
 
   // Affiliate providers may supply either a plain tracking URL or a complete HTML
-  // ad snippet. Keep the snippet byte-for-byte as provided and render it in a
-  // sandboxed srcdoc iframe; never extract or rewrite the tracking link.
+  // ad snippet. Keep the supplied snippet intact inside a lightweight document
+  // wrapper; the base target makes ordinary ad-link clicks open a new tab.
   function readHtmlAdCode(raw) {
     const code = String(raw || "").trim();
     if (!/<\s*[a-z][^>]*>/i.test(code)) return "";
@@ -115,11 +115,11 @@
     const frame = document.createElement("iframe");
     frame.className = "detail-ad-frame";
     frame.title = store.label + "の広告";
-    frame.setAttribute("sandbox", "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation");
+    frame.setAttribute("sandbox", "allow-scripts allow-popups allow-popups-to-escape-sandbox");
     frame.setAttribute("loading", "lazy");
     frame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
     frame.setAttribute("height", String(estimateAdCodeHeight(code)));
-    frame.srcdoc = code;
+    frame.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><base target="_blank"></head><body>' + code + '</body></html>';
 
     if (disclosure) block.append(disclosure);
     block.append(frame);
