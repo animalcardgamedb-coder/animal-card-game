@@ -185,7 +185,11 @@
     });
   }
   async function openDeck(deck) {
-    try { state.deck = state.tab === "mine" ? await app().select(deck.id) : app().viewPublic(deck); state.publicView = state.tab !== "mine"; setScreen("builder"); }
+    try {
+      state.deck = state.tab === "mine" ? await app().select(deck.id) : app().viewPublic(deck);
+      state.publicView = state.tab !== "mine";
+      setScreen(state.publicView ? "preview" : "builder");
+    }
     catch (error) { setStatus(error.message || "デッキを開けませんでした。"); }
   }
   function renderBuilder() {
@@ -539,9 +543,24 @@
       const item = byItemId(card.itemId);
       const el = document.createElement("div");
       el.className = "preview-card";
-      el.innerHTML = (item?.image_url ? '<img loading="lazy" src="' + escapeHTML(item.image_url) + '" alt="' + escapeHTML(card.name) + '">' : "") +
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", item ? "0" : "-1");
+      el.setAttribute("aria-label", String(card.name || "カード") + "の詳細を表示");
+      el.style.cursor = item ? "pointer" : "default";
+      el.innerHTML = (item?.image_url ? '<img loading="lazy" src="' + escapeHTML(item.image_url) + '" alt="">' : "") +
         '<span>' + escapeHTML(card.name || "カード") + '</span>' +
         (expandCopies ? "" : '<b>×' + Number(card.quantity || 1) + '</b>');
+      const openPreviewCardDetail = () => {
+        if (!item || typeof window.showCardDetail !== "function") return;
+        state.pendingCard = item;
+        window.showCardDetail(item, { deckBuilder: !state.publicView });
+      };
+      el.addEventListener("click", openPreviewCardDetail);
+      el.addEventListener("keydown", event => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openPreviewCardDetail();
+      });
       grid.append(el);
     });
     const textCards = expandCopies ? displayCards : cards;
@@ -848,7 +867,13 @@
     $("public-decks-tab").addEventListener("click", () => { state.tab = "public"; $("public-decks-tab").classList.add("active"); $("my-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "false"); $("public-decks-tab").setAttribute("aria-selected", "true"); refreshDecks(); });
     $("deck-search").addEventListener("input", () => renderDeckTiles(state.decks)); $("deck-sort-select").addEventListener("change", () => renderDeckTiles(state.decks));
     $("deck-list-view-toggle").addEventListener("click", () => { state.compact = !state.compact; renderDeckTiles(state.decks); });
-    document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => setScreen(button.dataset.back === "builder" ? "builder" : "decks")));
+    document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => {
+      if (button.dataset.back === "builder" && state.publicView && state.screen === "preview") {
+        setScreen("decks");
+        return;
+      }
+      setScreen(button.dataset.back === "builder" ? "builder" : "decks");
+    }));
     const applyBuilderSearch = () => { state.builderQuery = $("builder-search").value; renderBuilderCards(); };
     $("builder-search").addEventListener("input", applyBuilderSearch);
     $("builder-search").addEventListener("keydown", event => {
