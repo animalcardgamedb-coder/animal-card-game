@@ -11,11 +11,13 @@
     { key: "amazon", label: "Amazon", build: (_, combined) => "https://www.amazon.co.jp/s?k=" + combined, affiliate: true },
     { key: "rakuten", label: "楽天市場", build: (_, combined) => "https://search.rakuten.co.jp/search/mall/" + combined + "/", affiliate: true },
     { key: "mercari", label: "メルカリ", build: (_, combined) => "https://jp.mercari.com/search?keyword=" + combined, affiliate: true },
-    { key: "yellow_submarine", label: "イエローサブマリン", build: (_, combined) => "https://shop.yellowsubmarine.co.jp/?mode=srh&keyword=" + combined },
+    { key: "yellow_submarine", label: "イエローサブマリン", build: () => "https://shop.yellowsubmarine.co.jp/products/list?category_id=702040884" },
     { key: "dragonstar", label: "ドラゴンスター", build: name => "https://dorasuta.jp/acgtcg/product-list?kw=" + name },
     { key: "ajito", label: "カードショップアジト", build: name => "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + name },
     { key: "cardlabo", label: "カードラボ", build: name => "https://www.c-labo-online.jp/product-list?keyword=" + name + "&Submit=" },
-    { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true }
+    { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true },
+    { key: "realize", label: "REALiZE", build: name => "https://realize-tcg.com/?mode=srh&cid=&keyword=" + name + "&encode=UTF-8" },
+    { key: "surugaya", label: "駿河屋", build: name => "https://www.suruga-ya.jp/search?category=&search_word=" + name, affiliate: true }
   ];
 
   function readValue(row, keys) {
@@ -35,6 +37,8 @@
     if (store.key === "ajito") keys.push("カードショップアジト");
     if (store.key === "cardlabo") keys.push("カードラボリンク");
     if (store.key === "gamers") keys.push("ゲーマーズリンク");
+    if (store.key === "realize") keys.push("REALiZEリンク");
+    if (store.key === "surugaya") keys.push("駿河屋リンク");
     return readValue(row, keys);
   }
 
@@ -135,6 +139,7 @@
     STORES.forEach(store => {
       const affiliateUrl = store.affiliate ? safeHttpUrl(storeUrl(affiliateRow, store)) : "";
       let registeredUrl = safeHttpUrl(storeUrl(productRow, store));
+      if (store.key === "yellow_submarine") registeredUrl = store.build(nameQuery, combinedQuery);
       if (isLegacyGeneratedSearchUrl(registeredUrl, store, current.name)) registeredUrl = "";
       const href = affiliateUrl || registeredUrl || store.build(nameQuery, combinedQuery);
       const anchor = makeAnchor(store.label, href);
