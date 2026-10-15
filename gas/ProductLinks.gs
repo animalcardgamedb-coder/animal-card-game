@@ -156,8 +156,8 @@ function makePurchaseSearchUrls_(name) {
     ajito: "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + nameQuery,
     cardlabo: "https://www.c-labo-online.jp/product-list?keyword=" + nameQuery + "&Submit=",
     gamers: "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + nameQuery,
-    realize: "https://realize-tcg.com/?mode=srh&cid=&keyword=" + nameQuery + "&encode=UTF-8",
-    surugaya: "https://www.suruga-ya.jp/search?category=&search_word=" + nameQuery
+    realize: "https://realize-tcg.com/?mode=srh&cid=2956432%2C0&keyword=" + encodeEucJpQuery_(card.id + " " + card.name) + "&encode=EUC-JP",
+    surugaya: "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(card.id + " " + card.name).replace(/%20/g, "+")
   };
 }
 
@@ -192,6 +192,29 @@ function legacySearchUrlPrefix_(header) {
  * responseData.packLinks = linkData.packLinks;
  * responseData は、既存doGetで cards / territories をまとめている変数名に合わせてください。
  */
+
+/**
+ * REALiZEの検索フォームはEUC-JPを指定するため、検索語をEUC-JPのフォーム形式でURLエンコードします。
+ * Apps ScriptのUtilitiesを使い、半角スペースは+に変換します。
+ */
+function encodeEucJpQuery_(value) {
+  const bytes = Utilities.newBlob(String(value || ""), "text/plain").getDataAsString("EUC-JP");
+  const encoded = [];
+  for (let i = 0; i < bytes.length; i++) {
+    const code = bytes.charCodeAt(i) & 0xff;
+    const char = String.fromCharCode(code);
+    if ((code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a) ||
+        (code >= 0x30 && code <= 0x39) || "-_.!*()".indexOf(char) >= 0) {
+      encoded.push(char);
+    } else if (char === " ") {
+      encoded.push("+");
+    } else {
+      encoded.push("%" + code.toString(16).toUpperCase().padStart(2, "0"));
+    }
+  }
+  return encoded.join("");
+}
+
 function getPurchaseLinkDataForApi_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   return {
