@@ -16,8 +16,8 @@
     { key: "ajito", label: "カードショップアジト", build: name => "https://shop.tcg-ajito.com/search/animal_card/list?free_word=" + name },
     { key: "cardlabo", label: "カードラボ", build: name => "https://www.c-labo-online.jp/product-list?keyword=" + name + "&Submit=" },
     { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true },
-    { key: "realize", label: "REALiZE", build: name => "https://realize-tcg.com/?mode=srh&cid=&keyword=" + name + "&encode=UTF-8" },
-    { key: "surugaya", label: "駿河屋", build: name => "https://www.suruga-ya.jp/search?category=&search_word=" + name, affiliate: true }
+    { key: "realize", label: "REALiZE", build: (name, combined) => "https://realize-tcg.com/?mode=srh&cid=2956432%2C0&keyword=" + encodeURIComponent(combined).replace(/%20/g, "+") + "&encode=UTF-8" },
+    { key: "surugaya", label: "駿河屋", build: (name, combined) => "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(combined).replace(/%20/g, "+"), affiliate: true }
   ];
 
   function readValue(row, keys) {
@@ -141,7 +141,8 @@
       let registeredUrl = safeHttpUrl(storeUrl(productRow, store));
       if (store.key === "yellow_submarine") registeredUrl = store.build(nameQuery, combinedQuery);
       if (isLegacyGeneratedSearchUrl(registeredUrl, store, current.name)) registeredUrl = "";
-      const href = affiliateUrl || registeredUrl || store.build(nameQuery, combinedQuery);
+      const searchHref = store.build(nameQuery, combinedQuery);
+      const href = affiliateUrl || registeredUrl || searchHref;
       // アフィリエイトURLが実際に採用されるボタンにはPR表記を付けます。
       const buttonLabel = (affiliateUrl ? "【PR】" : "") + store.label;
       const anchor = makeAnchor(buttonLabel, href);
