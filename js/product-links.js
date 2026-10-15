@@ -102,20 +102,27 @@
     const block = document.createElement("div");
     block.className = "detail-ad-code";
 
-    const disclosure = document.createElement("span");
-    disclosure.className = "detail-ad-label";
-    disclosure.textContent = "【PR】" + store.label;
+    // If the advertiser's own creative already contains the PR/store label,
+    // do not duplicate it outside the untouched ad snippet.
+    const hasPrLabelInCreative = /【\s*PR\s*】/.test(code);
+    let disclosure = null;
+    if (!hasPrLabelInCreative) {
+      disclosure = document.createElement("span");
+      disclosure.className = "detail-ad-label";
+      disclosure.textContent = "【PR】" + store.label;
+    }
 
     const frame = document.createElement("iframe");
     frame.className = "detail-ad-frame";
     frame.title = store.label + "の広告";
-    frame.setAttribute("sandbox", "allow-scripts allow-popups allow-top-navigation-by-user-activation");
+    frame.setAttribute("sandbox", "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation");
     frame.setAttribute("loading", "lazy");
     frame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
     frame.setAttribute("height", String(estimateAdCodeHeight(code)));
     frame.srcdoc = code;
 
-    block.append(disclosure, frame);
+    if (disclosure) block.append(disclosure);
+    block.append(frame);
     return block;
   }
 
