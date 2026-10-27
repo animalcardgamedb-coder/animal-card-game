@@ -15,7 +15,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261015-1"
+    href="css/style.css?v=20261027-1"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -897,12 +897,21 @@
       </div>
 
 
-      <fieldset id="card-user-tag-editor" class="card-user-tag-editor">
-        <legend>ユーザータグ</legend>
-        <div id="detail-user-tag-options" class="user-tag-options"></div>
-        <p id="detail-user-tag-status" class="feature-status" role="status"></p>
-        <button id="save-card-user-tags-button" class="primary-button" type="button">タグを保存</button>
-      </fieldset>
+      <section id="card-user-tag-section" class="card-user-tag-section" aria-label="ユーザータグ">
+        <div class="card-user-tag-display">
+          <div id="detail-user-tags" class="user-tag-chips" aria-label="設定済みユーザータグ"></div>
+          <button id="edit-card-user-tags-button" class="outline-button" type="button" aria-expanded="false" aria-controls="card-user-tag-editor">編集</button>
+        </div>
+        <fieldset id="card-user-tag-editor" class="card-user-tag-editor" hidden>
+          <legend>ユーザータグを設定</legend>
+          <div id="detail-user-tag-options" class="user-tag-options"></div>
+          <div class="card-user-tag-editor-actions">
+            <button id="save-card-user-tags-button" class="primary-button" type="button">保存</button>
+            <button id="cancel-card-user-tags-button" class="outline-button" type="button">キャンセル</button>
+          </div>
+        </fieldset>
+        <p id="detail-user-tag-status" class="feature-status" role="status" aria-live="polite"></p>
+      </section>
 
       <div class="detail-row">
 
@@ -948,14 +957,14 @@
   <script src="js/encoding.min.js?v=20261016-1"></script>
   <script src="js/product-links.js?v=20261016-10"></script>
   <script src="js/site-menu.js?v=20261015-2"></script>
-  <script src="js/user-tags.js?v=20261011-3"></script>
+  <script src="js/user-tags.js?v=20261027-1"></script>
 
   <script src="js/search.js?v=20261011-3"></script>
 
   <script src="js/display.js?v=20261015-1"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261016-1"></script>
+  <script src="js/deck-ui.js?v=20261027-1"></script>
 
   <script type="module" src="firebase.js"></script>
 
