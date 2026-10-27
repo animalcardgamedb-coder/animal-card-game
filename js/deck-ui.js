@@ -832,7 +832,20 @@
       if (event.key !== ICON_COLUMNS_STORAGE_KEY) return;
       applySharedIconColumns(event.newValue || 5, false);
     });
-    $("menu-open-button").addEventListener("click", () => { const panel = $("menu-panel"); panel.hidden = !panel.hidden; $("menu-open-button").setAttribute("aria-expanded", String(!panel.hidden)); });
+    $("menu-open-button").addEventListener("click", event => {
+      event.stopPropagation();
+      const panel = $("menu-panel");
+      panel.hidden = !panel.hidden;
+      $("menu-open-button").setAttribute("aria-expanded", String(!panel.hidden));
+    });
+    document.addEventListener("click", event => {
+      const panel = $("menu-panel");
+      const button = $("menu-open-button");
+      if (!panel || panel.hidden) return;
+      if (panel.contains(event.target) || button?.contains(event.target)) return;
+      panel.hidden = true;
+      button?.setAttribute("aria-expanded", "false");
+    });
     $("account-open-button").addEventListener("click", () => {
       $("menu-panel").hidden = true;
       openModal("account-modal");
