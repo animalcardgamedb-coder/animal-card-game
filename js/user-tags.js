@@ -129,12 +129,34 @@
     window.applyUserTagsToData?.();
     window.renderUserTagFilter?.();
     renderUserTagList();
-    if (currentItem) window.renderCardUserTagEditor?.(currentItem);
+    if (currentItem) {
+      renderCardUserTagSummary(currentItem);
+      renderCardUserTagOptions(currentItem);
+    }
     if (window.appState.allData?.length) window.searchCards?.();
   }
 
-  window.renderCardUserTagEditor = function(item) {
-    currentItem = item || null;
+  function renderCardUserTagSummary(item) {
+    const container = $("detail-user-tags");
+    if (!container) return;
+    container.replaceChildren();
+    const names = Array.isArray(item?.user_tags) ? item.user_tags : [];
+    if (!names.length) {
+      const empty = document.createElement("span");
+      empty.className = "user-tag-chips-empty";
+      empty.textContent = "タグなし";
+      container.append(empty);
+      return;
+    }
+    names.forEach(name => {
+      const chip = document.createElement("span");
+      chip.className = "user-tag-chip";
+      chip.textContent = String(name);
+      container.append(chip);
+    });
+  }
+
+  function renderCardUserTagOptions(item) {
     const container = $("detail-user-tag-options");
     const saveButton = $("save-card-user-tags-button");
     if (!container || !item) return;
@@ -156,8 +178,19 @@
     if (!catalog.length) {
       container.textContent = "タグはまだありません。先にメニューの「ユーザータグ一覧」から登録してください。";
     }
-    setStatus("detail-user-tag-status", "");
     if (saveButton) saveButton.disabled = false;
+  }
+
+  window.renderCardUserTagEditor = function(item) {
+    currentItem = item || null;
+    if (!item) return;
+    renderCardUserTagSummary(item);
+    renderCardUserTagOptions(item);
+    const editor = $("card-user-tag-editor");
+    if (editor) editor.hidden = true;
+    const editButton = $("edit-card-user-tags-button");
+    if (editButton) editButton.setAttribute("aria-expanded", "false");
+    setStatus("detail-user-tag-status", "");
   };
 
   async function saveCardUserTags() {
@@ -175,6 +208,9 @@
         tagIds: selected
       });
       applyTagResponse(data);
+      const editor = $("card-user-tag-editor");
+      if (editor) editor.hidden = true;
+      $("edit-card-user-tags-button")?.setAttribute("aria-expanded", "false");
       setStatus("detail-user-tag-status", "タグを保存しました。");
     } catch (error) {
       setStatus("detail-user-tag-status", error.message || "タグを保存できませんでした。");
@@ -208,6 +244,9 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     $("user-tags-open-button")?.addEventListener("click", () => {
+      const menu = $("menu-panel");
+      if (menu) menu.hidden = true;
+      $("menu-open-button")?.setAttribute("aria-expanded", "false");
       renderUserTagList();
       setStatus("user-tag-status", "");
       $("user-tags-modal").style.display = "block";
@@ -223,6 +262,20 @@
       if ($("card-modal")?.style.display !== "block") document.body.style.overflow = "";
     });
     $("user-tag-form")?.addEventListener("submit", addUserTag);
+    $("edit-card-user-tags-button")?.addEventListener("click", () => {
+      const editor = $("card-user-tag-editor");
+      if (!editor) return;
+      editor.hidden = false;
+      $("edit-card-user-tags-button").setAttribute("aria-expanded", "true");
+      setStatus("detail-user-tag-status", "");
+    });
+    $("cancel-card-user-tags-button")?.addEventListener("click", () => {
+      const editor = $("card-user-tag-editor");
+      if (editor) editor.hidden = true;
+      $("edit-card-user-tags-button")?.setAttribute("aria-expanded", "false");
+      if (currentItem) renderCardUserTagOptions(currentItem);
+      setStatus("detail-user-tag-status", "");
+    });
     $("save-card-user-tags-button")?.addEventListener("click", saveCardUserTags);
   });
 })();
