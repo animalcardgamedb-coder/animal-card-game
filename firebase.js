@@ -46,6 +46,27 @@ let signedInUser = null;
 let selectedDeckId = "";
 let selectedDeck = null;
 
+// 同じ画面内でのFirestore重複読み込みを抑える短時間キャッシュ。
+// タブを閉じると消え、公開デッキは最大30秒、タグ一覧は最大60秒で更新されます。
+let publicDeckCache = null;
+let publicDeckCacheAt = 0;
+let publicDeckPromise = null;
+let deckTagCache = null;
+let deckTagCacheAt = 0;
+let deckTagPromise = null;
+const PUBLIC_DECK_CACHE_TTL_MS = 30 * 1000;
+const DECK_TAG_CACHE_TTL_MS = 60 * 1000;
+
+function invalidatePublicDeckCache() {
+  publicDeckCache = null;
+  publicDeckCacheAt = 0;
+}
+
+function invalidateDeckTagCache() {
+  deckTagCache = null;
+  deckTagCacheAt = 0;
+}
+
 const byId = id => document.getElementById(id);
 
 function normalizeTags(tags) {
@@ -347,6 +368,7 @@ byId("save-deck-settings-button")?.addEventListener("click", async () => {
       isPublic: byId("selected-deck-visibility").value === "public",
       updatedAt: serverTimestamp()
     });
+    invalidatePublicDeckCache();
     selectedDeck.name = name;
     selectedDeck.isPublic = byId("selected-deck-visibility").value === "public";
     await loadOwnedDecks();
@@ -361,6 +383,7 @@ byId("delete-deck-button")?.addEventListener("click", async () => {
   if (!window.confirm("このデッキを削除します。よろしいですか？")) return;
   try {
     await deleteDoc(doc(db, "decks", selectedDeckId));
+    invalidatePublicDeckCache();
     selectedDeckId = "";
     selectedDeck = null;
     await loadOwnedDecks();
@@ -381,6 +404,7 @@ async function saveDeckCards(cards, successMessage) {
       cards,
       updatedAt: serverTimestamp()
     });
+    invalidatePublicDeckCache();
     selectedDeck.cards = cards;
     renderOwnedDeckCards();
     setStatus("deck-status", successMessage);
@@ -479,15 +503,37 @@ window.animalDeckApp = {
       .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
   },
   async listPublic() {
-    const snapshot = await getDocs(query(
-      collection(db, "decks"),
-      where("isPublic", "==", true),
-      limit(100)
-    ));
-    return snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
-      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    const now = Date.now();
+    if (publicDeckCache && now - publicDeckCacheAt < PUBLIC_DECK_CACHE_TTL_MS) {
+      return publicDeckCache.map(deck => ({ ...deck }));
+    }
+    if (publicDeckPromise) return (await publicDeckPromise).map(deck => ({ ...deck }));
+
+    publicDeckPromise = (async () => {
+      const snapshot = await getDocs(query(
+        collection(db, "decks"),
+        where("isPublic", "==", true),
+        limit(100)
+      ));
+      const decks = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+      publicDeckCache = decks;
+      publicDeckCacheAt = Date.now();
+      return decks;
+    })();
+
+    try {
+      return (await publicDeckPromise).map(deck => ({ ...deck }));
+    } finally {
+      publicDeckPromise = null;
+    }
   },
   async listDeckTags() {
+    const now = Date.now();
+    if (deckTagCache && now - deckTagCacheAt < DECK_TAG_CACHE_TTL_MS) return [...deckTagCache];
+    if (deckTagPromise) return [...await deckTagPromise];
+
+    deckTagPromise = (async () => {
     let snapshot = await getDocs(collection(db, "deckTagCatalog"));
     const knownIds = new Set(snapshot.docs.map(item => item.id));
     let migratedLegacyTags = false;
@@ -507,6 +553,16 @@ window.animalDeckApp = {
 
     if (migratedLegacyTags) snapshot = await getDocs(collection(db, "deckTagCatalog"));
     return normalizeSharedDeckTags(snapshot.docs.filter(item => item.data().deleted !== true).map(item => item.data().name));
+    })();
+
+    try {
+      const tags = await deckTagPromise;
+      deckTagCache = tags;
+      deckTagCacheAt = Date.now();
+      return [...tags];
+    } finally {
+      deckTagPromise = null;
+    }
   },
   async addDeckTag(value) {
     if (!signedInUser) throw new Error("共通デッキタグを登録するにはログインしてください。");
@@ -516,17 +572,22 @@ window.animalDeckApp = {
     const ref = doc(db, "deckTagCatalog", sharedDeckTagDocumentId(tag));
     const existing = await getDoc(ref);
     if (existing.exists()) {
-      if (existing.data().deleted === true) await updateDoc(ref, { deleted: false });
+      if (existing.data().deleted === true) {
+        await updateDoc(ref, { deleted: false });
+        invalidateDeckTagCache();
+      }
       return this.listDeckTags();
     }
 
     try {
       await setDoc(ref, sharedDeckTagDocument(tag));
+      invalidateDeckTagCache();
     } catch (error) {
       // A simultaneous registration of the same tag may have created the same document.
       const concurrent = await getDoc(ref);
       if (!concurrent.exists()) throw error;
     }
+    invalidateDeckTagCache();
     return this.listDeckTags();
   },
   async deleteDeckTag(value) {
@@ -536,6 +597,7 @@ window.animalDeckApp = {
     const snapshot = await getDoc(ref);
     if (snapshot.exists() && snapshot.data().deleted !== true) {
       await updateDoc(ref, { deleted: true });
+      invalidateDeckTagCache();
     }
     return this.listDeckTags();
   },
@@ -558,6 +620,7 @@ window.animalDeckApp = {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    invalidatePublicDeckCache();
     await loadSelectedDeck(deckRef.id);
     return this.current();
   },
@@ -592,6 +655,7 @@ window.animalDeckApp = {
       tags: normalizeTags(tags),
       updatedAt: serverTimestamp()
     });
+    invalidatePublicDeckCache();
     selectedDeck = { ...selectedDeck, name: safeName, isPublic: Boolean(isPublic), tags: normalizeTags(tags) };
     return this.current();
   },
@@ -607,6 +671,7 @@ window.animalDeckApp = {
     const field = pile === "territory" ? "territoryCards" : "cards";
     // Older decks may already exceed a limit. Allow removals and reordering; additions are checked in addCard().
     await updateDoc(doc(db, "decks", selectedDeckId), { [field]: cards, updatedAt: serverTimestamp() });
+    invalidatePublicDeckCache();
     selectedDeck = { ...selectedDeck, [field]: cards };
     renderOwnedDeckCards();
     return this.current();
@@ -639,6 +704,7 @@ window.animalDeckApp = {
   async deleteCurrent() {
     if (!signedInUser || !selectedDeckId) throw new Error("先にデッキを選択してください。");
     await deleteDoc(doc(db, "decks", selectedDeckId));
+    invalidatePublicDeckCache();
     selectedDeckId = "";
     selectedDeck = null;
     return true;
