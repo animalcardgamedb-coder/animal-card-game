@@ -126,6 +126,7 @@
     if (!window.appState) return;
     if (Array.isArray(data.userTags)) window.appState.userTags = data.userTags;
     if (Array.isArray(data.cardUserTags)) window.appState.cardUserTags = data.cardUserTags;
+    window.updateCachedUserTagData?.(data.userTags, data.cardUserTags);
     window.applyUserTagsToData?.();
     window.renderUserTagFilter?.();
     renderUserTagList();
