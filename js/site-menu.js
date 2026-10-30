@@ -38,4 +38,22 @@
     }
     openModal("contact-form-modal");
   });
+
+  const refreshButton = document.getElementById("refresh-card-data-button");
+  const refreshStatus = document.getElementById("data-refresh-status");
+  refreshButton?.addEventListener("click", () => {
+    if (typeof window.loadCards !== "function") {
+      if (refreshStatus) refreshStatus.textContent = "更新機能を読み込めませんでした。ページを再読み込みしてください。";
+      return;
+    }
+    refreshButton.disabled = true;
+    if (refreshStatus) refreshStatus.textContent = "最新データを取得しています……";
+    window.loadCards(true, result => {
+      refreshButton.disabled = false;
+      if (!refreshStatus) return;
+      refreshStatus.textContent = result?.success
+        ? "データを更新しました。"
+        : "更新できませんでした。保存済みデータがある場合は、そのデータを表示しています。時間をおいて再度お試しください。";
+    });
+  });
 })();
