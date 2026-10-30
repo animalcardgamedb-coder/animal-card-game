@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://animalcardgamedb-coder.github.io/animal-card-game/sitemap.xml
