@@ -316,6 +316,7 @@ byId("create-deck-button")?.addEventListener("click", async () => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    invalidatePublicDeckCache();
     byId("new-deck-name").value = "";
     selectedDeckId = deckRef.id;
     await loadOwnedDecks();
