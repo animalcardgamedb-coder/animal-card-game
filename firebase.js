@@ -511,15 +511,15 @@ window.acgBuilderJsonCompat = {
     match = value.match(/^BP1-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 79) return 5000 + Number(match[1]);
     if (value === "BP1-080") return 9028;
-    match = value.match(/^BP2-(\\d{1,3})$/);
+    match = value.match(/^BP2-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5100 + Number(match[1]);
-    match = value.match(/^BP3-(\\d{1,3})$/);
+    match = value.match(/^BP3-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5200 + Number(match[1]);
-    match = value.match(/^BP4-(\\d{1,3})$/);
+    match = value.match(/^BP4-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5300 + Number(match[1]);
-    match = value.match(/^BP5-(\\d{1,3})$/);
+    match = value.match(/^BP5-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5400 + Number(match[1]);
-    match = value.match(/^BP6-(\\d{1,3})$/);
+    match = value.match(/^BP6-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5500 + Number(match[1]);
     return null;
   },
