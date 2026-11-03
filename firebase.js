@@ -489,14 +489,12 @@ window.acgBuilderJsonCompat = {
       return null;
     }
     if (n === 9028) return "BP1-080";
-    if (n === 5318) return "BP4-018";
-    if (n === 5354) return "BP4-054";
-    if (n === 5553) return "BP5-053";
-    if (n === 5576) return "BP5-076";
     if (1 <= n && n <= 164) return "ACG-" + String(n).padStart(3, "0");
     if (5001 <= n && n <= 5079) return "BP1-" + String(n - 5000).padStart(3, "0");
     if (5101 <= n && n <= 5180) return "BP2-" + String(n - 5100).padStart(3, "0");
     if (5201 <= n && n <= 5280) return "BP3-" + String(n - 5200).padStart(3, "0");
+    if (5301 <= n && n <= 5380) return "BP4-" + String(n - 5300).padStart(3, "0");
+    if (5501 <= n && n <= 5580) return "BP5-" + String(n - 5500).padStart(3, "0");
     return null;
   },
   cardNoToId(cardNo, pile = "main") {
