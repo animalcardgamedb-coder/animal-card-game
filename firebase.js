@@ -667,8 +667,11 @@ window.animalDeckApp = {
     if (!selectedDeck || selectedDeckId !== id) throw new Error("permission-denied");
     return this.current();
   },
-  async create(name, tags = []) {
+  async create(name, tags = [], extraZones = {}) {
     if (!signedInUser) throw new Error("ログインしてください。");
+    const reserveCards = Array.isArray(extraZones.reserveCards) ? extraZones.reserveCards : [];
+    const considerationCards = Array.isArray(extraZones.considerationCards) ? extraZones.considerationCards : [];
+    if (reserveCards.length > 200 || considerationCards.length > 200) throw new Error("予備デッキまたは検討中のカード種類数が上限を超えています。");
     const safeName = String(name || "").trim().slice(0, 50);
     if (!safeName) throw new Error("デッキ名を入力してください。");
     const deckRef = await addDoc(collection(db, "decks"), {
@@ -677,7 +680,7 @@ window.animalDeckApp = {
       name: safeName,
       tags: normalizeTags(tags),
       isPublic: false,
-      cards: [], territoryCards: [], reserveCards: [], considerationCards: [],
+      cards: [], territoryCards: [], reserveCards, considerationCards,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -692,6 +695,8 @@ window.animalDeckApp = {
         data[key] && typeof data[key] === "object" && !Array.isArray(data[key]));
     let main = [];
     let territory = [];
+    let reserve = [];
+    let consideration = [];
     let warnings = [];
     if (data && data.format === "animal-card-game-deck" && data.version === 1) {
       main = Array.isArray(data.mainCards) ? data.mainCards : [];
@@ -717,8 +722,8 @@ window.animalDeckApp = {
       }).filter(Boolean);
       main = convertZone(data.mainDeck, "main", "メインデッキ");
       territory = convertZone(data.territoryDeck, "territory", "領土デッキ");
-      var reserve = convertZone(data.reserveDeck, "main", "予備デッキ");
-      var consideration = convertZone(data.considerationDeck, "main", "検討中");
+      reserve = convertZone(data.reserveDeck, "main", "予備デッキ");
+      consideration = convertZone(data.considerationDeck, "main", "検討中");
       if (warnings.length && !main.length && !territory.length && !(reserve || []).length && !(consideration || []).length) {
         throw new Error("読み込めるカードがありません。カードデータの読み込み後か、対応するカードIDかを確認してください。\n" + warnings.slice(0, 8).join("\n"));
       }
@@ -737,21 +742,16 @@ window.animalDeckApp = {
       return { itemId: `${pile}:${itemId.replace(/^(card|territory):/, "")}`, name, quantity };
     });
     const deckName = String(data.name || "読み込みデッキ").trim().slice(0, 44);
-    await this.create(`${deckName || "読み込みデッキ"} のコピー`, normalizeTags(data.tags));
+    const cleanExtra = list => list.map(card => ({
+      itemId: `card:${String(card.itemId || "").replace(/^(card|territory):/, "")}`,
+      name: String(card.name || "カード").slice(0, 100),
+      quantity: Math.max(1, Math.min(99, Number(card.quantity) || 1))
+    }));
+    const reserveCards = isAcgBuilder ? cleanExtra(reserve) : [];
+    const considerationCards = isAcgBuilder ? cleanExtra(consideration) : [];
+    await this.create(`${deckName || "読み込みデッキ"} のコピー`, normalizeTags(data.tags), { reserveCards, considerationCards });
     await this.saveCards(clean(main, "card"), "main");
     await this.saveCards(clean(territory, "territory"), "territory");
-    if (isAcgBuilder) {
-      const cleanExtra = list => list.map(card => ({
-        itemId: `card:${String(card.itemId || "").replace(/^(card|territory):/, "")}`,
-        name: String(card.name || "カード").slice(0, 100),
-        quantity: Math.max(1, Math.min(99, Number(card.quantity) || 1))
-      }));
-      const reserveCards = cleanExtra(reserve || []);
-      const considerationCards = cleanExtra(consideration || []);
-      if (reserveCards.length > 200 || considerationCards.length > 200) throw new Error("予備デッキまたは検討中のカード種類数が上限を超えています。");
-      await updateDoc(doc(db, "decks", selectedDeckId), { reserveCards, considerationCards, updatedAt: serverTimestamp() });
-      selectedDeck = { ...selectedDeck, reserveCards, considerationCards };
-    }
     if (warnings.length) {
       console.warn("ACGビルダーJSONの一部を取り込めませんでした:", warnings);
       window.dispatchEvent(new CustomEvent("animaldeck:importwarnings", { detail: warnings }));
