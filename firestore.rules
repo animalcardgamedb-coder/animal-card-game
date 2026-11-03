@@ -17,7 +17,8 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'ownerUid', 'ownerName', 'name', 'isPublic',
-          'cards', 'createdAt', 'updatedAt', 'tags', 'territoryCards'
+          'cards', 'createdAt', 'updatedAt', 'tags', 'territoryCards',
+          'reserveCards', 'considerationCards'
         ])
         && data.ownerUid is string
         && data.ownerName is string
@@ -29,6 +30,8 @@ service cloud.firestore {
         && data.cards is list
         && data.cards.size() <= 200
         && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 10))
+        && (!data.keys().hasAny(['reserveCards']) || (data.reserveCards is list && data.reserveCards.size() <= 200))
+        && (!data.keys().hasAny(['considerationCards']) || (data.considerationCards is list && data.considerationCards.size() <= 200))
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
@@ -49,6 +52,8 @@ service cloud.firestore {
         && data.cards is list
         && data.cards.size() <= 200
         && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 10))
+        && (!data.keys().hasAny(['reserveCards']) || (data.reserveCards is list && data.reserveCards.size() <= 200))
+        && (!data.keys().hasAny(['considerationCards']) || (data.considerationCards is list && data.considerationCards.size() <= 200))
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
           || (data.tags is list && data.tags.size() <= 12));
@@ -67,7 +72,8 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'name', 'isPublic', 'cards', 'territoryCards', 'tags', 'updatedAt'
+          'name', 'isPublic', 'cards', 'territoryCards', 'reserveCards',
+          'considerationCards', 'tags', 'updatedAt'
         ])
         && validDeckUpdate(request.resource.data);
 
