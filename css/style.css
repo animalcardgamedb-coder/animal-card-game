@@ -263,3 +263,16 @@
 .preview-text-zone{margin:18px 0 26px}
 .preview-text-zone h3{margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .preview-text-zone p{color:var(--muted)}
+
+
+/* Public deck search: collapsible multi-select AND tag filters. */
+.deck-list-toolbar .deck-tag-filter-toggle{flex:0 0 42px;width:42px;min-width:42px;font-size:22px;line-height:1;transition:transform .15s ease}
+.deck-list-toolbar .deck-tag-filter-toggle[aria-expanded="true"]{transform:rotate(180deg)}
+.deck-tag-filter-panel{margin:-4px 0 14px;padding:12px;border:1px solid var(--line);border-radius:7px;background:var(--panel,#fff)}
+.deck-tag-filter-panel[hidden]{display:none!important}
+.deck-tag-filter-panel>strong{display:block;margin-bottom:9px;font-size:13px}
+.deck-tag-filter-options{display:flex;flex-wrap:wrap;gap:7px}
+.deck-tag-filter-chip{min-height:34px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink,#222);font:inherit;font-size:12px;cursor:pointer}
+.deck-tag-filter-chip:hover{border-color:#888;background:#f5f5f2}
+.deck-tag-filter-chip.is-selected{border-color:#222;background:#222;color:#fff}
+.deck-tag-filter-clear{min-height:30px;margin-top:10px;padding:4px 10px;font-size:12px}
