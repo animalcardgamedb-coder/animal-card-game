@@ -798,6 +798,25 @@ window.animalDeckApp = {
     renderOwnedDeckCards();
     return this.current();
   },
+  async saveExtraZone(cards, zone) {
+    if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
+    const fields = { reserve: "reserveCards", consideration: "considerationCards" };
+    const field = fields[zone];
+    if (!field) throw new Error("保存先を確認できませんでした。");
+    if (!Array.isArray(cards) || cards.length > 200) throw new Error("登録できる種類数の上限を超えています。");
+    const clean = cards.map(card => {
+      const itemId = String(card.itemId || "").trim();
+      const name = String(card.name || "カード").trim().slice(0, 100);
+      const quantity = Math.max(1, Math.min(99, Number(card.quantity) || 1));
+      if (!itemId) throw new Error("カードIDを確認できませんでした。");
+      return { itemId: itemId.startsWith("card:") ? itemId : "card:" + itemId.replace(/^territory:/, ""), name, quantity };
+    });
+    await updateDoc(doc(db, "decks", selectedDeckId), { [field]: clean, updatedAt: serverTimestamp() });
+    invalidatePublicDeckCache();
+    selectedDeck = { ...selectedDeck, [field]: clean };
+    renderOwnedDeckCards();
+    return this.current();
+  },
   async addCard(item, pile = "main") {
     if (!selectedDeck) throw new Error("先にデッキを選択してください。");
     const rawId = String(item?.card_id || item?.territory_id || item?.itemId || "");
