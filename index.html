@@ -421,8 +421,21 @@
     <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div>
     <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><label class="preview-copy-toggle"><input id="preview-expand-copies" type="checkbox"> 枚数分カードを個別表示</label><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
     <p id="preview-updated-at" class="preview-meta"></p>
-    <div class="preview-count"><span>デッキ合計</span><strong id="preview-total-count"></strong></div>
-    <div id="preview-card-list" class="preview-card-grid"></div>
+    <div class="preview-count"><span>デッキ合計（3領域）</span><strong id="preview-total-count"></strong></div>
+    <div id="preview-card-sections" class="preview-card-sections">
+      <section class="preview-zone">
+        <div class="preview-zone-heading"><h2>メインデッキ</h2><strong id="preview-main-count">0枚</strong></div>
+        <div id="preview-main-card-list" class="preview-card-grid"></div>
+      </section>
+      <section class="preview-zone">
+        <div class="preview-zone-heading"><h2>領土デッキ</h2><strong id="preview-territory-count">0枚</strong></div>
+        <div id="preview-territory-card-list" class="preview-card-grid"></div>
+      </section>
+      <section class="preview-zone">
+        <div class="preview-zone-heading"><h2>予備デッキ</h2><strong id="preview-reserve-count">0枚</strong></div>
+        <div id="preview-reserve-card-list" class="preview-card-grid"></div>
+      </section>
+    </div>
     <div id="preview-text-list" class="preview-text-list" hidden></div>
   </section>
 

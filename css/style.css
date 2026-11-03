@@ -252,3 +252,14 @@
 .extra-zone-actions{display:flex;align-items:center;gap:4px}
 .extra-zone-actions button{min-width:30px;min-height:30px;padding:3px 7px;font-size:12px}
 @media(max-width:480px){.extra-zone-row{grid-template-columns:minmax(0,1fr) auto}.extra-zone-actions{grid-column:1/-1;justify-content:flex-end}}
+
+/* Separate zones on the deck confirmation screen */
+.preview-card-sections{display:grid;gap:22px}
+.preview-zone{min-width:0}
+.preview-zone-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 8px;padding:0 2px}
+.preview-zone-heading h2{margin:0;font-size:17px}
+.preview-zone-heading strong{color:var(--muted);font-size:13px;white-space:nowrap}
+.preview-zone .preview-card-grid{margin:0}
+.preview-text-zone{margin:18px 0 26px}
+.preview-text-zone h3{margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.preview-text-zone p{color:var(--muted)}

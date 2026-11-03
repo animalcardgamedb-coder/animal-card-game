@@ -39,7 +39,7 @@
     if (searchInput) searchInput.value = String(columns);
     if (settingsInput) settingsInput.value = String(columns);
     if (typeof window.applyIconGrid === "function") window.applyIconGrid();
-    ["builder-card-list", "preview-card-list"].forEach(id => {
+    ["builder-card-list", "preview-main-card-list", "preview-territory-card-list", "preview-reserve-card-list"].forEach(id => {
       const grid = $(id);
       if (grid) grid.style.gridTemplateColumns = "repeat(" + columns + ", minmax(0, 1fr))";
     });
@@ -539,47 +539,69 @@
     const deck = state.deck;
     if (!deck) return;
     $("preview-deck-name").textContent = deck.name || "デッキ";
-    $("preview-total-count").textContent = count(deck) + "枚";
+    const mainCards = deckCards(deck);
+    const territories = territoryCards(deck);
+    const reserves = reserveCards(deck);
+    const allPreviewCards = [...mainCards, ...territories, ...reserves];
+    const total = allPreviewCards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+    $("preview-total-count").textContent = total + "枚";
     const stamp = deck.updatedAt?.toDate?.();
     $("preview-updated-at").textContent = (stamp ? "更新日：" + stamp.toLocaleDateString("ja-JP") + "　" : "") + (deck.isPublic ? "公開デッキ" : "非公開デッキ");
-    const cards = [...deckCards(deck), ...territoryCards(deck)];
     const expandCopies = Boolean($("preview-expand-copies")?.checked);
-    const displayCards = expandCopies
-      ? cards.flatMap(card => Array.from({ length: Math.max(1, Number(card.quantity) || 1) }, (_, copyIndex) => ({ ...card, copyIndex })))
-      : cards;
-    const grid = $("preview-card-list");
-    grid.replaceChildren();
-    if (!displayCards.length) grid.innerHTML = '<div class="empty-state">デッキにカードがありません。</div>';
-    displayCards.forEach(card => {
-      const item = byItemId(card.itemId);
-      const el = document.createElement("div");
-      el.className = "preview-card";
-      el.setAttribute("role", "button");
-      el.setAttribute("tabindex", item ? "0" : "-1");
-      el.setAttribute("aria-label", String(card.name || "カード") + "の詳細を表示");
-      el.style.cursor = item ? "pointer" : "default";
-      el.innerHTML = (item?.image_url ? '<img loading="lazy" src="' + escapeHTML(item.image_url) + '" alt="">' : "") +
-        '<span>' + escapeHTML(card.name || "カード") + '</span>' +
-        (expandCopies ? "" : '<b>×' + Number(card.quantity || 1) + '</b>');
-      const openPreviewCardDetail = () => {
-        if (!item || typeof window.showCardDetail !== "function") return;
-        state.pendingCard = item;
-        window.showCardDetail(item, { deckBuilder: !state.publicView });
-      };
-      el.addEventListener("click", openPreviewCardDetail);
-      el.addEventListener("keydown", event => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        openPreviewCardDetail();
+    const sections = [
+      { cards: mainCards, title: "メインデッキ", gridId: "preview-main-card-list", countId: "preview-main-count" },
+      { cards: territories, title: "領土デッキ", gridId: "preview-territory-card-list", countId: "preview-territory-count" },
+      { cards: reserves, title: "予備デッキ", gridId: "preview-reserve-card-list", countId: "preview-reserve-count" }
+    ];
+    sections.forEach(section => {
+      const sectionTotal = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+      $(section.countId).textContent = sectionTotal + "枚";
+      const displayCards = expandCopies
+        ? section.cards.flatMap(card => Array.from({ length: Math.max(1, Number(card.quantity) || 1) }, (_, copyIndex) => ({ ...card, copyIndex })))
+        : section.cards;
+      const grid = $(section.gridId);
+      grid.replaceChildren();
+      if (!displayCards.length) {
+        grid.innerHTML = '<div class="empty-state">このデッキにはカードがありません。</div>';
+      }
+      displayCards.forEach(card => {
+        const item = byItemId(card.itemId);
+        const el = document.createElement("div");
+        el.className = "preview-card";
+        el.setAttribute("role", "button");
+        el.setAttribute("tabindex", item ? "0" : "-1");
+        el.setAttribute("aria-label", String(card.name || "カード") + "の詳細を表示");
+        el.style.cursor = item ? "pointer" : "default";
+        el.innerHTML = (item?.image_url ? '<img loading="lazy" src="' + escapeHTML(item.image_url) + '" alt="">' : "") +
+          '<span>' + escapeHTML(card.name || "カード") + '</span>' +
+          (expandCopies ? "" : '<b>×' + Number(card.quantity || 1) + '</b>');
+        const openPreviewCardDetail = () => {
+          if (!item || typeof window.showCardDetail !== "function") return;
+          state.pendingCard = item;
+          window.showCardDetail(item, { deckBuilder: !state.publicView });
+        };
+        el.addEventListener("click", openPreviewCardDetail);
+        el.addEventListener("keydown", event => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          openPreviewCardDetail();
+        });
+        grid.append(el);
       });
-      grid.append(el);
     });
-    const textCards = expandCopies ? displayCards : cards;
-    $("preview-text-list").innerHTML = '<h2>' + escapeHTML(deck.name) + '</h2><p>合計 ' + count(deck) + '枚 / ' +
-      (expandCopies ? displayCards.length + "枚を個別表示" : cards.length + "種類") + '</p><ol>' +
-      textCards.map(card => '<li>' + escapeHTML(card.name) + (expandCopies ? "" : ' × ' + Number(card.quantity || 1)) + '</li>').join("") + '</ol>';
+    const textList = $("preview-text-list");
+    textList.innerHTML = '<h2>' + escapeHTML(deck.name || "デッキ") + '</h2>' +
+      sections.map(section => {
+        const sectionCards = expandCopies
+          ? section.cards.flatMap(card => Array.from({ length: Math.max(1, Number(card.quantity) || 1) }, () => card))
+          : section.cards;
+        const sectionTotal = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+        return '<section class="preview-text-zone"><h3>' + section.title + '（' + sectionTotal + '枚）</h3>' +
+          (sectionCards.length ? '<ol>' + sectionCards.map(card => '<li>' + escapeHTML(card.name || "カード") + (expandCopies ? "" : ' × ' + Number(card.quantity || 1)) + '</li>').join("") + '</ol>' : '<p>カードなし</p>') +
+          '</section>';
+      }).join("");
     $("preview-text-list").hidden = !state.previewText;
-    grid.hidden = state.previewText;
+    $("preview-card-sections").hidden = state.previewText;
     applySharedIconColumns(window.appState?.currentIconColumns, false);
   }
   function openModal(id) { const modal = $(id); if (modal) modal.style.display = "block"; }
