@@ -102,10 +102,6 @@ function sharedDeckTagDocument(value) {
 function validateTerritoryDeckCards(cards) {
   const list = Array.isArray(cards) ? cards : [];
   const total = list.reduce((sum, card) => sum + Math.max(1, Number(card?.quantity) || 1), 0);
-  if (total > 10) {
-    throw new Error("領土デッキは最大10枚です。領土カードを減らしてから追加してください。");
-  }
-
   const territoryData = window.appState?.allTerritories || [];
   const countsByName = new Map();
   for (const card of list) {
@@ -152,7 +148,6 @@ function territoryDeckLimitStatus(cards) {
 
 function canAddTerritoryCardToList(item, cards) {
   const status = territoryDeckLimitStatus(cards);
-  if (status.total >= 10) return false;
   const info = getTerritoryCardDetails({
     itemId: item?.territory_id || item?.card_id || item?.id,
     territory_id: item?.territory_id,
