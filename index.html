@@ -391,7 +391,7 @@
 
   <section id="deck-builder-screen" class="app-screen" hidden>
     <div class="screen-title-row builder-title-row"><button class="back-button" type="button" data-back="decks" aria-label="デッキ一覧へ戻る">‹</button><div class="builder-name-wrap"><label class="eyebrow" for="builder-deck-name">デッキ名</label><input id="builder-deck-name" class="deck-name-input" maxlength="50"></div><button id="builder-save-settings-button" class="toolbar-icon-button" type="button" title="デッキ名・タグ・公開状態を保存">保存</button></div>
-    <div class="builder-utility-actions" aria-label="デッキ操作"><button id="preview-deck-button" class="outline-button" type="button">デッキを確認</button><button id="export-deck-button" class="outline-button" type="button">JSONを書き出す</button></div>
+    <div class="builder-utility-actions" aria-label="デッキ操作"><button id="preview-deck-button" class="outline-button" type="button">デッキを確認</button><button id="export-deck-button" class="outline-button" type="button">JSONを書き出す</button><button id="export-acg-builder-button" class="outline-button" type="button">ACGビルダー形式で書き出す</button></div>
     <fieldset class="deck-tag-picker"><legend>デッキタグ</legend><div id="builder-deck-tag-options"></div></fieldset>
     <p id="public-deck-readonly-note" class="readonly-note" hidden>公開デッキの閲覧モードです。編集はできません。</p>
     <div class="deck-summary-panel"><div><strong id="deck-total-count">0</strong><span>枚</span></div><div id="deck-visibility-badge" class="visibility-badge">非公開</div><button id="builder-visibility-button" type="button" class="outline-button">公開設定</button></div>
@@ -972,7 +972,7 @@
   <script src="js/display.js?v=20261015-1"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261027-1"></script>
+  <script src="js/deck-ui.js?v=20261103-1"></script>
 
   <script type="module" src="firebase.js"></script>
 
