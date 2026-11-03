@@ -591,7 +591,7 @@
       const cardNo = compat.getCardNo(item, pile);
       const externalId = cardNo ? compat.cardNoToId(cardNo, pile) : null;
       if (externalId == null) {
-        failures.push((entry.name || cardName(item) || "カード") + "：対応するACGビルダーIDを特定できません");
+        failures.push((entry.name || cardName(item || {}) || "カード") + "：対応するACGビルダーIDを特定できません");
         return;
       }
       const key = String(externalId);
