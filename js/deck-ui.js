@@ -39,7 +39,7 @@
     if (searchInput) searchInput.value = String(columns);
     if (settingsInput) settingsInput.value = String(columns);
     if (typeof window.applyIconGrid === "function") window.applyIconGrid();
-    ["builder-card-list", "preview-card-list"].forEach(id => {
+    ["builder-card-list", "preview-main-card-list", "preview-territory-card-list", "preview-reserve-card-list"].forEach(id => {
       const grid = $(id);
       if (grid) grid.style.gridTemplateColumns = "repeat(" + columns + ", minmax(0, 1fr))";
     });
