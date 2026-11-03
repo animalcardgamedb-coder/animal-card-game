@@ -728,6 +728,9 @@ window.animalDeckApp = {
     } else {
       throw new Error("このデッキファイル形式には対応していません。");
     }
+    if (warnings.length && !window.confirm("一部のカードやデッキ領域を取り込めません。\n\n" + warnings.slice(0, 12).join("\n") + (warnings.length > 12 ? "\nほか " + (warnings.length - 12) + " 件" : "") + "\n\n読み込めるカードだけでデッキを作成しますか？")) {
+      throw new Error("取り込みをキャンセルしました。");
+    }
     if (main.length > 200 || territory.length > 200) throw new Error("カードの種類数が上限を超えています。");
     const clean = (list, pile) => list.map(card => {
       const itemId = String(card.itemId || "").trim();
