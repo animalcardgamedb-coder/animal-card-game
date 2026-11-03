@@ -125,9 +125,65 @@
     $("territory-pile-tab").setAttribute("aria-selected", String(territory));
     $("reserve-pile-tab").setAttribute("aria-selected", String(reserve));
     renderBuilder();
+    saveScreenState();
   }
 
-  function setScreen(name) {
+  const SCREEN_STATE_KEY = "animalCardGame.screenState";
+  function saveScreenState() {
+    try {
+      window.sessionStorage.setItem(SCREEN_STATE_KEY, JSON.stringify({
+        screen: state.screen,
+        deckId: state.deck?.id || "",
+        publicView: Boolean(state.publicView),
+        tab: state.tab,
+        pile: state.pile
+      }));
+    } catch (_) { /* Screen restoration is best-effort. */ }
+  }
+  function readScreenState() {
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(SCREEN_STATE_KEY) || "null");
+      if (!saved || !["search", "decks", "builder", "preview"].includes(saved.screen)) return null;
+      return saved;
+    } catch (_) { return null; }
+  }
+  let pendingScreenRestore = readScreenState();
+  let screenRestoreAttempted = false;
+
+  async function restoreScreenState() {
+    const saved = pendingScreenRestore;
+    if (!saved || screenRestoreAttempted) return;
+    if (saved.screen === "search" || saved.screen === "decks") {
+      screenRestoreAttempted = true;
+      setScreen(saved.screen, false);
+      return;
+    }
+    if (!app()?.isSignedIn()) return;
+    screenRestoreAttempted = true;
+    try {
+      if (saved.publicView) {
+        const decks = await app().listPublic();
+        const deck = decks.find(item => String(item.id) === String(saved.deckId));
+        if (!deck) throw new Error("保存していた公開デッキが見つかりません。");
+        state.deck = app().viewPublic(deck);
+        state.publicView = true;
+      } else {
+        if (!saved.deckId) throw new Error("保存していたデッキが見つかりません。");
+        state.deck = await app().select(saved.deckId);
+        state.publicView = false;
+      }
+      state.tab = saved.tab === "public" ? "public" : "mine";
+      setScreen(saved.screen, false);
+      setBuilderPile(saved.pile);
+    } catch (_) {
+      state.deck = null;
+      state.publicView = false;
+      setScreen("decks", false);
+      setStatus("前回開いていたデッキを復元できなかったため、デッキ選択画面を表示しています。");
+    }
+  }
+
+  function setScreen(name, persist = true) {
     const previousScreen = state.screen;
     if (previousScreen !== "builder" && name === "builder") {
       state.normalFilterState = captureSearchFilters();
@@ -142,6 +198,7 @@
       if (state.normalFilterState) applySearchFilters(state.normalFilterState);
     }
     state.screen = name;
+    if (persist) saveScreenState();
     window.animalDeckBuilderSearchActive = name === "builder";
     ["card-modal", "search-modal"].forEach(id => { if ($(id)) $(id).style.display = "none"; });
     $("card-search").hidden = name !== "search";
@@ -1018,6 +1075,14 @@
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
-    window.addEventListener("animaldeck:authchange", () => { refreshTagOptions(); if (state.screen === "decks") refreshDecks(); });
+    window.addEventListener("animaldeck:authchange", () => {
+      refreshTagOptions();
+      if (pendingScreenRestore && !screenRestoreAttempted) void restoreScreenState();
+      else if (state.screen === "decks") refreshDecks();
+    });
+    // Restore simple screens immediately; deck screens wait until Firebase resolves sign-in state.
+    if (pendingScreenRestore && ["search", "decks"].includes(pendingScreenRestore.screen)) {
+      void restoreScreenState();
+    }
   });
 })();
