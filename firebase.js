@@ -830,7 +830,7 @@ window.animalDeckApp = {
     if (pile === "reserve") {
       const total = cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
       const existing = cards.find(card => String(card.itemId) === id);
-      if (total >= 15 && (!existing || Number(existing.quantity || 1) >= 15)) throw new Error("予備デッキは合計15枚までです。");
+      if (total >= 15) throw new Error("予備デッキは合計15枚までです。");
     }
     const found = cards.find(card => String(card.itemId) === id);
     if (found) found.quantity = Math.min(99, Number(found.quantity || 1) + 1);
