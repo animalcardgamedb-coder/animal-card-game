@@ -125,6 +125,7 @@
     $("territory-pile-tab").setAttribute("aria-selected", String(territory));
     $("reserve-pile-tab").setAttribute("aria-selected", String(reserve));
     renderBuilder();
+    saveScreenState();
   }
 
   const SCREEN_STATE_KEY = "animalCardGame.screenState";
