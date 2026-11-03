@@ -578,6 +578,47 @@
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }));
     const link = document.createElement("a"); link.href = url; link.download = `${(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_")}.animaldeck.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+  function exportAcgBuilderDeck(deck) {
+    const compat = window.acgBuilderJsonCompat;
+    if (!compat) { setStatus("ACGビルダー形式の変換機能を読み込めませんでした。"); return; }
+    const mainDeck = {};
+    const territoryDeck = {};
+    const failures = [];
+    const addZone = (entries, pile, output, label) => entries.forEach(entry => {
+      const item = byItemId(entry.itemId);
+      const cardNo = compat.getCardNo(item, pile);
+      const externalId = cardNo ? compat.cardNoToId(cardNo, pile) : null;
+      if (externalId == null) {
+        failures.push((entry.name || cardName(item) || "カード") + "：対応するACGビルダーIDを特定できません");
+        return;
+      }
+      const key = String(externalId);
+      output[key] = Math.min(99, (Number(output[key]) || 0) + Math.max(1, Number(entry.quantity) || 1));
+    });
+    addZone(deckCards(deck), "main", mainDeck, "メインデッキ");
+    addZone(territoryCards(deck), "territory", territoryDeck, "領土デッキ");
+    if (failures.length) {
+      setStatus("ACGビルダー形式では書き出せませんでした。カード番号の対応を確認してください。\n" + failures.slice(0, 8).join("\n"));
+      return;
+    }
+    const data = {
+      mainDeck,
+      territoryDeck,
+      reserveDeck: {},
+      considerationDeck: {},
+      name: String(deck.name || "デッキ"),
+      description: "",
+      poster: "",
+      createdAt: new Date().toISOString()
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_")}.acg-builder.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus("ACGビルダー形式のJSONを書き出しました。予備デッキ・検討中はこのサイトでは管理していないため空で出力しています。");
+  }
   function renderTagOptions(containerId, selected = [], disabled = false) {
     const container = $(containerId); if (!container) return;
     const selectedSet = new Set(selected);
@@ -919,7 +960,7 @@
     $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
     $("delete-current-deck").addEventListener("click", async () => { if (!confirm(`「${state.deck?.name}」を削除します。この操作は取り消せません。`)) return; try { await app().deleteCurrent(); state.deck = null; setScreen("decks"); } catch (error) { alert(error.message); } });
     $("preview-deck-button").addEventListener("click", () => setScreen("preview")); $("print-deck-button").addEventListener("click", () => window.print());
-    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck));
+    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
     window.addEventListener("animaldeck:authchange", () => { refreshTagOptions(); if (state.screen === "decks") refreshDecks(); });
