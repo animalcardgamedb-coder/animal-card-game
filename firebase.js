@@ -790,7 +790,8 @@ window.animalDeckApp = {
   async saveCards(cards, pile = "main") {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
     if (!Array.isArray(cards) || cards.length > 200) throw new Error("デッキに登録できる種類数の上限を超えています。");
-    const field = pile === "territory" ? "territoryCards" : "cards";
+    const field = pile === "territory" ? "territoryCards" : pile === "reserve" ? "reserveCards" : "cards";
+    // Main deck intentionally has no card-count limit. Reserve additions are validated in addCard().
     // Older decks may already exceed a limit. Allow removals and reordering; additions are checked in addCard().
     await updateDoc(doc(db, "decks", selectedDeckId), { [field]: cards, updatedAt: serverTimestamp() });
     invalidatePublicDeckCache();
@@ -823,9 +824,14 @@ window.animalDeckApp = {
     const id = `${pile === "territory" ? "territory" : "card"}:${rawId.replace(/^(card|territory):/, "")}`;
     const name = String(item?.card_name || item?.territory_name || item?.name || "");
     if (!rawId || !name) throw new Error("カードIDを確認できませんでした。");
-    const field = pile === "territory" ? "territoryCards" : "cards";
+    const field = pile === "territory" ? "territoryCards" : pile === "reserve" ? "reserveCards" : "cards";
     const cards = [...(selectedDeck[field] || [])];
     if (pile === "territory" && !canAddTerritoryCardToList(item, cards)) return this.current();
+    if (pile === "reserve") {
+      const total = cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+      const existing = cards.find(card => String(card.itemId) === id);
+      if (total >= 15 && (!existing || Number(existing.quantity || 1) >= 15)) throw new Error("予備デッキは合計15枚までです。");
+    }
     const found = cards.find(card => String(card.itemId) === id);
     if (found) found.quantity = Math.min(99, Number(found.quantity || 1) + 1);
     else cards.push({ itemId: id, name, quantity: 1 });
@@ -833,7 +839,7 @@ window.animalDeckApp = {
   },
   async changeQuantity(itemId, change, pile = "main") {
     if (!selectedDeck) throw new Error("先にデッキを選択してください。");
-    const field = pile === "territory" ? "territoryCards" : "cards";
+    const field = pile === "territory" ? "territoryCards" : pile === "reserve" ? "reserveCards" : "cards";
     const cards = [...(selectedDeck[field] || [])];
     const found = cards.find(card => String(card.itemId) === String(itemId));
     if (!found) return this.current();
