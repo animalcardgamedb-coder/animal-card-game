@@ -512,6 +512,10 @@ window.acgBuilderJsonCompat = {
     match = value.match(/^BP1-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 79) return 5000 + Number(match[1]);
     if (value === "BP1-080") return 9028;
+    if (value === "BP4-018") return 5318;
+    if (value === "BP4-054") return 5354;
+    if (value === "BP5-053") return 5553;
+    if (value === "BP5-076") return 5576;
     match = value.match(/^BP2-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5100 + Number(match[1]);
     match = value.match(/^BP3-(\d{1,3})$/);
