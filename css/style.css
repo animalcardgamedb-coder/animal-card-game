@@ -230,7 +230,13 @@
 .card-user-tag-editor-actions button{min-height:36px;padding:6px 13px}
 #detail-user-tag-status{margin:5px 0;color:var(--muted);font-size:12px}
 
-/* ACG Builder auxiliary deck zones */
+/* ACG Builder deck tag summary/editor */
+.builder-deck-tags{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel,#fff)}
+.builder-deck-tags-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.builder-deck-tag-summary{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;color:var(--muted);font-size:12px}
+.builder-deck-tag-actions{display:flex;gap:8px;margin-top:10px}
+.builder-deck-tag-editor[hidden]{display:none!important}
+/* Legacy extra-zone styles are no longer used. */
 .builder-extra-zones{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;margin:18px 0}
 .extra-zone{min-width:0;padding:13px;border:1px solid var(--line);border-radius:8px;background:var(--panel,#fff)}
 .extra-zone-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
