@@ -192,6 +192,97 @@
     }
     catch (error) { setStatus(error.message || "デッキを開けませんでした。"); }
   }
+  function renderExtraZones(deck) {
+    const root = $("builder-extra-zones");
+    if (!root) return;
+    root.hidden = state.publicView;
+    if (state.publicView) return;
+    const zones = [
+      { key: "reserve", field: "reserveCards", title: "予備デッキ", note: "ACGビルダーの予備デッキ（最大15枚）" },
+      { key: "consideration", field: "considerationCards", title: "検討中", note: "検討中カード（最大50枚）" }
+    ];
+    root.replaceChildren();
+    zones.forEach(zone => {
+      const entries = Array.isArray(deck[zone.field]) ? deck[zone.field] : [];
+      const section = document.createElement("section");
+      section.className = "extra-zone";
+      const heading = document.createElement("div");
+      heading.className = "extra-zone-heading";
+      const title = document.createElement("h3");
+      title.textContent = zone.title;
+      const total = entries.reduce((sum, entry) => sum + Math.max(1, Number(entry.quantity) || 1), 0);
+      const countLabel = document.createElement("span");
+      countLabel.textContent = total + "枚";
+      heading.append(title, countLabel);
+      const note = document.createElement("p");
+      note.textContent = zone.note;
+      section.append(heading, note);
+      if (!entries.length) {
+        const empty = document.createElement("p");
+        empty.className = "extra-zone-empty";
+        empty.textContent = "登録されているカードはありません。";
+        section.append(empty);
+      } else {
+        const list = document.createElement("div");
+        list.className = "extra-zone-list";
+        entries.forEach((entry, index) => {
+          const row = document.createElement("div");
+          row.className = "extra-zone-row";
+          const item = byItemId(entry.itemId);
+          const name = document.createElement("button");
+          name.type = "button";
+          name.className = "extra-zone-name";
+          name.textContent = entry.name || cardName(item || {});
+          name.title = item ? "カード詳細を表示" : "カードデータ未登録";
+          name.disabled = !item;
+          if (item) name.addEventListener("click", () => window.showCardDetail?.(item, { deckBuilder: true }));
+          const quantity = document.createElement("span");
+          quantity.className = "extra-zone-quantity";
+          quantity.textContent = "×" + Math.max(1, Number(entry.quantity) || 1);
+          const actions = document.createElement("div");
+          actions.className = "extra-zone-actions";
+          const makeButton = (label, titleText, action) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "selected-card-quantity-button";
+            button.textContent = label;
+            button.title = titleText;
+            button.setAttribute("aria-label", titleText);
+            button.addEventListener("click", action);
+            return button;
+          };
+          actions.append(
+            makeButton("−", "1枚減らす", () => updateExtraZone(zone, index, -1)),
+            makeButton("+", "1枚増やす", () => updateExtraZone(zone, index, 1)),
+            makeButton("削除", "このカードを削除", () => updateExtraZone(zone, index, 0, true))
+          );
+          row.append(name, quantity, actions);
+          list.append(row);
+        });
+        section.append(list);
+      }
+      root.append(section);
+    });
+  }
+  async function updateExtraZone(zone, index, delta, remove = false) {
+    if (state.publicView) return;
+    try {
+      const entries = [...(state.deck?.[zone.field] || [])].map(entry => ({ ...entry }));
+      const entry = entries[index];
+      if (!entry) return;
+      if (remove) entries.splice(index, 1);
+      else {
+        const quantity = Math.max(0, Math.min(99, Number(entry.quantity || 1) + delta));
+        if (quantity === 0) entries.splice(index, 1);
+        else entry.quantity = quantity;
+      }
+      state.deck = await app().saveExtraZone(entries, zone.key);
+      renderBuilder();
+    } catch (error) {
+      alert(error.message || "予備デッキ・検討中の内容を更新できませんでした。");
+    }
+  }
+
   function renderBuilder() {
     const deck = state.deck || app()?.current(); if (!deck) { setScreen("decks"); return; }
     state.deck = deck; $("builder-deck-name").value = deck.name || "";
@@ -207,6 +298,7 @@
     $("public-deck-readonly-note").hidden = !state.publicView;
     $("builder-tools").hidden = state.publicView;
     $("builder-card-list").hidden = state.publicView;
+    renderExtraZones(deck);
     $("builder-load-more").hidden = true;
     const typeCounts = {};
     allPileCards(deck).forEach(card => { const item = byItemId(card.itemId); const type = item?.card_type || item?.territory_type || "その他"; typeCounts[type] = (typeCounts[type] || 0) + Number(card.quantity || 1); });
@@ -694,7 +786,7 @@
           throw new Error("ACGビルダー形式のJSONではないようです。ACGビルダーから書き出したJSONを選択してください。");
         }
       }
-      state.deck = await app().importDeck(data); state.publicView = false; setStatus(data && data.mainDeck ? "ACGビルダー形式のデッキを読み込み、コピーを作成しました。実験的機能のため、一部のカードが未対応の場合があります。予備デッキ・検討中は保存されますが、現在この画面では表示・編集できません。" : "デッキを読み込み、コピーを作成しました。"); setScreen("builder");
+      state.deck = await app().importDeck(data); state.publicView = false; setStatus(data && data.mainDeck ? "ACGビルダー形式のデッキを読み込み、コピーを作成しました。未対応カードがある場合は内容をご確認ください。予備デッキ・検討中もこの画面で確認・枚数変更できます。" : "デッキを読み込み、コピーを作成しました。"); setScreen("builder");
     } catch (error) { setStatus(error.message || "デッキファイルを読み込めませんでした。"); }
   }
   function resolveA4PrintCard(entry, pile) {
