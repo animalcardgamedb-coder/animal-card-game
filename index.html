@@ -380,10 +380,12 @@
       <button id="new-deck-cancel-button" class="outline-button" type="button">キャンセル</button>
     </form>
     <div class="toolbar-panel deck-list-toolbar">
+      <button id="deck-tag-filter-toggle" class="toolbar-icon-button deck-tag-filter-toggle" type="button" aria-expanded="false" aria-controls="deck-tag-filter-panel" aria-label="デッキタグで絞り込む">⌄</button>
       <label class="search-field" for="deck-search"><span aria-hidden="true">⌕</span><input id="deck-search" type="search" placeholder="デッキ名やタグで検索"></label>
       <label class="sort-field" for="deck-sort-select"><span>並び順</span><select id="deck-sort-select"><option value="newest">更新日時（新しい順）</option><option value="name">デッキ名</option><option value="count">カード枚数</option></select></label>
       <button id="deck-list-view-toggle" type="button" class="toolbar-icon-button" aria-label="表示方法を切り替え">▦</button>
     </div>
+    <div id="deck-tag-filter-panel" class="deck-tag-filter-panel" hidden><strong>デッキタグ</strong><div id="deck-tag-filter-options" class="deck-tag-filter-options"></div><button id="deck-tag-filter-clear" class="outline-button deck-tag-filter-clear" type="button">選択を解除</button></div>
     <p id="deck-library-status" class="status-line" role="status"></p>
     <div id="deck-library-list" class="deck-library-grid"></div>
   </section>

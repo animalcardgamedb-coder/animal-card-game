@@ -228,15 +228,50 @@
       setStatus(state.decks.length ? `${state.decks.length}件のデッキ` : (state.tab === "mine" ? "デッキはまだありません。「新しいデッキ」から作成できます。" : "公開デッキはまだありません。"));
     } catch (error) { setStatus(error.message || "デッキを読み込めませんでした。ログイン状態や通信を確認してください。"); }
   }
+  function readPublicDeckTagFilters() {
+    return Array.from($("deck-tag-filter-options")?.querySelectorAll("button.is-selected") || []).map(button => button.dataset.tag);
+  }
+  function renderPublicDeckTagFilters() {
+    const container = $("deck-tag-filter-options");
+    if (!container) return;
+    container.replaceChildren();
+    if (!state.registeredTags.length) { container.textContent = "共通デッキタグはまだ登録されていません。"; return; }
+    state.registeredTags.forEach(tag => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "deck-tag-filter-chip";
+      button.dataset.tag = tag;
+      button.textContent = tag;
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => {
+        const selected = button.classList.toggle("is-selected");
+        button.setAttribute("aria-pressed", String(selected));
+        renderDeckTiles(state.decks);
+      });
+      container.append(button);
+    });
+  }
+  async function refreshPublicDeckTagFilters() {
+    try { state.registeredTags = app()?.listDeckTags ? await app().listDeckTags() : []; }
+    catch (_) { state.registeredTags = []; }
+    renderPublicDeckTagFilters();
+  }
+
   function renderDeckTiles(decks) {
     const list = $("deck-library-list"); list.replaceChildren();
     const queryText = $("deck-search").value.trim().toLowerCase();
     const sort = $("deck-sort-select").value;
-    let filtered = decks.filter(deck => !queryText || `${deck.name} ${(deck.tags || []).join(" ")}`.toLowerCase().includes(queryText));
+    const selectedTags = readPublicDeckTagFilters();
+    let filtered = decks.filter(deck => {
+      const matchesText = !queryText || `${deck.name} ${(deck.tags || []).join(" ")}`.toLowerCase().includes(queryText);
+      const deckTags = Array.isArray(deck.tags) ? deck.tags : [];
+      const matchesTags = selectedTags.every(tag => deckTags.some(deckTag => String(deckTag).toLocaleLowerCase("ja-JP") === tag.toLocaleLowerCase("ja-JP")));
+      return matchesText && matchesTags;
+    });
     if (sort === "name") filtered.sort((a,b) => String(a.name).localeCompare(String(b.name), "ja"));
     if (sort === "count") filtered.sort((a,b) => count(b)-count(a));
     if (state.compact) list.classList.add("compact"); else list.classList.remove("compact");
-    if (!filtered.length) { list.innerHTML = `<div class="empty-state">${queryText ? "条件に合うデッキはありません。" : (state.tab === "mine" ? "ここに作成したデッキが表示されます。" : "公開されているデッキがここに表示されます。")}</div>`; return; }
+    if (!filtered.length) { list.innerHTML = `<div class="empty-state">${queryText || selectedTags.length ? "条件に合うデッキはありません。" : (state.tab === "mine" ? "ここに作成したデッキが表示されます。" : "公開されているデッキがここに表示されます。")}</div>`; return; }
     filtered.forEach(deck => {
       const tile = document.createElement("button"); tile.type = "button"; tile.className = "deck-tile";
       const first = allPileCards(deck).map(card => byItemId(card.itemId)?.image_url).find(Boolean);
@@ -1028,6 +1063,17 @@
     $("my-decks-tab").addEventListener("click", () => { state.tab = "mine"; state.publicView = false; $("my-decks-tab").classList.add("active"); $("public-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "true"); $("public-decks-tab").setAttribute("aria-selected", "false"); refreshDecks(); });
     $("public-decks-tab").addEventListener("click", () => { state.tab = "public"; $("public-decks-tab").classList.add("active"); $("my-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "false"); $("public-decks-tab").setAttribute("aria-selected", "true"); refreshDecks(); });
     $("deck-search").addEventListener("input", () => renderDeckTiles(state.decks)); $("deck-sort-select").addEventListener("change", () => renderDeckTiles(state.decks));
+    $("deck-tag-filter-toggle").addEventListener("click", () => {
+      const panel = $("deck-tag-filter-panel");
+      const expanded = panel.hidden;
+      panel.hidden = !expanded;
+      $("deck-tag-filter-toggle").setAttribute("aria-expanded", String(expanded));
+      if (expanded && !panel.dataset.loaded) { panel.dataset.loaded = "true"; void refreshPublicDeckTagFilters(); }
+    });
+    $("deck-tag-filter-clear").addEventListener("click", () => {
+      $("deck-tag-filter-options").querySelectorAll("button.is-selected").forEach(button => { button.classList.remove("is-selected"); button.setAttribute("aria-pressed", "false"); });
+      renderDeckTiles(state.decks);
+    });
     $("deck-list-view-toggle").addEventListener("click", () => { state.compact = !state.compact; renderDeckTiles(state.decks); });
     document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => {
       if (button.dataset.back === "builder" && state.publicView && state.screen === "preview") {
@@ -1077,6 +1123,7 @@
     $("preview-expand-copies").addEventListener("change", renderPreview);
     window.addEventListener("animaldeck:authchange", () => {
       refreshTagOptions();
+      if ($("deck-tag-filter-panel")?.dataset.loaded) void refreshPublicDeckTagFilters();
       if (pendingScreenRestore && !screenRestoreAttempted) void restoreScreenState();
       else if (state.screen === "decks") refreshDecks();
     });
