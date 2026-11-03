@@ -475,6 +475,66 @@ async function loadPublicDecks() {
 }
 
 /*
+  ACGビルダーJSON互換マッピング。
+  数値ID→カード番号の規則は、公開されている acg_solo の
+  idToCardNoMain / idToCardNoTerr の実装に基づく。
+  未確認のIDは推測で変換せず、エラーとして報告する。
+*/
+window.acgBuilderJsonCompat = {
+  idToCardNo(id, pile = "main") {
+    const n = Number(id);
+    if (!Number.isInteger(n)) return null;
+    if (pile === "territory") {
+      if (8001 <= n && n <= 8018) return "RYO-" + String(n - 8000).padStart(3, "0");
+      return null;
+    }
+    if (n === 9028) return "BP1-080";
+    if (1 <= n && n <= 164) return "ACG-" + String(n).padStart(3, "0");
+    if (5001 <= n && n <= 5079) return "BP1-" + String(n - 5000).padStart(3, "0");
+    if (5101 <= n && n <= 5180) return "BP2-" + String(n - 5100).padStart(3, "0");
+    if (5201 <= n && n <= 5280) return "BP3-" + String(n - 5200).padStart(3, "0");
+    return null;
+  },
+  cardNoToId(cardNo, pile = "main") {
+    const value = String(cardNo || "").trim().toUpperCase().replace(/[‐‑‒–—−]/g, "-");
+    let match;
+    if (pile === "territory") {
+      match = value.match(/^RYO-(\d{1,3})$/);
+      if (match && Number(match[1]) >= 1 && Number(match[1]) <= 18) return 8000 + Number(match[1]);
+      return null;
+    }
+    match = value.match(/^ACG-(\d{1,3})$/);
+    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 164) return Number(match[1]);
+    match = value.match(/^BP1-(\d{1,3})$/);
+    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 79) return 5000 + Number(match[1]);
+    if (value === "BP1-080") return 9028;
+    match = value.match(/^BP2-(\d{1,3})$/);
+    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5100 + Number(match[1]);
+    match = value.match(/^BP3-(\d{1,3})$/);
+    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5200 + Number(match[1]);
+    return null;
+  },
+  findCardByNo(cardNo, pile = "main") {
+    const list = pile === "territory" ? (window.appState?.allTerritories || []) : (window.appState?.allCards || []);
+    const keys = pile === "territory"
+      ? ["territory_card_number", "territory_number", "card_number", "card_no", "cardNumber", "cardNo", "カードナンバー", "territory_id"]
+      : ["card_number", "card_no", "cardNumber", "cardNo", "カードナンバー", "card_id"];
+    const normalize = value => String(value ?? "").trim().toUpperCase().replace(/[‐‑‒–—−]/g, "-");
+    return list.find(item => keys.some(key => normalize(item?.[key]) === normalize(cardNo))) || null;
+  },
+  getCardNo(item, pile = "main") {
+    const keys = pile === "territory"
+      ? ["territory_card_number", "territory_number", "card_number", "card_no", "cardNumber", "cardNo", "カードナンバー", "territory_id"]
+      : ["card_number", "card_no", "cardNumber", "cardNo", "カードナンバー", "card_id"];
+    for (const key of keys) {
+      const value = String(item?.[key] ?? "").trim();
+      if (this.cardNoToId(value, pile) != null) return value.toUpperCase().replace(/[‐‑‒–—−]/g, "-");
+    }
+    return null;
+  }
+};
+
+/*
   新しい画面から安全に使うデッキ操作。
   所有権の確認とFirestoreへの保存は、従来どおりサーバールールでも検証されます。
 */
@@ -626,9 +686,48 @@ window.animalDeckApp = {
     return this.current();
   },
   async importDeck(data) {
-    if (!data || data.format !== "animal-card-game-deck" || data.version !== 1) throw new Error("このデッキファイル形式には対応していません。");
-    const main = Array.isArray(data.mainCards) ? data.mainCards : [];
-    const territory = Array.isArray(data.territoryCards) ? data.territoryCards : [];
+    const compat = window.acgBuilderJsonCompat;
+    const isAcgBuilder = data && typeof data === "object" &&
+      ["mainDeck", "territoryDeck", "reserveDeck", "considerationDeck"].some(key =>
+        data[key] && typeof data[key] === "object" && !Array.isArray(data[key]));
+    let main = [];
+    let territory = [];
+    let warnings = [];
+    if (data && data.format === "animal-card-game-deck" && data.version === 1) {
+      main = Array.isArray(data.mainCards) ? data.mainCards : [];
+      territory = Array.isArray(data.territoryCards) ? data.territoryCards : [];
+    } else if (isAcgBuilder) {
+      if (!compat) throw new Error("ACGビルダー形式の変換機能を読み込めませんでした。");
+      const convertZone = (zone, pile, label) => Object.entries(zone || {}).map(([id, quantity]) => {
+        const cardNo = compat.idToCardNo(id, pile);
+        if (!cardNo) {
+          warnings.push(label + "のID " + id + " は対応表にありません。");
+          return null;
+        }
+        const item = compat.findCardByNo(cardNo, pile);
+        if (!item) {
+          warnings.push(label + "のID " + id + "（" + cardNo + "）に一致するカードがサイト内にありません。");
+          return null;
+        }
+        return {
+          itemId: String(pile === "territory" ? item.territory_id : item.card_id),
+          name: String(item.card_name || item.territory_name || cardNo),
+          quantity: Math.max(1, Math.min(99, Math.floor(Number(quantity) || 1)))
+        };
+      }).filter(Boolean);
+      main = convertZone(data.mainDeck, "main", "メインデッキ");
+      territory = convertZone(data.territoryDeck, "territory", "領土デッキ");
+      // Reserve/consideration zones are not modeled by this site's deck format.
+      const reserveCount = Object.keys(data.reserveDeck || {}).length;
+      const considerationCount = Object.keys(data.considerationDeck || {}).length;
+      if (reserveCount) warnings.push("予備デッキ " + reserveCount + "種類は、このサイトのデッキ形式に保存できないため取り込みませんでした。");
+      if (considerationCount) warnings.push("検討中 " + considerationCount + "種類は、このサイトのデッキ形式に保存できないため取り込みませんでした。");
+      if (warnings.length && !main.length && !territory.length) {
+        throw new Error("読み込めるカードがありません。カードデータの読み込み後か、対応するカードIDかを確認してください。\n" + warnings.slice(0, 8).join("\n"));
+      }
+    } else {
+      throw new Error("このデッキファイル形式には対応していません。");
+    }
     if (main.length > 200 || territory.length > 200) throw new Error("カードの種類数が上限を超えています。");
     const clean = (list, pile) => list.map(card => {
       const itemId = String(card.itemId || "").trim();
@@ -637,14 +736,15 @@ window.animalDeckApp = {
       if (!itemId || !name) throw new Error("読み込むデッキにカードIDまたはカード名がありません。");
       return { itemId: `${pile}:${itemId.replace(/^(card|territory):/, "")}`, name, quantity };
     });
-    const created = await this.create(`${String(data.name || "読み込みデッキ").slice(0, 44)} のコピー`, normalizeTags(data.tags));
-    try {
-      await this.saveCards(clean(main, "card"), "main");
-      await this.saveCards(clean(territory, "territory"), "territory");
-      return this.current();
-    } catch (error) {
-      throw error;
+    const deckName = String(data.name || "読み込みデッキ").trim().slice(0, 44);
+    await this.create(`${deckName || "読み込みデッキ"} のコピー`, normalizeTags(data.tags));
+    await this.saveCards(clean(main, "card"), "main");
+    await this.saveCards(clean(territory, "territory"), "territory");
+    if (warnings.length) {
+      console.warn("ACGビルダーJSONの一部を取り込めませんでした:", warnings);
+      window.dispatchEvent(new CustomEvent("animaldeck:importwarnings", { detail: warnings }));
     }
+    return this.current();
   },
   async updateSettings(name, isPublic, tags = selectedDeck?.tags || []) {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
