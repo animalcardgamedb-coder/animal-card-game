@@ -686,7 +686,7 @@
   async function importDeckFile(file) {
     try {
       const data = JSON.parse(await file.text());
-      state.deck = await app().importDeck(data); state.publicView = false; setStatus("デッキを読み込み、コピーを作成しました。"); setScreen("builder");
+      state.deck = await app().importDeck(data); state.publicView = false; setStatus(data && data.mainDeck ? "デッキを読み込み、コピーを作成しました。予備デッキ・検討中も保存していますが、現在この画面では表示・編集できません。ACGビルダー形式で再書き出すと引き継げます。" : "デッキを読み込み、コピーを作成しました。"); setScreen("builder");
     } catch (error) { setStatus(error.message || "デッキファイルを読み込めませんでした。"); }
   }
   function resolveA4PrintCard(entry, pile) {
