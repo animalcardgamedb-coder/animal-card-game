@@ -229,3 +229,20 @@
 .card-user-tag-editor-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .card-user-tag-editor-actions button{min-height:36px;padding:6px 13px}
 #detail-user-tag-status{margin:5px 0;color:var(--muted);font-size:12px}
+
+/* ACG Builder auxiliary deck zones */
+.builder-extra-zones{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;margin:18px 0}
+.extra-zone{min-width:0;padding:13px;border:1px solid var(--line);border-radius:8px;background:var(--panel,#fff)}
+.extra-zone-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.extra-zone-heading h3{margin:0;font-size:15px}
+.extra-zone-heading span,.extra-zone>p{color:var(--muted);font-size:12px}
+.extra-zone>p{margin:5px 0 10px}
+.extra-zone-empty{margin:0;padding:10px;border-radius:6px;background:var(--surface,#f5f5f2);color:var(--muted);font-size:12px}
+.extra-zone-list{display:grid;gap:6px}
+.extra-zone-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
+.extra-zone-name{min-width:0;padding:4px 0;border:0;background:transparent;color:var(--text,#222);font:inherit;text-align:left;overflow-wrap:anywhere}
+.extra-zone-name:disabled{opacity:1}
+.extra-zone-quantity{font-size:12px;font-weight:700;white-space:nowrap}
+.extra-zone-actions{display:flex;align-items:center;gap:4px}
+.extra-zone-actions button{min-width:30px;min-height:30px;padding:3px 7px;font-size:12px}
+@media(max-width:480px){.extra-zone-row{grid-template-columns:minmax(0,1fr) auto}.extra-zone-actions{grid-column:1/-1;justify-content:flex-end}}
