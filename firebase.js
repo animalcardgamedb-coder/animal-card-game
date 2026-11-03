@@ -719,7 +719,7 @@ window.animalDeckApp = {
       territory = convertZone(data.territoryDeck, "territory", "領土デッキ");
       var reserve = convertZone(data.reserveDeck, "main", "予備デッキ");
       var consideration = convertZone(data.considerationDeck, "main", "検討中");
-      if (warnings.length && !main.length && !territory.length) {
+      if (warnings.length && !main.length && !territory.length && !(reserve || []).length && !(consideration || []).length) {
         throw new Error("読み込めるカードがありません。カードデータの読み込み後か、対応するカードIDかを確認してください。\n" + warnings.slice(0, 8).join("\n"));
       }
     } else {
