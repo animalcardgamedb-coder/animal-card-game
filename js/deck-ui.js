@@ -683,10 +683,18 @@
     const status = $("deck-tag-status");
     if (status && loadError) status.textContent = loadError + "（共有タグ用のFirestoreルールが公開されているか確認してください。）";
   }
-  async function importDeckFile(file) {
+  async function importDeckFile(file, acgBuilderOnly = false) {
     try {
       const data = JSON.parse(await file.text());
-      state.deck = await app().importDeck(data); state.publicView = false; setStatus(data && data.mainDeck ? "デッキを読み込み、コピーを作成しました。予備デッキ・検討中も保存していますが、現在この画面では表示・編集できません。ACGビルダー形式で再書き出すと引き継げます。" : "デッキを読み込み、コピーを作成しました。"); setScreen("builder");
+      if (acgBuilderOnly) {
+        const isAcgBuilder = data && typeof data === "object" &&
+          ["mainDeck", "territoryDeck", "reserveDeck", "considerationDeck"].some(key =>
+            data[key] && typeof data[key] === "object" && !Array.isArray(data[key]));
+        if (!isAcgBuilder) {
+          throw new Error("ACGビルダー形式のJSONではないようです。ACGビルダーから書き出したJSONを選択してください。");
+        }
+      }
+      state.deck = await app().importDeck(data); state.publicView = false; setStatus(data && data.mainDeck ? "ACGビルダー形式のデッキを読み込み、コピーを作成しました。実験的機能のため、一部のカードが未対応の場合があります。予備デッキ・検討中は保存されますが、現在この画面では表示・編集できません。" : "デッキを読み込み、コピーを作成しました。"); setScreen("builder");
     } catch (error) { setStatus(error.message || "デッキファイルを読み込めませんでした。"); }
   }
   function resolveA4PrintCard(entry, pile) {
@@ -921,6 +929,8 @@
     });
     $("import-deck-button").addEventListener("click", () => { if (!app()?.isSignedIn()) { setStatus("デッキを読み込むにはログインしてください。"); return; } $("import-deck-file").click(); });
     $("import-deck-file").addEventListener("change", event => { const file = event.target.files?.[0]; if (file) importDeckFile(file); event.target.value = ""; });
+    $("import-acg-builder-button").addEventListener("click", () => { if (!app()?.isSignedIn()) { setStatus("デッキを読み込むにはログインしてください。"); return; } $("import-acg-builder-file").click(); });
+    $("import-acg-builder-file").addEventListener("change", event => { const file = event.target.files?.[0]; if (file) importDeckFile(file, true); event.target.value = ""; });
     $("my-decks-tab").addEventListener("click", () => { state.tab = "mine"; state.publicView = false; $("my-decks-tab").classList.add("active"); $("public-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "true"); $("public-decks-tab").setAttribute("aria-selected", "false"); refreshDecks(); });
     $("public-decks-tab").addEventListener("click", () => { state.tab = "public"; $("public-decks-tab").classList.add("active"); $("my-decks-tab").classList.remove("active"); $("my-decks-tab").setAttribute("aria-selected", "false"); $("public-decks-tab").setAttribute("aria-selected", "true"); refreshDecks(); });
     $("deck-search").addEventListener("input", () => renderDeckTiles(state.decks)); $("deck-sort-select").addEventListener("change", () => renderDeckTiles(state.decks));
