@@ -677,7 +677,7 @@ window.animalDeckApp = {
       name: safeName,
       tags: normalizeTags(tags),
       isPublic: false,
-      cards: [], territoryCards: [],
+      cards: [], territoryCards: [], reserveCards: [], considerationCards: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -717,11 +717,8 @@ window.animalDeckApp = {
       }).filter(Boolean);
       main = convertZone(data.mainDeck, "main", "メインデッキ");
       territory = convertZone(data.territoryDeck, "territory", "領土デッキ");
-      // Reserve/consideration zones are not modeled by this site's deck format.
-      const reserveCount = Object.keys(data.reserveDeck || {}).length;
-      const considerationCount = Object.keys(data.considerationDeck || {}).length;
-      if (reserveCount) warnings.push("予備デッキ " + reserveCount + "種類は、このサイトのデッキ形式に保存できないため取り込みませんでした。");
-      if (considerationCount) warnings.push("検討中 " + considerationCount + "種類は、このサイトのデッキ形式に保存できないため取り込みませんでした。");
+      var reserve = convertZone(data.reserveDeck, "main", "予備デッキ");
+      var consideration = convertZone(data.considerationDeck, "main", "検討中");
       if (warnings.length && !main.length && !territory.length) {
         throw new Error("読み込めるカードがありません。カードデータの読み込み後か、対応するカードIDかを確認してください。\n" + warnings.slice(0, 8).join("\n"));
       }
@@ -743,6 +740,18 @@ window.animalDeckApp = {
     await this.create(`${deckName || "読み込みデッキ"} のコピー`, normalizeTags(data.tags));
     await this.saveCards(clean(main, "card"), "main");
     await this.saveCards(clean(territory, "territory"), "territory");
+    if (isAcgBuilder) {
+      const cleanExtra = list => list.map(card => ({
+        itemId: `card:${String(card.itemId || "").replace(/^(card|territory):/, "")}`,
+        name: String(card.name || "カード").slice(0, 100),
+        quantity: Math.max(1, Math.min(99, Number(card.quantity) || 1))
+      }));
+      const reserveCards = cleanExtra(reserve || []);
+      const considerationCards = cleanExtra(consideration || []);
+      if (reserveCards.length > 200 || considerationCards.length > 200) throw new Error("予備デッキまたは検討中のカード種類数が上限を超えています。");
+      await updateDoc(doc(db, "decks", selectedDeckId), { reserveCards, considerationCards, updatedAt: serverTimestamp() });
+      selectedDeck = { ...selectedDeck, reserveCards, considerationCards };
+    }
     if (warnings.length) {
       console.warn("ACGビルダーJSONの一部を取り込めませんでした:", warnings);
       window.dispatchEvent(new CustomEvent("animaldeck:importwarnings", { detail: warnings }));
