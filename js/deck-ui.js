@@ -26,6 +26,7 @@
   const cardName = card => card.card_name || card.territory_name || card.name || "カード";
   const deckCards = deck => Array.isArray(deck?.cards) ? deck.cards : [];
   const territoryCards = deck => Array.isArray(deck?.territoryCards) ? deck.territoryCards : [];
+  const reserveCards = deck => Array.isArray(deck?.reserveCards) ? deck.reserveCards : [];
   function applySharedIconColumns(value, persist = false) {
     const columns = clampIconColumns(value);
     if (window.appState) window.appState.currentIconColumns = columns;
@@ -44,7 +45,7 @@
     });
     return columns;
   }
-  const pileCards = (deck, pile = state.pile) => pile === "territory" ? territoryCards(deck) : deckCards(deck);
+  const pileCards = (deck, pile = state.pile) => pile === "territory" ? territoryCards(deck) : pile === "reserve" ? reserveCards(deck) : deckCards(deck);
   const allPileCards = deck => [...deckCards(deck), ...territoryCards(deck)];
   const count = deck => allPileCards(deck).reduce((sum, card) => sum + Number(card.quantity || 1), 0);
   function territoryLimitStatus(deck) {
@@ -115,12 +116,15 @@
   }
 
   function setBuilderPile(pile) {
-    state.pile = pile === "territory" ? "territory" : "main";
+    state.pile = ["territory", "reserve"].includes(pile) ? pile : "main";
     const territory = state.pile === "territory";
-    $("main-pile-tab").classList.toggle("active", !territory);
+    const reserve = state.pile === "reserve";
+    $("main-pile-tab").classList.toggle("active", state.pile === "main");
     $("territory-pile-tab").classList.toggle("active", territory);
-    $("main-pile-tab").setAttribute("aria-selected", String(!territory));
+    $("reserve-pile-tab").classList.toggle("active", reserve);
+    $("main-pile-tab").setAttribute("aria-selected", String(state.pile === "main"));
     $("territory-pile-tab").setAttribute("aria-selected", String(territory));
+    $("reserve-pile-tab").setAttribute("aria-selected", String(reserve));
     renderBuilder();
   }
 
@@ -192,97 +196,6 @@
     }
     catch (error) { setStatus(error.message || "デッキを開けませんでした。"); }
   }
-  function renderExtraZones(deck) {
-    const root = $("builder-extra-zones");
-    if (!root) return;
-    root.hidden = state.publicView;
-    if (state.publicView) return;
-    const zones = [
-      { key: "reserve", field: "reserveCards", title: "予備デッキ", note: "ACGビルダーの予備デッキ（最大15枚）" },
-      { key: "consideration", field: "considerationCards", title: "検討中", note: "検討中カード（最大50枚）" }
-    ];
-    root.replaceChildren();
-    zones.forEach(zone => {
-      const entries = Array.isArray(deck[zone.field]) ? deck[zone.field] : [];
-      const section = document.createElement("section");
-      section.className = "extra-zone";
-      const heading = document.createElement("div");
-      heading.className = "extra-zone-heading";
-      const title = document.createElement("h3");
-      title.textContent = zone.title;
-      const total = entries.reduce((sum, entry) => sum + Math.max(1, Number(entry.quantity) || 1), 0);
-      const countLabel = document.createElement("span");
-      countLabel.textContent = total + "枚";
-      heading.append(title, countLabel);
-      const note = document.createElement("p");
-      note.textContent = zone.note;
-      section.append(heading, note);
-      if (!entries.length) {
-        const empty = document.createElement("p");
-        empty.className = "extra-zone-empty";
-        empty.textContent = "登録されているカードはありません。";
-        section.append(empty);
-      } else {
-        const list = document.createElement("div");
-        list.className = "extra-zone-list";
-        entries.forEach((entry, index) => {
-          const row = document.createElement("div");
-          row.className = "extra-zone-row";
-          const item = byItemId(entry.itemId);
-          const name = document.createElement("button");
-          name.type = "button";
-          name.className = "extra-zone-name";
-          name.textContent = entry.name || cardName(item || {});
-          name.title = item ? "カード詳細を表示" : "カードデータ未登録";
-          name.disabled = !item;
-          if (item) name.addEventListener("click", () => window.showCardDetail?.(item, { deckBuilder: true }));
-          const quantity = document.createElement("span");
-          quantity.className = "extra-zone-quantity";
-          quantity.textContent = "×" + Math.max(1, Number(entry.quantity) || 1);
-          const actions = document.createElement("div");
-          actions.className = "extra-zone-actions";
-          const makeButton = (label, titleText, action) => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "selected-card-quantity-button";
-            button.textContent = label;
-            button.title = titleText;
-            button.setAttribute("aria-label", titleText);
-            button.addEventListener("click", action);
-            return button;
-          };
-          actions.append(
-            makeButton("−", "1枚減らす", () => updateExtraZone(zone, index, -1)),
-            makeButton("+", "1枚増やす", () => updateExtraZone(zone, index, 1)),
-            makeButton("削除", "このカードを削除", () => updateExtraZone(zone, index, 0, true))
-          );
-          row.append(name, quantity, actions);
-          list.append(row);
-        });
-        section.append(list);
-      }
-      root.append(section);
-    });
-  }
-  async function updateExtraZone(zone, index, delta, remove = false) {
-    if (state.publicView) return;
-    try {
-      const entries = [...(state.deck?.[zone.field] || [])].map(entry => ({ ...entry }));
-      const entry = entries[index];
-      if (!entry) return;
-      if (remove) entries.splice(index, 1);
-      else {
-        const quantity = Math.max(0, Math.min(99, Number(entry.quantity || 1) + delta));
-        if (quantity === 0) entries.splice(index, 1);
-        else entry.quantity = quantity;
-      }
-      state.deck = await app().saveExtraZone(entries, zone.key);
-      renderBuilder();
-    } catch (error) {
-      alert(error.message || "予備デッキ・検討中の内容を更新できませんでした。");
-    }
-  }
-
   function renderBuilder() {
     const deck = state.deck || app()?.current(); if (!deck) { setScreen("decks"); return; }
     state.deck = deck; $("builder-deck-name").value = deck.name || "";
@@ -295,10 +208,12 @@
     $("save-deck-button").hidden = state.publicView;
     $("builder-deck-name").disabled = state.publicView;
     renderTagOptions("builder-deck-tag-options", deck.tags || [], state.publicView);
+    renderDeckTagSummary(deck.tags || []);
+    $("builder-edit-tags-button").hidden = state.publicView;
+    if (state.publicView) $("builder-deck-tag-editor").hidden = true;
     $("public-deck-readonly-note").hidden = !state.publicView;
     $("builder-tools").hidden = state.publicView;
     $("builder-card-list").hidden = state.publicView;
-    renderExtraZones(deck);
     $("builder-load-more").hidden = true;
     const typeCounts = {};
     allPileCards(deck).forEach(card => { const item = byItemId(card.itemId); const type = item?.card_type || item?.territory_type || "その他"; typeCounts[type] = (typeCounts[type] || 0) + Number(card.quantity || 1); });
@@ -327,6 +242,10 @@
       pileCount.classList.toggle("limit-reached", limits.reachedTotal);
       pileCount.classList.toggle("over-limit", limits.overTotal);
       pileCount.title = limits.overTotal ? "領土デッキが上限10枚を超えています。−ボタンで減らしてください。" : (limits.reachedTotal ? "領土デッキの上限10枚に達しています。" : "");
+    } else if (state.pile === "reserve") {
+      pileCount.textContent = "予備デッキ：" + activeTotal + "/15枚";
+      pileCount.classList.toggle("limit-reached", activeTotal >= 15);
+      pileCount.classList.toggle("over-limit", activeTotal > 15);
     } else {
       pileCount.textContent = "メインデッキ：" + activeTotal + "枚";
       pileCount.classList.remove("limit-reached", "over-limit");
@@ -577,7 +496,7 @@
     if (state.publicView) return;
     try {
       const pile = state.pile;
-      const field = pile === "territory" ? "territoryCards" : "cards";
+      const field = pile === "territory" ? "territoryCards" : pile === "reserve" ? "reserveCards" : "cards";
       const cards = [...(state.deck?.[field] || [])];
       const fromIndex = cards.findIndex(card => String(card.itemId) === String(itemId));
       const toIndex = fromIndex + Number(direction || 0);
@@ -593,7 +512,7 @@
   async function moveCardTo(itemId, targetItemId, pile = state.pile) {
     if (state.publicView) return;
     try {
-      const field = pile === "territory" ? "territoryCards" : "cards";
+      const field = pile === "territory" ? "territoryCards" : pile === "reserve" ? "reserveCards" : "cards";
       const cards = [...(state.deck?.[field] || [])];
       const fromIndex = cards.findIndex(card => String(card.itemId) === String(itemId));
       const targetIndex = targetItemId == null
@@ -733,6 +652,13 @@
       label.append(input, document.createTextNode(tag)); container.append(label);
     });
   }
+  function renderDeckTagSummary(tags) {
+    const root = $("builder-deck-tag-summary");
+    if (!root) return;
+    root.replaceChildren();
+    if (!tags.length) { root.textContent = "タグは設定されていません。"; return; }
+    tags.forEach(tag => { const chip = document.createElement("span"); chip.className = "user-tag-chip"; chip.textContent = tag; root.append(chip); });
+  }
   function readTagChecks(containerId) { return Array.from($(containerId)?.querySelectorAll("input:checked") || []).map(input => input.value); }
   async function refreshTagOptions() {
     let loadError = "";
@@ -742,7 +668,6 @@
       state.registeredTags = [];
       loadError = error.message || "共有タグ一覧を読み込めませんでした。";
     }
-    renderTagOptions("new-deck-tag-options");
     renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView);
     const list = $("deck-tag-list");
     if (list) {
@@ -1001,7 +926,7 @@
     });
     $("new-deck-open-button").addEventListener("click", () => { if (!app()?.isSignedIn()) { $("menu-panel").hidden = false; openModal("account-modal"); if (location.protocol === "file:") { $("local-auth-notice").hidden = false; ["google-signin-button", "email-signin-button", "email-signup-button"].forEach(id => { const button = $(id); if (button) button.disabled = true; }); } return; } $("new-deck-panel").hidden = false; $("new-deck-screen-name").focus(); });
     $("new-deck-cancel-button").addEventListener("click", () => { $("new-deck-panel").hidden = true; });
-    $("new-deck-panel").addEventListener("submit", async event => { event.preventDefault(); try { state.deck = await app().create($("new-deck-screen-name").value, readTagChecks("new-deck-tag-options")); state.publicView = false; $("new-deck-screen-name").value = ""; $("new-deck-panel").hidden = true; setScreen("builder"); } catch (error) { setStatus(error.message || "デッキを作成できませんでした。"); } });
+    $("new-deck-panel").addEventListener("submit", async event => { event.preventDefault(); try { state.deck = await app().create($("new-deck-screen-name").value); state.publicView = false; $("new-deck-screen-name").value = ""; $("new-deck-panel").hidden = true; setScreen("builder"); } catch (error) { setStatus(error.message || "デッキを作成できませんでした。"); } });
     $("deck-tags-open-button").addEventListener("click", async () => { $("menu-panel").hidden = true; openModal("deck-tags-modal"); await refreshTagOptions(); });
     $("deck-tag-form").addEventListener("submit", async event => {
       event.preventDefault();
@@ -1061,6 +986,10 @@
     const selectedDeckTags = () => readTagChecks("builder-deck-tag-options");
     $("main-pile-tab").addEventListener("click", () => setBuilderPile("main"));
     $("territory-pile-tab").addEventListener("click", () => setBuilderPile("territory"));
+    $("reserve-pile-tab").addEventListener("click", () => setBuilderPile("reserve"));
+    $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
+    $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
+    $("builder-apply-tags-button").addEventListener("click", () => { state.deck.tags = readTagChecks("builder-deck-tag-options"); renderDeckTagSummary(state.deck.tags); $("builder-deck-tag-editor").hidden = true; });
     $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
     $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags()); renderBuilder(); } catch (error) { alert(error.message); } });
     $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
