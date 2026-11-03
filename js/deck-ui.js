@@ -63,7 +63,7 @@
       entry.quantity += Math.max(1, Number(card.quantity) || 1);
       countsByName.set(key, entry);
     });
-    return { total, countsByName, overTotal: total > 10, reachedTotal: total >= 10 };
+    return { total, countsByName };
   }
   function canAddCurrentTerritoryItem(item) {
     return state.pile !== "territory" || (app()?.canAddTerritoryCard ? app().canAddTerritoryCard(item) : true);
@@ -71,7 +71,6 @@
   function territoryAddLimitMessage(item) {
     if (state.pile !== "territory") return "";
     const limits = territoryLimitStatus(state.deck);
-    if (limits.total >= 10) return "領土デッキは最大10枚です";
     const name = String(item?.territory_name || item?.name || "").trim();
     const species = String(item?.species || "");
     const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
@@ -238,10 +237,9 @@
     const pileCount = $("selected-pile-count");
     if (state.pile === "territory") {
       const limits = territoryLimitStatus(deck);
-      pileCount.textContent = "領土デッキ：" + activeTotal + "/10枚";
-      pileCount.classList.toggle("limit-reached", limits.reachedTotal);
-      pileCount.classList.toggle("over-limit", limits.overTotal);
-      pileCount.title = limits.overTotal ? "領土デッキが上限10枚を超えています。−ボタンで減らしてください。" : (limits.reachedTotal ? "領土デッキの上限10枚に達しています。" : "");
+      pileCount.textContent = "領土デッキ：" + activeTotal + "枚";
+      pileCount.classList.remove("limit-reached", "over-limit");
+      pileCount.title = "";
     } else if (state.pile === "reserve") {
       pileCount.textContent = "予備デッキ：" + activeTotal + "/15枚";
       pileCount.classList.toggle("limit-reached", activeTotal >= 15);
