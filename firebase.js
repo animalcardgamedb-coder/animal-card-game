@@ -494,7 +494,8 @@ window.acgBuilderJsonCompat = {
     if (5101 <= n && n <= 5180) return "BP2-" + String(n - 5100).padStart(3, "0");
     if (5201 <= n && n <= 5280) return "BP3-" + String(n - 5200).padStart(3, "0");
     if (5301 <= n && n <= 5380) return "BP4-" + String(n - 5300).padStart(3, "0");
-    if (5501 <= n && n <= 5580) return "BP5-" + String(n - 5500).padStart(3, "0");
+    if (5401 <= n && n <= 5480) return "BP5-" + String(n - 5400).padStart(3, "0");
+    if (5501 <= n && n <= 5580) return "BP6-" + String(n - 5500).padStart(3, "0");
     return null;
   },
   cardNoToId(cardNo, pile = "main") {
@@ -510,14 +511,16 @@ window.acgBuilderJsonCompat = {
     match = value.match(/^BP1-(\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 79) return 5000 + Number(match[1]);
     if (value === "BP1-080") return 9028;
+    match = value.match(/^BP2-(\\d{1,3})$/);
+    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5100 + Number(match[1]);
+    match = value.match(/^BP3-(\\d{1,3})$/);
+    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5200 + Number(match[1]);
     match = value.match(/^BP4-(\\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5300 + Number(match[1]);
     match = value.match(/^BP5-(\\d{1,3})$/);
+    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5400 + Number(match[1]);
+    match = value.match(/^BP6-(\\d{1,3})$/);
     if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5500 + Number(match[1]);
-    match = value.match(/^BP2-(\d{1,3})$/);
-    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5100 + Number(match[1]);
-    match = value.match(/^BP3-(\d{1,3})$/);
-    if (match && Number(match[1]) >= 1 && Number(match[1]) <= 80) return 5200 + Number(match[1]);
     return null;
   },
   findCardByNo(cardNo, pile = "main") {
