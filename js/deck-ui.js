@@ -583,6 +583,8 @@
     if (!compat) { setStatus("ACGビルダー形式の変換機能を読み込めませんでした。"); return; }
     const mainDeck = {};
     const territoryDeck = {};
+    const reserveDeck = {};
+    const considerationDeck = {};
     const failures = [];
     const addZone = (entries, pile, output, label) => entries.forEach(entry => {
       const item = byItemId(entry.itemId);
@@ -597,6 +599,8 @@
     });
     addZone(deckCards(deck), "main", mainDeck, "メインデッキ");
     addZone(territoryCards(deck), "territory", territoryDeck, "領土デッキ");
+    addZone(Array.isArray(deck.reserveCards) ? deck.reserveCards : [], "main", reserveDeck, "予備デッキ");
+    addZone(Array.isArray(deck.considerationCards) ? deck.considerationCards : [], "main", considerationDeck, "検討中");
     if (failures.length) {
       setStatus("ACGビルダー形式では書き出せませんでした。カード番号の対応を確認してください。\n" + failures.slice(0, 8).join("\n"));
       return;
@@ -604,8 +608,8 @@
     const data = {
       mainDeck,
       territoryDeck,
-      reserveDeck: {},
-      considerationDeck: {},
+      reserveDeck,
+      considerationDeck,
       name: String(deck.name || "デッキ"),
       description: "",
       poster: "",
@@ -617,7 +621,7 @@
     link.download = `${(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_")}.acg-builder.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus("ACGビルダー形式のJSONを書き出しました。予備デッキ・検討中はこのサイトでは管理していないため空で出力しています。");
+    setStatus("ACGビルダー形式のJSONを書き出しました。メイン・領土・予備・検討中の各領域を出力しました。");
   }
   function renderTagOptions(containerId, selected = [], disabled = false) {
     const container = $(containerId); if (!container) return;
