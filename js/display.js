@@ -37,6 +37,9 @@ function showGlossaryPopup(term, description, element) {
   glossaryPopup.style.left = left + "px"; glossaryPopup.style.top = top + "px";
 }
 function hideGlossaryPopup() { glossaryPopup?.remove(); glossaryPopup = null; }
+window.addEventListener("animaldeck:glossaryloaded", () => {
+  ["detail-condition", "detail-effect", "detail-keywords", "detail-effects"].forEach(id => applyRulesTooltips(document.getElementById(id)));
+});
 function applyRulesTooltips(element) {
   if (!element) return; const text = element.textContent || ""; if (!text) return;
   const glossary = window.animalGlossaryTerms || {}; const terms = Object.keys(glossary).filter(Boolean).sort((a,b)=>b.length-a.length); if (!terms.length) return;
