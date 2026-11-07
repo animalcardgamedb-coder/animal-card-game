@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, drawMain: [], drawTerritory: [] };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, glossaryLoadPromise: null, editingGlossaryId: null, drawMain: [], drawTerritory: [] };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
   const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
@@ -681,19 +681,95 @@
     const costHtml=Object.entries(costs).sort((a,b)=>Number(a[0])-Number(b[0])).map(([k,v])=>"<li>"+escapeHTML(k)+"コスト："+v+"枚<div class=\"analysis-bar\"><i style=\"width:"+(v/max*100)+"%\"></i></div></li>").join("");
     $("deck-analysis-content").innerHTML='<div class="analysis-grid"><div class="analysis-stat"><span>総枚数</span><strong>'+all.length+'枚</strong></div><div class="analysis-stat"><span>種類数</span><strong>'+new Set(all.map(c=>c.itemId)).size+'種類</strong></div></div><h2>カードタイプ</h2><ul class="analysis-list">'+(typeHtml||"<li>データなし</li>")+'</ul><h2>コスト分布</h2><ul class="analysis-list">'+(costHtml||"<li>コスト情報なし</li>")+'</ul>';
   }
-  async function loadGlossaryCache() {
-    if (state.glossaryLoadedAt) return state.glossary;
-    const response = await fetch("./data/glossary.json", { cache: "no-cache" });
-    if (!response.ok) throw new Error("用語データを読み込めませんでした。");
-    const data = await response.json();
-    if (!Array.isArray(data)) throw new Error("用語データの形式が正しくありません。");
-    state.glossary = data.filter(item => item && typeof item.term === "string" && typeof item.description === "string")
-      .map((item, index) => ({ id: String(item.id || index + 1), term: item.term, description: item.description }))
+  function applyGlossaryData(data) {
+    if (!data || data.success !== true || !Array.isArray(data.glossary)) throw new Error(data?.error || "用語データの形式が正しくありません。");
+    state.glossary = data.glossary
+      .filter(item => item && typeof item.id === "string" && typeof item.term === "string" && typeof item.description === "string")
+      .map(item => ({ id: item.id, term: item.term, description: item.description }))
       .sort((a, b) => a.term.localeCompare(b.term, "ja"));
     state.glossaryLoadedAt = Date.now();
     window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description]));
     window.dispatchEvent(new CustomEvent("animaldeck:glossaryloaded"));
     return state.glossary;
+  }
+  async function loadGlossaryCache() {
+    if (state.glossaryLoadedAt) return state.glossary;
+    if (state.glossaryLoadPromise) return state.glossaryLoadPromise;
+    state.glossaryLoadPromise = new Promise((resolve, reject) => {
+      const callbackName = "receiveGlossaryData_" + Date.now();
+      const script = document.createElement("script");
+      let finished = false;
+      const finish = (error, data) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        script.remove();
+        delete window[callbackName];
+        state.glossaryLoadPromise = null;
+        if (error) { reject(error); return; }
+        try { resolve(applyGlossaryData(data)); } catch (validationError) { reject(validationError); }
+      };
+      window[callbackName] = data => finish(null, data);
+      script.onerror = () => finish(new Error("GASとの通信に失敗しました。"));
+      const timer = setTimeout(() => finish(new Error("用語データの取得がタイムアウトしました。")), 15000);
+      const separator = API_URL.includes("?") ? "&" : "?";
+      script.src = API_URL + separator + "resource=glossary&prefix=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+      document.body.appendChild(script);
+    });
+    return state.glossaryLoadPromise;
+  }
+  async function postGlossaryAction(payload) {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok || !data || data.success !== true) throw new Error(data?.error || "GASとの通信に失敗しました。");
+    return data;
+  }
+  function setGlossaryStatus(message) {
+    const status = $("glossary-status");
+    if (status) status.textContent = message || "";
+  }
+  function resetGlossaryForm() {
+    state.editingGlossaryId = null;
+    $("glossary-form")?.reset();
+    $("glossary-submit-button").textContent = "用語を追加";
+    $("glossary-cancel-button").hidden = true;
+  }
+  function beginGlossaryEdit(item) {
+    state.editingGlossaryId = item.id;
+    $("glossary-term").value = item.term;
+    $("glossary-description").value = item.description;
+    $("glossary-submit-button").textContent = "変更を保存";
+    $("glossary-cancel-button").hidden = false;
+    $("glossary-form").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("glossary-term").focus();
+  }
+  async function saveGlossaryForm(event) {
+    event.preventDefault();
+    const term = $("glossary-term").value.trim();
+    const description = $("glossary-description").value.trim();
+    const submit = $("glossary-submit-button");
+    submit.disabled = true;
+    setGlossaryStatus(state.editingGlossaryId ? "用語を更新しています……" : "用語を追加しています……");
+    try {
+      const data = await postGlossaryAction({
+        action: "saveGlossaryTerm",
+        id: state.editingGlossaryId || "",
+        term,
+        description
+      });
+      applyGlossaryData(data);
+      resetGlossaryForm();
+      renderGlossaryList();
+      setGlossaryStatus("「" + term + "」を保存しました。");
+    } catch (error) {
+      setGlossaryStatus(error.message || "用語を保存できませんでした。");
+    } finally {
+      submit.disabled = false;
+    }
   }
   async function renderGlossary() {
     try { await loadGlossaryCache(); renderGlossaryList(); }
@@ -709,7 +785,30 @@
     }
     matches.forEach(item => {
       const el = document.createElement("article"); el.className = "glossary-item";
-      el.innerHTML = "<h2>" + escapeHTML(item.term) + "</h2><p>" + escapeHTML(item.description) + "</p>";
+      const title = document.createElement("h2"); title.textContent = item.term;
+      const description = document.createElement("p"); description.textContent = item.description;
+      const actions = document.createElement("div"); actions.className = "glossary-item-actions";
+      const edit = document.createElement("button"); edit.type = "button"; edit.className = "outline-button"; edit.textContent = "編集";
+      edit.addEventListener("click", () => beginGlossaryEdit(item));
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "danger-button"; remove.textContent = "削除";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm("用語「" + item.term + "」を削除しますか？")) return;
+        remove.disabled = true;
+        setGlossaryStatus("用語を削除しています……");
+        try {
+          const data = await postGlossaryAction({ action: "deleteGlossaryTerm", id: item.id });
+          applyGlossaryData(data);
+          if (state.editingGlossaryId === item.id) resetGlossaryForm();
+          renderGlossaryList();
+          setGlossaryStatus("「" + item.term + "」を削除しました。");
+        } catch (error) {
+          setGlossaryStatus(error.message || "用語を削除できませんでした。");
+        } finally {
+          remove.disabled = false;
+        }
+      });
+      actions.append(edit, remove);
+      el.append(title, description, actions);
       root.append(el);
     });
   }
@@ -1247,6 +1346,8 @@
     $("draw-territory-button").addEventListener("click", drawOneTerritory);
     $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("glossary"); });
     $("glossary-search").addEventListener("input", renderGlossaryList);
+    $("glossary-form").addEventListener("submit", saveGlossaryForm);
+    $("glossary-cancel-button").addEventListener("click", () => { resetGlossaryForm(); setGlossaryStatus(""); });
     window.addEventListener("animaldeck:authchange", () => {
       refreshTagOptions();
       if ($("deck-tag-filter-panel")?.dataset.loaded) void refreshPublicDeckTagFilters();
