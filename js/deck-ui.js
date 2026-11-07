@@ -650,14 +650,12 @@
     return (cards || []).flatMap(card => Array.from({ length: Math.max(1, Number(card.quantity) || 1) }, () => ({ ...card })));
   }
   function drawRandom(source, drawn) {
-    const pool = expandedPhysicalCards(source).filter((_, index) => !drawn._used.has(index));
-    if (!pool.length) return null;
-    const chosen = pool[Math.floor(Math.random() * pool.length)];
     const sourceCards = expandedPhysicalCards(source);
-    let chosenIndex = -1; let seen = 0;
-    for (let i=0;i<sourceCards.length;i++) { if (!drawn._used.has(i) && sourceCards[i] === chosen) { chosenIndex=i; break; } }
-    if (chosenIndex < 0) return null;
-    drawn._used.add(chosenIndex); return chosen;
+    const available = sourceCards.map((_, index) => index).filter(index => !drawn._used.has(index));
+    if (!available.length) return null;
+    const chosenIndex = available[Math.floor(Math.random() * available.length)];
+    drawn._used.add(chosenIndex);
+    return sourceCards[chosenIndex];
   }
   function resetDraw() {
     const deck = state.deck; state.drawMain = []; state.drawTerritory = [];
