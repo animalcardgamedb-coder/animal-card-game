@@ -1206,7 +1206,7 @@
         setScreen("decks");
         return;
       }
-      setScreen(button.dataset.back === "builder" ? "builder" : "decks");
+      setScreen(button.dataset.back === "builder" ? "builder" : button.dataset.back === "preview" ? "preview" : "decks");
     }));
     const applyBuilderSearch = () => { state.builderQuery = $("builder-search").value; renderBuilderCards(); };
     $("builder-search").addEventListener("input", applyBuilderSearch);
