@@ -27,6 +27,28 @@ function applyIconGrid() {
  * 用語リンクは「アニマルカードゲーム@ウィキ」の用語集に実際に掲載されている語のみ。
  * リンク先は各用語の個別ページ。定義をここで再記述せず、更新された記事を直接参照する。
  */
+const WIKI_GLOSSARY_URLS = {};
+let glossaryPopup = null;
+function showGlossaryPopup(term, description, element) {
+  if (!description) return; glossaryPopup?.remove();
+  glossaryPopup = document.createElement("div"); glossaryPopup.className = "glossary-popup"; glossaryPopup.textContent = term + "\n" + description; document.body.append(glossaryPopup);
+  const rect = element.getBoundingClientRect(); const left = Math.min(Math.max(8, rect.left), window.innerWidth - glossaryPopup.offsetWidth - 8);
+  const top = rect.bottom + 8 + glossaryPopup.offsetHeight > window.innerHeight ? Math.max(8, rect.top - glossaryPopup.offsetHeight - 8) : rect.bottom + 8;
+  glossaryPopup.style.left = left + "px"; glossaryPopup.style.top = top + "px";
+}
+function hideGlossaryPopup() { glossaryPopup?.remove(); glossaryPopup = null; }
+function applyRulesTooltips(element) {
+  if (!element) return; const text = element.textContent || ""; if (!text) return;
+  const glossary = window.animalGlossaryTerms || {}; const terms = Object.keys(glossary).filter(Boolean).sort((a,b)=>b.length-a.length); if (!terms.length) return;
+  const escapeRegExp = value => value.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+  const pattern = new RegExp("(" + terms.map(escapeRegExp).join("|") + ")", "g"); element.replaceChildren(); let last = 0;
+  text.replace(pattern,(match,_group,offset)=>{
+    if(offset>last) element.append(document.createTextNode(text.slice(last,offset)));
+    const span=document.createElement("span"); span.className="rules-term"; span.textContent=match; span.tabIndex=0; span.setAttribute("role","button");
+    const show=event=>{event?.stopPropagation();showGlossaryPopup(match,glossary[match],span)}; span.addEventListener("mouseenter",show); span.addEventListener("focus",show); span.addEventListener("click",show); span.addEventListener("mouseleave",hideGlossaryPopup); span.addEventListener("blur",hideGlossaryPopup); element.append(span); last=offset+match.length; return match;
+  }); if(last<text.length) element.append(document.createTextNode(text.slice(last)));
+}
+
 const WIKI_GLOSSARY_URLS = {
   "○○域": "https://w.atwiki.jp/animalcardgame/pages/242.html",
   "ウェイク": "https://w.atwiki.jp/animalcardgame/pages/197.html",
