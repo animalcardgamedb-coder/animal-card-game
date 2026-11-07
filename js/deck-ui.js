@@ -691,14 +691,21 @@
     return url.href;
   }
   async function shareCurrentDeck() {
-    if (!state.deck?.isPublic) { alert("公開デッキだけ共有できます。"); return; }
-    const url = publicDeckUrl(state.deck);
-    const text = state.deck.name ? "「" + state.deck.name + "」を共有します。" : "デッキを共有します。";
+    if (!state.deck?.isPublic) { alert("このデッキは非公開です。共有するにはデッキ設定で公開してください。"); return; }
+    const url = publicDeckUrl(state.deck), title = state.deck.name || "公開デッキ";
+    const text = "「" + title + "」を共有します。";
+    if (navigator.share) {
+      try { await navigator.share({ title, text, url }); return; }
+      catch (error) { if (error?.name === "AbortError") return; }
+    }
     try {
-      if (navigator.share) await navigator.share({ title: state.deck.name || "公開デッキ", text, url });
-      else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); alert("共有URLをコピーしました。"); }
-      else window.prompt("共有URLをコピーしてください。", url);
-    } catch (error) { if (error?.name !== "AbortError") alert("共有できませんでした。"); }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        alert("共有URLをコピーしました。\\n" + url);
+        return;
+      }
+    } catch (_) {}
+    window.prompt("共有URLをコピーしてください。", url);
   }
   async function loadGlossaryCache() {
     try { state.glossary = await app().listGlossary(); window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description])); window.dispatchEvent(new CustomEvent("animaldeck:glossaryloaded")); return state.glossary; }
@@ -816,7 +823,16 @@
           (sectionCards.length ? '<ol>' + sectionCards.map(card => '<li>' + escapeHTML(card.name || "カード") + (expandCopies ? "" : ' × ' + Number(card.quantity || 1)) + '</li>').join("") + '</ol>' : '<p>カードなし</p>') +
           '</section>';
       }).join("");
-    $("preview-text-list").hidden = !state.previewText;
+    const printSheet = $("preview-print-sheet");
+    printSheet.innerHTML = '<h1>' + escapeHTML(deck.name || "デッキ") + '</h1>' +
+      '<p class="print-deck-summary">' + total + '枚　' + (deck.isPublic ? '公開デッキ' : '非公開デッキ') + '</p>' +
+      (deck.description ? '<p class="print-deck-description">' + escapeHTML(deck.description) + '</p>' : '') +
+      '<div class="print-deck-zones">' + sections.map(section => {
+        const sectionTotal = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+        return '<section class="print-deck-zone"><h2>' + section.title + '（' + sectionTotal + '枚）</h2>' +
+          (section.cards.length ? '<ul>' + section.cards.map(card => '<li>' + escapeHTML(card.name || "カード") + ' <span>× ' + Math.max(1, Number(card.quantity) || 1) + '</span></li>').join("") + '</ul>' : '<p>カードなし</p>') + '</section>';
+      }).join("") + '</div>';
+        $("preview-text-list").hidden = !state.previewText;
     $("preview-card-sections").hidden = state.previewText;
     applySharedIconColumns(window.appState?.currentIconColumns, false);
   }
@@ -1071,6 +1087,8 @@
           : Promise.resolve()
       )));
       $("a4-layout-status").textContent = "印刷画面を開きます。A4・倍率100%で印刷してください。";
+      document.body.classList.add("printing-a4-cards");
+      window.addEventListener("afterprint", () => document.body.classList.remove("printing-a4-cards"), { once: true });
       window.print();
     } finally {
       printButton.disabled = false;
@@ -1244,7 +1262,14 @@
     $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value); setScreen("decks"); } catch (error) { alert(error.message); } });
     $("delete-current-deck").addEventListener("click", async () => { if (!confirm(`「${state.deck?.name}」を削除します。この操作は取り消せません。`)) return; try { await app().deleteCurrent(); state.deck = null; setScreen("decks"); } catch (error) { alert(error.message); } });
     $("builder-deck-description").addEventListener("input", event => { $("builder-description-count").textContent = String(event.target.value.length); });
-    $("preview-deck-button").addEventListener("click", () => setScreen("preview")); $("print-deck-button").addEventListener("click", () => window.print());
+    $("preview-deck-button").addEventListener("click", () => setScreen("preview"));
+    $("print-deck-button").addEventListener("click", () => {
+      document.body.classList.add("printing-deck-summary");
+      const clearPrintMode = () => document.body.classList.remove("printing-deck-summary");
+      window.addEventListener("afterprint", clearPrintMode, { once: true });
+      window.setTimeout(clearPrintMode, 60000);
+      window.print();
+    });
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);

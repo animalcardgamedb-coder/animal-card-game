@@ -656,12 +656,9 @@ window.animalDeckApp = {
     }
   },
   async listChatMessages() {
-    const snapshot = await getDocs(query(collection(db, "chatMessages"), orderBy("createdAt", "desc"), limit(201)));
+    const snapshot = await getDocs(query(collection(db, "chatMessages"), orderBy("createdAt", "desc"), limit(200)));
     const messages = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-    if (messages.length > 200) {
-      await Promise.all(messages.slice(200).map(item => deleteDoc(doc(db, "chatMessages", item.id)).catch(() => undefined)));
-    }
-    return messages.slice(0, 200);
+    return messages;
   },
   async addChatMessage(name, text) {
     const safeName = String(name || "").trim().slice(0, 30) || "名無し";

@@ -99,8 +99,8 @@
 @page{size:A4 portrait;margin:0}
 @media print{
   html,body{width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
-  body > *:not(#a4-print-area){display:none!important}
-  body > #a4-print-area{display:block!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}
+  body.printing-a4-cards > *:not(#a4-print-area){display:none!important}
+  body.printing-a4-cards > #a4-print-area{display:block!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}
   .a4-print-page{display:flex!important;align-items:center!important;justify-content:center!important;width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;break-after:page;page-break-after:always;background:#fff!important}
   .a4-print-page:last-child{break-after:auto;page-break-after:auto}
   .a4-print-grid{display:flex!important;flex-direction:column!important;gap:2mm!important;width:193mm!important;margin:0!important;padding:0!important}
@@ -317,3 +317,20 @@
 .detail-pack-toggle[aria-expanded="true"]::after{content:"−"}
 .related-pack-item>.detail-pack-toggle{margin-bottom:0;font-size:14px}
 .related-pack-item>.detail-pack-toggle[aria-expanded="true"]{margin-bottom:7px}
+
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  body.printing-deck-summary { width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#111!important; }
+  body.printing-deck-summary * { visibility:hidden!important; }
+  body.printing-deck-summary #preview-print-sheet, body.printing-deck-summary #preview-print-sheet * { visibility:visible!important; }
+  body.printing-deck-summary #preview-print-sheet { display:block!important;position:fixed!important;inset:7mm!important;width:196mm!important;height:283mm!important;overflow:hidden!important;box-sizing:border-box!important;padding:0!important;background:#fff!important;color:#111!important;font-family:Arial,sans-serif!important; }
+  body.printing-deck-summary #preview-print-sheet h1 { margin:0 0 2mm!important;font-size:15pt!important;line-height:1.15!important; }
+  body.printing-deck-summary .print-deck-summary { margin:0 0 2mm!important;font-size:8pt!important; }
+  body.printing-deck-summary .print-deck-description { margin:0 0 3mm!important;font-size:7pt!important;line-height:1.25!important;max-height:16mm!important;overflow:hidden!important; }
+  body.printing-deck-summary .print-deck-zones { display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3mm!important;align-items:start!important; }
+  body.printing-deck-summary .print-deck-zone { min-width:0!important;break-inside:avoid!important; }
+  body.printing-deck-summary .print-deck-zone h2 { margin:0 0 1mm!important;padding-bottom:1mm!important;border-bottom:.3mm solid #333!important;font-size:8pt!important;line-height:1.15!important; }
+  body.printing-deck-summary .print-deck-zone ul { margin:0!important;padding:0!important;list-style:none!important; }
+  body.printing-deck-summary .print-deck-zone li { display:flex!important;justify-content:space-between!important;gap:1mm!important;margin:0!important;padding:.25mm 0!important;border-bottom:.15mm solid #ddd!important;font-size:6.5pt!important;line-height:1.12!important;break-inside:avoid!important; }
+  body.printing-deck-summary .print-deck-zone li span { flex:none!important; }
+}
