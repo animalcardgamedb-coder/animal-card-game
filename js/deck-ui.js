@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0 };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryEditingId: "" };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
   const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
@@ -129,6 +129,18 @@
   }
 
   const SCREEN_STATE_KEY = "animalCardGame.screenState";
+  const route = () => new URLSearchParams(window.location.search);
+  function syncRoute(screen = state.screen) {
+    const params = new URLSearchParams();
+    if (screen === "search") params.set("page", "search");
+    else if (screen === "decks") params.set("page", "decks");
+    else if (screen === "chat") params.set("page", "chat");
+    else if (screen === "glossary") params.set("page", "glossary");
+    if (state.deck?.id && (screen === "preview" || screen === "builder")) params.set("deck", state.deck.id);
+    const query = params.toString();
+    const next = query ? "?" + query : window.location.pathname;
+    if (window.location.search !== next.slice(window.location.pathname.length)) history.replaceState({ screen, deckId: state.deck?.id || "" }, "", next);
+  }
   function saveScreenState() {
     try {
       window.sessionStorage.setItem(SCREEN_STATE_KEY, JSON.stringify({
@@ -199,12 +211,15 @@
     }
     state.screen = name;
     if (persist) saveScreenState();
+    if (persist) syncRoute(name);
     window.animalDeckBuilderSearchActive = name === "builder";
     ["card-modal", "search-modal"].forEach(id => { if ($(id)) $(id).style.display = "none"; });
     $("card-search").hidden = name !== "search";
     $("deck-library-screen").hidden = name !== "decks";
     $("deck-builder-screen").hidden = name !== "builder";
     $("deck-preview-screen").hidden = name !== "preview";
+    $("chat-screen").hidden = name !== "chat";
+    $("glossary-screen").hidden = name !== "glossary";
     document.querySelectorAll("[data-screen]").forEach(button => button.classList.toggle("active", button.dataset.screen === (name === "search" ? "search" : "decks")));
     $("search-mode-button").classList.toggle("active", name === "search");
     $("deck-mode-button").classList.toggle("active", name !== "search");
@@ -212,6 +227,8 @@
     if (name === "decks") refreshDecks();
     if (name === "builder") { renderBuilder(); }
     if (name === "preview") renderPreview();
+    if (name === "chat") void renderChat();
+    if (name === "glossary") void renderGlossary();
   }
   function setStatus(message) { $("deck-library-status").textContent = message || ""; }
   async function refreshDecks() {
@@ -625,10 +642,73 @@
     }
   }
 
+  function publicDeckUrl(deck) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("deck", deck?.id || "");
+    return url.href;
+  }
+  async function shareCurrentDeck() {
+    if (!state.deck?.isPublic) { alert("公開デッキだけ共有できます。"); return; }
+    const url = publicDeckUrl(state.deck);
+    const text = state.deck.name ? "「" + state.deck.name + "」を共有します。" : "デッキを共有します。";
+    try {
+      if (navigator.share) await navigator.share({ title: state.deck.name || "公開デッキ", text, url });
+      else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); alert("共有URLをコピーしました。"); }
+      else window.prompt("共有URLをコピーしてください。", url);
+    } catch (error) { if (error?.name !== "AbortError") alert("共有できませんでした。"); }
+  }
+  async function renderGlossary() {
+    try { state.glossary = await app().listGlossary(); window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description])); renderGlossaryList(); }
+    catch (error) { $("glossary-list").textContent = error.message || "用語集を読み込めませんでした。"; }
+  }
+  function renderGlossaryList() {
+    const root = $("glossary-list"); if (!root) return; const q = $("glossary-search").value.trim().toLocaleLowerCase("ja-JP");
+    root.replaceChildren();
+    state.glossary.filter(item => !q || String(item.term).toLocaleLowerCase("ja-JP").includes(q) || String(item.description).toLocaleLowerCase("ja-JP").includes(q)).forEach(item => {
+      const el = document.createElement("article"); el.className = "glossary-item";
+      el.innerHTML = "<h2>" + escapeHTML(item.term) + "</h2><p>" + escapeHTML(item.description) + "</p>";
+      const actions = document.createElement("div"); actions.className = "glossary-item-actions";
+      const edit = document.createElement("button"); edit.className = "outline-button"; edit.textContent = "編集"; edit.addEventListener("click", () => openGlossaryEditor(item));
+      const del = document.createElement("button"); del.className = "danger-button"; del.textContent = "削除"; del.addEventListener("click", async () => { if (!confirm("この用語を削除しますか？")) return; await app().deleteGlossary(item.id); await renderGlossary(); });
+      actions.append(edit, del); el.append(actions); root.append(el);
+    });
+  }
+  function openGlossaryEditor(item = null) {
+    state.glossaryEditingId = item?.id || ""; $("glossary-term-input").value = item?.term || ""; $("glossary-description-input").value = item?.description || ""; $("glossary-editor").hidden = false;
+  }
+  function closeGlossaryEditor() { state.glossaryEditingId = ""; $("glossary-editor").hidden = true; }
+  async function saveGlossaryEditor() {
+    try { await app().saveGlossary(state.glossaryEditingId, $("glossary-term-input").value, $("glossary-description-input").value); closeGlossaryEditor(); await renderGlossary(); } catch (error) { alert(error.message); }
+  }
+  async function renderChat() {
+    try {
+      const messages = await app().listChatMessages(); const root = $("chat-message-list"); root.replaceChildren();
+      messages.forEach(item => {
+        const el = document.createElement("article"); el.className = "chat-message";
+        const date = item.createdAt?.toDate?.(); const time = date ? date.toLocaleString("ja-JP") : "";
+        el.innerHTML = "<header><strong>" + escapeHTML(item.name || "名無し") + "</strong><span>" + escapeHTML(time) + "</span></header><p>" + escapeHTML(item.text || "") + "</p>";
+        root.append(el);
+      });
+    } catch (error) { $("chat-status").textContent = error.message || "チャットを読み込めませんでした。"; }
+  }
+  async function restoreUrlRoute() {
+    const params = route(); const deckId = params.get("deck");
+    if (deckId) {
+      try { const deck = await app().getPublicById(deckId); if (!deck) throw new Error("公開デッキが見つかりません。"); state.deck = app().viewPublic(deck); state.publicView = true; setScreen("preview", false); return; }
+      catch (_) { setStatus("共有された公開デッキが見つかりません。"); }
+    }
+    const page = params.get("page");
+    if (page === "decks") setScreen("decks", false);
+    else if (page === "chat") setScreen("chat", false);
+    else if (page === "glossary") setScreen("glossary", false);
+    else if (page === "search") setScreen("search", false);
+  }
   function renderPreview() {
     const deck = state.deck;
     if (!deck) return;
     $("preview-deck-name").textContent = deck.name || "デッキ";
+    $("preview-deck-description").textContent = deck.description || "説明はありません。";
     const mainCards = deckCards(deck);
     const territories = territoryCards(deck);
     const reserves = reserveCards(deck);
@@ -1113,18 +1193,29 @@
     $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
     $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
     $("builder-apply-tags-button").addEventListener("click", () => { state.deck.tags = readTagChecks("builder-deck-tag-options"); renderDeckTagSummary(state.deck.tags); $("builder-deck-tag-editor").hidden = true; });
-    $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
-    $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags()); renderBuilder(); } catch (error) { alert(error.message); } });
-    $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value); setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags(), $("builder-deck-description").value); renderBuilder(); } catch (error) { alert(error.message); } });
+    $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value); setScreen("decks"); } catch (error) { alert(error.message); } });
     $("delete-current-deck").addEventListener("click", async () => { if (!confirm(`「${state.deck?.name}」を削除します。この操作は取り消せません。`)) return; try { await app().deleteCurrent(); state.deck = null; setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-deck-description").addEventListener("input", event => { $("builder-description-count").textContent = String(event.target.value.length); });
     $("preview-deck-button").addEventListener("click", () => setScreen("preview")); $("print-deck-button").addEventListener("click", () => window.print());
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
+    $("share-deck-button").addEventListener("click", () => shareCurrentDeck());
+    $("chat-mode-button").addEventListener("click", () => setScreen("chat"));
+    $("chat-menu-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("chat"); });
+    $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("glossary"); });
+    $("glossary-search").addEventListener("input", renderGlossaryList);
+    $("glossary-add-button").addEventListener("click", () => openGlossaryEditor());
+    $("glossary-cancel-button").addEventListener("click", closeGlossaryEditor);
+    $("glossary-save-button").addEventListener("click", saveGlossaryEditor);
+    $("chat-form").addEventListener("submit", async event => { event.preventDefault(); try { $("chat-status").textContent = "送信中…"; await app().addChatMessage($("chat-name").value, $("chat-text").value); $("chat-text").value = ""; await renderChat(); $("chat-status").textContent = ""; } catch (error) { $("chat-status").textContent = error.message || "送信できませんでした。"; } });
     window.addEventListener("animaldeck:authchange", () => {
       refreshTagOptions();
       if ($("deck-tag-filter-panel")?.dataset.loaded) void refreshPublicDeckTagFilters();
       if (pendingScreenRestore && !screenRestoreAttempted) void restoreScreenState();
+      void restoreUrlRoute();
       else if (state.screen === "decks") refreshDecks();
     });
     // Restore simple screens immediately; deck screens wait until Firebase resolves sign-in state.
