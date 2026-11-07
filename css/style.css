@@ -325,3 +325,11 @@
   body.printing-deck-summary .print-deck-zone li span { flex:none!important; }
 }
 .glossary-management-note{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.6}
+.glossary-editor{display:grid;gap:7px;margin:12px 0;padding:14px;background:#fff;border:1px solid var(--line);border-radius:9px}
+.glossary-editor label{margin-top:3px;font-weight:600}
+.glossary-editor input,.glossary-editor textarea{width:100%;padding:9px;border:1px solid #c9c9c9;border-radius:7px;font:inherit}
+.glossary-editor textarea{resize:vertical;min-height:90px}
+.glossary-editor-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.glossary-item-actions{display:flex;gap:7px;margin-top:10px}
+.glossary-item-actions .danger-button{padding:7px 10px;border:1px solid #d4a3a3;border-radius:6px;background:#fff}
+.glossary-item-actions .danger-button:hover{background:#fff2f2}
