@@ -21,7 +21,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261107-6"
+    href="css/style.css?v=20261107-7"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -437,7 +437,18 @@
   <section id="glossary-screen" class="app-screen" hidden>
     <div class="screen-title-row"><div><p class="eyebrow">GLOSSARY</p><h1>用語集</h1></div></div>
     <div class="toolbar-panel"><label class="search-field" for="glossary-search"><span aria-hidden="true">⌕</span><input id="glossary-search" type="search" placeholder="用語を検索"></label></div>
-    <p class="glossary-management-note">用語はサイト共通のデータで管理しています。追加・修正はサイト更新後に反映されます。</p>
+    <p class="glossary-management-note">用語集はサイト利用者全員で共有されます。追加・編集・削除はGASに保存され、変更はすぐ反映されます。</p>
+    <form id="glossary-form" class="glossary-editor">
+      <label for="glossary-term">用語</label>
+      <input id="glossary-term" type="text" maxlength="80" placeholder="用語を入力" required>
+      <label for="glossary-description">説明</label>
+      <textarea id="glossary-description" rows="4" maxlength="1500" placeholder="説明を入力" required></textarea>
+      <div class="glossary-editor-actions">
+        <button id="glossary-submit-button" class="primary-button" type="submit">用語を追加</button>
+        <button id="glossary-cancel-button" class="outline-button" type="button" hidden>編集をキャンセル</button>
+      </div>
+    </form>
+    <p id="glossary-status" class="feature-status" role="status" aria-live="polite"></p>
     <div id="glossary-list" class="glossary-list"></div>
   </section>
 
@@ -1010,7 +1021,7 @@
   <script src="js/display.js?v=20261107-1"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261107-5"></script>
+  <script src="js/deck-ui.js?v=20261107-6"></script>
 
   <script type="module" src="firebase.js?v=20261107-5"></script>
 
