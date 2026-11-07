@@ -702,7 +702,12 @@
   function renderGlossaryList() {
     const root = $("glossary-list"); if (!root) return; const q = $("glossary-search").value.trim().toLocaleLowerCase("ja-JP");
     root.replaceChildren();
-    state.glossary.filter(item => !q || item.term.toLocaleLowerCase("ja-JP").includes(q) || item.description.toLocaleLowerCase("ja-JP").includes(q)).forEach(item => {
+    const matches = state.glossary.filter(item => !q || item.term.toLocaleLowerCase("ja-JP").includes(q) || item.description.toLocaleLowerCase("ja-JP").includes(q));
+    if (!matches.length) {
+      root.textContent = q ? "該当する用語はありません。" : "用語はまだ登録されていません。";
+      return;
+    }
+    matches.forEach(item => {
       const el = document.createElement("article"); el.className = "glossary-item";
       el.innerHTML = "<h2>" + escapeHTML(item.term) + "</h2><p>" + escapeHTML(item.description) + "</p>";
       root.append(el);
