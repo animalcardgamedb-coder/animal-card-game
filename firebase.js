@@ -567,6 +567,13 @@ window.animalDeckApp = {
     return snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
       .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
   },
+  async getPublicById(id) {
+    const safeId = String(id || "").trim();
+    if (!safeId) return null;
+    const snapshot = await getDoc(doc(db, "decks", safeId));
+    if (!snapshot.exists() || snapshot.data().isPublic !== true) return null;
+    return { id: snapshot.id, ...snapshot.data() };
+  },
   async listPublic() {
     const now = Date.now();
     if (publicDeckCache && now - publicDeckCacheAt < PUBLIC_DECK_CACHE_TTL_MS) {
@@ -593,7 +600,40 @@ window.animalDeckApp = {
       publicDeckPromise = null;
     }
   },
+  async listGlossary() {
+    const snapshot = await getDocs(query(collection(db, "glossary"), orderBy("term"));
+    return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  },
+  async saveGlossary(id, term, description) {
+    if (!signedInUser) throw new Error("用語を編集するにはログインしてください。");
+    const safeTerm = String(term || "").trim().slice(0, 80);
+    const safeDescription = String(description || "").trim().slice(0, 500);
+    if (!safeTerm || !safeDescription) throw new Error("用語と説明を入力してください。");
+    const ref = id ? doc(db, "glossary", String(id)) : doc(collection(db, "glossary"));
+    await setDoc(ref, { term: safeTerm, description: safeDescription, updatedAt: serverTimestamp(), updatedByUid: signedInUser.uid }, { merge: true });
+    return { id: ref.id, term: safeTerm, description: safeDescription };
+  },
+  async deleteGlossary(id) {
+    if (!signedInUser) throw new Error("用語を削除するにはログインしてください。");
+    if (!id) return;
+    await deleteDoc(doc(db, "glossary", String(id)));
+  },
   async listDeckTags() {
+  async listChatMessages() {
+    const snapshot = await getDocs(query(collection(db, "chatMessages"), orderBy("createdAt", "desc"), limit(201)));
+    const messages = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    if (messages.length > 200) {
+      await Promise.all(messages.slice(200).map(item => deleteDoc(doc(db, "chatMessages", item.id)).catch(() => undefined)));
+    }
+    return messages.slice(0, 200);
+  },
+  async addChatMessage(name, text) {
+    const safeName = String(name || "").trim().slice(0, 30) || "名無し";
+    const safeText = String(text || "").trim().slice(0, 500);
+    if (!safeText) throw new Error("メッセージを入力してください。");
+    await addDoc(collection(db, "chatMessages"), { name: safeName, text: safeText, createdAt: serverTimestamp() });
+    return this.listChatMessages();
+  },
     const now = Date.now();
     if (deckTagCache && now - deckTagCacheAt < DECK_TAG_CACHE_TTL_MS) return [...deckTagCache];
     if (deckTagPromise) return [...await deckTagPromise];
@@ -683,6 +723,7 @@ window.animalDeckApp = {
       ownerName: String(signedInUser.displayName || "プレイヤー").slice(0, 50),
       name: safeName,
       tags: normalizeTags(tags),
+      description: "",
       isPublic: false,
       cards: [], territoryCards: [], reserveCards, considerationCards,
       createdAt: serverTimestamp(),
@@ -762,18 +803,20 @@ window.animalDeckApp = {
     }
     return this.current();
   },
-  async updateSettings(name, isPublic, tags = selectedDeck?.tags || []) {
+  async updateSettings(name, isPublic, tags = selectedDeck?.tags || [], description = selectedDeck?.description || "") {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
     const safeName = String(name || "").trim().slice(0, 50);
     if (!safeName) throw new Error("デッキ名を入力してください。");
+    const safeDescription = String(description || "").slice(0, 2000);
     await updateDoc(doc(db, "decks", selectedDeckId), {
       name: safeName,
       isPublic: Boolean(isPublic),
       tags: normalizeTags(tags),
+      description: safeDescription,
       updatedAt: serverTimestamp()
     });
     invalidatePublicDeckCache();
-    selectedDeck = { ...selectedDeck, name: safeName, isPublic: Boolean(isPublic), tags: normalizeTags(tags) };
+    selectedDeck = { ...selectedDeck, name: safeName, isPublic: Boolean(isPublic), tags: normalizeTags(tags), description: safeDescription };
     return this.current();
   },
   territoryLimitStatus() {
