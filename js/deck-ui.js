@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryEditingId: "" };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryEditingId: "", drawMain: [], drawTerritory: [] };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
   const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
@@ -218,6 +218,8 @@
     $("deck-library-screen").hidden = name !== "decks";
     $("deck-builder-screen").hidden = name !== "builder";
     $("deck-preview-screen").hidden = name !== "preview";
+    $("deck-draw-screen").hidden = name !== "draw";
+    $("deck-analysis-screen").hidden = name !== "analysis";
     $("chat-screen").hidden = name !== "chat";
     $("glossary-screen").hidden = name !== "glossary";
     document.querySelectorAll("[data-screen]").forEach(button => button.classList.toggle("active", button.dataset.screen === (name === "search" ? "search" : "decks")));
@@ -227,6 +229,8 @@
     if (name === "decks") refreshDecks();
     if (name === "builder") { renderBuilder(); }
     if (name === "preview") renderPreview();
+    if (name === "draw") { resetDraw(); renderDraw(); }
+    if (name === "analysis") renderAnalysis();
     if (name === "chat") void renderChat();
     if (name === "glossary") void renderGlossary();
   }
@@ -642,6 +646,46 @@
     }
   }
 
+  function expandedPhysicalCards(cards) {
+    return (cards || []).flatMap(card => Array.from({ length: Math.max(1, Number(card.quantity) || 1) }, () => ({ ...card })));
+  }
+  function drawRandom(source, drawn) {
+    const pool = expandedPhysicalCards(source).filter((_, index) => !drawn._used.has(index));
+    if (!pool.length) return null;
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    const sourceCards = expandedPhysicalCards(source);
+    let chosenIndex = -1; let seen = 0;
+    for (let i=0;i<sourceCards.length;i++) { if (!drawn._used.has(i) && sourceCards[i] === chosen) { chosenIndex=i; break; } }
+    if (chosenIndex < 0) return null;
+    drawn._used.add(chosenIndex); return chosen;
+  }
+  function resetDraw() {
+    const deck = state.deck; state.drawMain = []; state.drawTerritory = [];
+    if (!deck) return;
+    const main = { _used: new Set() }; for(let i=0;i<5;i++){const card=drawRandom(deckCards(deck),main); if(card) state.drawMain.push(card);}
+    state._drawMainUsed = main._used; state._drawTerritoryUsed = new Set();
+  }
+  function drawOneMain() {
+    const deck = state.deck; if (!deck) return;
+    const helper = { _used: state._drawMainUsed || new Set() }; const card=drawRandom(deckCards(deck),helper); state._drawMainUsed=helper._used; if(card) state.drawMain.push(card); else $("draw-status").textContent="メインデッキからこれ以上ドローできません。"; renderDraw();
+  }
+  function drawOneTerritory() {
+    const deck = state.deck; if (!deck) return;
+    const helper = { _used: state._drawTerritoryUsed || new Set() }; const card=drawRandom(territoryCards(deck),helper); state._drawTerritoryUsed=helper._used; if(card) state.drawTerritory.push(card); else $("draw-status").textContent="領土デッキからこれ以上ドローできません。"; renderDraw();
+  }
+  function renderDraw() {
+    const render = (rootId, cards) => { const root=$(rootId); root.replaceChildren(); cards.forEach(card=>{const item=byItemId(card.itemId); const el=document.createElement("div"); el.className="draw-card"; el.innerHTML=(item?.image_url?'<img src="'+escapeHTML(item.image_url)+'" alt="">':"")+"<span>"+escapeHTML(card.name||"カード")+"</span>"; root.append(el);}); };
+    render("draw-hand-list",state.drawMain); render("draw-territory-list",state.drawTerritory);
+    $("draw-hand-count").textContent=state.drawMain.length+"枚"; $("draw-territory-count").textContent=state.drawTerritory.length+"枚";
+  }
+  function renderAnalysis() {
+    const deck=state.deck; if(!deck) return; const all=[...expandedPhysicalCards(deck.cards),...expandedPhysicalCards(deck.territoryCards),...expandedPhysicalCards(deck.reserveCards)];
+    const types={}; const costs={};
+    all.forEach(card=>{const item=byItemId(card.itemId); const type=item?.card_type||item?.territory_type||"その他"; types[type]=(types[type]||0)+1; const cost=Number(item?.cost); if(Number.isFinite(cost)) costs[cost]=(costs[cost]||0)+1;});
+    const max=Math.max(1,...Object.values(costs)); const typeHtml=Object.entries(types).sort((a,b)=>b[1]-a[1]).map(([k,v])=>"<li>"+escapeHTML(k)+"："+v+"枚</li>").join("");
+    const costHtml=Object.entries(costs).sort((a,b)=>Number(a[0])-Number(b[0])).map(([k,v])=>"<li>"+escapeHTML(k)+"コスト："+v+"枚<div class=\"analysis-bar\"><i style=\"width:"+(v/max*100)+"%\"></i></div></li>").join("");
+    $("deck-analysis-content").innerHTML='<div class="analysis-grid"><div class="analysis-stat"><span>総枚数</span><strong>'+all.length+'枚</strong></div><div class="analysis-stat"><span>種類数</span><strong>'+new Set(all.map(c=>c.itemId)).size+'種類</strong></div></div><h2>カードタイプ</h2><ul class="analysis-list">'+(typeHtml||"<li>データなし</li>")+'</ul><h2>コスト分布</h2><ul class="analysis-list">'+(costHtml||"<li>コスト情報なし</li>")+'</ul>';
+  }
   function publicDeckUrl(deck) {
     const url = new URL(window.location.href);
     url.search = "";
@@ -1207,6 +1251,11 @@
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
     $("share-deck-button").addEventListener("click", () => shareCurrentDeck());
+    $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
+    $("analyze-deck-button").addEventListener("click", () => setScreen("analysis"));
+    $("draw-reset-button").addEventListener("click", () => { resetDraw(); renderDraw(); });
+    $("draw-main-button").addEventListener("click", drawOneMain);
+    $("draw-territory-button").addEventListener("click", drawOneTerritory);
     $("chat-mode-button").addEventListener("click", () => setScreen("chat"));
     $("chat-menu-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("chat"); });
     $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("glossary"); });
