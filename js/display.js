@@ -43,7 +43,7 @@ window.addEventListener("animaldeck:glossaryloaded", () => {
 function applyRulesTooltips(element) {
   if (!element) return; const text = element.textContent || ""; if (!text) return;
   const glossary = window.animalGlossaryTerms || {}; const terms = Object.keys(glossary).filter(Boolean).sort((a,b)=>b.length-a.length); if (!terms.length) return;
-  const escapeRegExp = value => value.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+  const escapeRegExp = value => String(value).split("").map(ch => ".^$*+?()[]{}|\\ ".replace(" ","").includes(ch) ? "\\" + ch : ch).join("");
   const pattern = new RegExp("(" + terms.map(escapeRegExp).join("|") + ")", "g"); element.replaceChildren(); let last = 0;
   text.replace(pattern,(match,_group,offset)=>{
     if(offset>last) element.append(document.createTextNode(text.slice(last,offset)));
