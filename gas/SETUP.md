@@ -108,3 +108,14 @@ function extractOfficialKeywordsForImport(effectLines) {
 ## 注意
 
 商品リンクの初期URLは販売サイトで検索するためのURLです。検索パラメータが販売サイト側で変更された場合は、シート内のURLを直接修正できます。販売状況・商品名・在庫の有無は各販売サイトで確認してください。
+
+## 7. 用語集の共有編集
+
+サイトの用語集は既存GAS Webアプリを通じてスプレッドシートに保存します。GASプロジェクトに `GlossaryApi.gs` を追加し、既存の `Main.gs` に次の分岐を入れてください。
+
+- `doGet(e)` の冒頭で、`e.parameter.resource === "glossary"` の場合に `createJsonResponse({ success: true, glossary: getPublicGlossary_() }, e.parameter.prefix || "")` を返す。
+- `doPost(e)` の未対応actionエラーより前に、`saveGlossaryTerm` を `saveGlossaryTerm_(body)`、`deleteGlossaryTerm` を `deleteGlossaryTerm_(body)` に渡す分岐を追加し、結果を `createJsonResponse` で返す。
+
+用語集ページを最初に開いたとき、スプレッドシートに「用語集」シートがなければ自動作成します。閲覧データはGASのキャッシュを5分使い、追加・編集・削除時にキャッシュを消します。サイトは用語集を開いたときに1回読み込み、明示的な保存操作ごとに書き込みます。定期的な通信は行いません。
+
+公開サイトの操作欄はログイン不要です。サイト利用者全員が用語を追加・編集・削除できます。既存のWebアプリデプロイを更新し、「次のユーザーとして実行」はプロジェクト所有者、「アクセスできるユーザー」は「全員」のままにしてください。デプロイIDを変えない更新なら、サイトのAPI URL変更は不要です。
