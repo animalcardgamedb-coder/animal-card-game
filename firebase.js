@@ -602,7 +602,7 @@ window.animalDeckApp = {
     }
   },
   async listGlossary() {
-    const snapshot = await getDocs(query(collection(db, "glossary"), orderBy("term"));
+    const snapshot = await getDocs(query(collection(db, "glossary"), orderBy("term")));
     return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
   },
   async saveGlossary(id, term, description) {
@@ -620,21 +620,6 @@ window.animalDeckApp = {
     await deleteDoc(doc(db, "glossary", String(id)));
   },
   async listDeckTags() {
-  async listChatMessages() {
-    const snapshot = await getDocs(query(collection(db, "chatMessages"), orderBy("createdAt", "desc"), limit(201)));
-    const messages = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-    if (messages.length > 200) {
-      await Promise.all(messages.slice(200).map(item => deleteDoc(doc(db, "chatMessages", item.id)).catch(() => undefined)));
-    }
-    return messages.slice(0, 200);
-  },
-  async addChatMessage(name, text) {
-    const safeName = String(name || "").trim().slice(0, 30) || "名無し";
-    const safeText = String(text || "").trim().slice(0, 500);
-    if (!safeText) throw new Error("メッセージを入力してください。");
-    await addDoc(collection(db, "chatMessages"), { name: safeName, text: safeText, createdAt: serverTimestamp() });
-    return this.listChatMessages();
-  },
     const now = Date.now();
     if (deckTagCache && now - deckTagCacheAt < DECK_TAG_CACHE_TTL_MS) return [...deckTagCache];
     if (deckTagPromise) return [...await deckTagPromise];
@@ -669,6 +654,21 @@ window.animalDeckApp = {
     } finally {
       deckTagPromise = null;
     }
+  },
+  async listChatMessages() {
+    const snapshot = await getDocs(query(collection(db, "chatMessages"), orderBy("createdAt", "desc"), limit(201)));
+    const messages = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    if (messages.length > 200) {
+      await Promise.all(messages.slice(200).map(item => deleteDoc(doc(db, "chatMessages", item.id)).catch(() => undefined)));
+    }
+    return messages.slice(0, 200);
+  },
+  async addChatMessage(name, text) {
+    const safeName = String(name || "").trim().slice(0, 30) || "名無し";
+    const safeText = String(text || "").trim().slice(0, 500);
+    if (!safeText) throw new Error("メッセージを入力してください。");
+    await addDoc(collection(db, "chatMessages"), { name: safeName, text: safeText, createdAt: serverTimestamp() });
+    return this.listChatMessages();
   },
   async addDeckTag(value) {
     if (!signedInUser) throw new Error("共通デッキタグを登録するにはログインしてください。");
