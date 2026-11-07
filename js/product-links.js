@@ -266,15 +266,27 @@
       return;
     }
 
-    related.forEach(row => {
+    related.forEach((row, index) => {
       const card = document.createElement("div");
       card.className = "related-pack-item";
-      const title = document.createElement("strong");
+      const title = document.createElement("button");
+      const linksId = "detail-pack-item-links-" + index;
+      title.type = "button";
+      title.className = "detail-pack-toggle";
       title.textContent = readValue(row, ["product_name", "商品名", "パック名", "デッキ名"]) || "名称未登録の商品";
+      title.setAttribute("aria-expanded", "false");
+      title.setAttribute("aria-controls", linksId);
       card.append(title);
 
       const links = document.createElement("div");
+      links.id = linksId;
       links.className = "detail-link-list";
+      links.hidden = true;
+      title.addEventListener("click", () => {
+        const expanded = title.getAttribute("aria-expanded") === "true";
+        title.setAttribute("aria-expanded", String(!expanded));
+        links.hidden = expanded;
+      });
       const official = makeAnchor("公式商品ページ", readValue(row, ["official_url", "公式商品URL", "公式URL"]));
       if (official) links.append(official);
       const productName = readValue(row, ["product_name", "商品名", "パック名", "デッキ名"]);
@@ -306,14 +318,6 @@
       root.append(card);
     });
   }
-
-  const packToggle = document.getElementById("detail-pack-toggle");
-  const packPanel = document.getElementById("detail-pack-links");
-  packToggle?.addEventListener("click", () => {
-    const expanded = packToggle.getAttribute("aria-expanded") === "true";
-    packToggle.setAttribute("aria-expanded", String(!expanded));
-    if (packPanel) packPanel.hidden = expanded;
-  });
 
   window.renderPurchaseLinks = renderPurchaseLinks;
   window.renderRelatedPackLinks = renderRelatedPackLinks;

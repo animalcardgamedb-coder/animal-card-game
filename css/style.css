@@ -315,3 +315,5 @@
 .detail-pack-toggle{display:flex;width:100%;align-items:center;justify-content:space-between;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer}
 .detail-pack-toggle::after{content:"＋";font-size:18px;line-height:1}
 .detail-pack-toggle[aria-expanded="true"]::after{content:"−"}
+.related-pack-item>.detail-pack-toggle{margin-bottom:0;font-size:14px}
+.related-pack-item>.detail-pack-toggle[aria-expanded="true"]{margin-bottom:7px}
