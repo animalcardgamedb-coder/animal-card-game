@@ -160,6 +160,7 @@
     <nav class="header-actions" aria-label="メインメニュー">
       <button id="deck-mode-button" class="header-icon-button" type="button" aria-label="デッキ制作モード" title="デッキ制作モード"><span aria-hidden="true">▤</span><small>デッキ</small></button>
       <button id="search-mode-button" class="header-icon-button active" type="button" aria-label="カード検索モード" title="カード検索モード"><span aria-hidden="true">⌕</span><small>検索</small></button>
+      <button id="chat-mode-button" class="header-icon-button" type="button" aria-label="チャット" title="チャット"><span aria-hidden="true">☷</span><small>チャット</small></button>
       <button id="menu-open-button" class="header-icon-button" type="button" aria-label="メニューを開く" aria-expanded="false" title="メニュー"><span aria-hidden="true">☰</span><small>メニュー</small></button>
     </nav>
   </header>
@@ -177,6 +178,8 @@
     <button id="a4-layout-open-button" type="button">デッキを読み込んでA4サイズに配置</button>
     <button id="deck-tags-open-button" type="button">デッキタグ一覧</button>
     <button id="user-tags-open-button" type="button">ユーザータグ一覧</button>
+    <button id="glossary-open-button" type="button">用語集</button>
+    <button id="chat-menu-open-button" type="button">チャット</button>
     <button id="refresh-card-data-button" type="button">カードデータを更新</button>
     <p id="data-refresh-status" role="status" aria-live="polite"></p>
     <p id="menu-account-status" role="status"></p>
@@ -395,6 +398,7 @@
     <div class="builder-utility-actions" aria-label="デッキ操作"><button id="preview-deck-button" class="outline-button" type="button">デッキを確認</button><button id="export-deck-button" class="outline-button" type="button">JSONを書き出す</button><button id="export-acg-builder-button" class="outline-button" type="button">ACGビルダー形式で書き出す</button></div>
     <section class="builder-deck-tags"><div class="builder-deck-tags-heading"><strong>デッキタグ</strong><button id="builder-edit-tags-button" class="outline-button" type="button">編集</button></div><div id="builder-deck-tag-summary" class="builder-deck-tag-summary"></div><fieldset id="builder-deck-tag-editor" class="deck-tag-picker" hidden><legend>タグを選択</legend><div id="builder-deck-tag-options"></div><div class="builder-deck-tag-actions"><button id="builder-apply-tags-button" class="primary-button" type="button">反映</button><button id="builder-cancel-tags-button" class="outline-button" type="button">キャンセル</button></div></fieldset></section>
     <p id="public-deck-readonly-note" class="readonly-note" hidden>公開デッキの閲覧モードです。編集はできません。</p>
+    <div class="deck-description-editor"><label for="builder-deck-description">デッキ説明</label><textarea id="builder-deck-description" maxlength="2000" rows="5" placeholder="このデッキのコンセプトや使い方など"></textarea><div class="description-counter"><span id="builder-description-count">0</span> / 2000文字</div></div>
     <div class="deck-summary-panel"><div><strong id="deck-total-count">0</strong><span>枚</span></div><div id="deck-visibility-badge" class="visibility-badge">非公開</div><button id="builder-visibility-button" type="button" class="outline-button">公開設定</button></div>
     <div id="deck-type-stats" class="deck-type-stats"></div>
     <div id="deck-pile-tabs" class="segmented-tabs deck-pile-tabs" role="tablist" aria-label="編集するデッキ"><button id="main-pile-tab" class="active" type="button" role="tab" aria-selected="true">メインデッキ</button><button id="territory-pile-tab" type="button" role="tab" aria-selected="false">領地デッキ</button><button id="reserve-pile-tab" type="button" role="tab" aria-selected="false">予備デッキ</button></div>
@@ -419,8 +423,30 @@
     <div class="builder-bottom-actions"><button id="delete-current-deck" class="danger-button" type="button">削除</button><button id="save-deck-button" class="primary-button" type="button">保存して一覧へ</button></div>
   </section>
 
+  <section id="chat-screen" class="app-screen" hidden>
+    <div class="screen-title-row"><div><p class="eyebrow">COMMUNITY CHAT</p><h1>チャット</h1></div></div>
+    <div class="chat-panel">
+      <p class="chat-help">名前を付けて投稿できます。ログインやユーザーIDとの紐付けはありません。最新200件だけを表示します。</p>
+      <div id="chat-message-list" class="chat-message-list"></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-name" type="text" maxlength="30" placeholder="名前（未入力は名無し）">
+        <textarea id="chat-text" maxlength="500" rows="3" placeholder="メッセージ"></textarea>
+        <button class="primary-button" type="submit">送信</button>
+      </form>
+      <p id="chat-status" class="status-line" role="status"></p>
+    </div>
+  </section>
+
+  <section id="glossary-screen" class="app-screen" hidden>
+    <div class="screen-title-row"><div><p class="eyebrow">GLOSSARY</p><h1>用語集</h1></div></div>
+    <div class="toolbar-panel"><label class="search-field" for="glossary-search"><span aria-hidden="true">⌕</span><input id="glossary-search" type="search" placeholder="用語を検索"></label><button id="glossary-add-button" class="outline-button" type="button">＋用語を追加</button></div>
+    <div id="glossary-editor" class="glossary-editor" hidden><input id="glossary-term-input" maxlength="80" placeholder="用語"><textarea id="glossary-description-input" maxlength="500" rows="4" placeholder="用語の説明"></textarea><div><button id="glossary-save-button" class="primary-button" type="button">保存</button><button id="glossary-cancel-button" class="outline-button" type="button">キャンセル</button></div></div>
+    <div id="glossary-list" class="glossary-list"></div>
+  </section>
+
   <section id="deck-preview-screen" class="app-screen" hidden>
-    <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div>
+    <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><div class="preview-title-actions"><button id="share-deck-button" class="outline-button" type="button">共有</button><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div></div>
+    <section class="deck-description-preview"><h2>デッキ説明</h2><p id="preview-deck-description"></p></section>
     <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><label class="preview-copy-toggle"><input id="preview-expand-copies" type="checkbox"> 枚数分カードを個別表示</label><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
     <p id="preview-updated-at" class="preview-meta"></p>
     <div class="preview-count"><span>デッキ合計（3領域）</span><strong id="preview-total-count"></strong></div>
