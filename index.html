@@ -423,6 +423,19 @@
     <div class="builder-bottom-actions"><button id="delete-current-deck" class="danger-button" type="button">削除</button><button id="save-deck-button" class="primary-button" type="button">保存して一覧へ</button></div>
   </section>
 
+  <section id="deck-draw-screen" class="app-screen" hidden>
+    <div class="screen-title-row"><button class="back-button" type="button" data-back="preview" aria-label="デッキ確認へ戻る">‹</button><div><p class="eyebrow">DRAW TEST</p><h1>手札確認</h1></div></div>
+    <div class="draw-toolbar"><button id="draw-reset-button" class="outline-button" type="button">初手5枚を引き直す</button><button id="draw-main-button" class="primary-button" type="button">メインから1枚ドロー</button><button id="draw-territory-button" class="outline-button" type="button">領土から1枚ドロー</button></div>
+    <section class="draw-zone"><h2>手札 <span id="draw-hand-count">0枚</span></h2><div id="draw-hand-list" class="draw-card-grid"></div></section>
+    <section class="draw-zone"><h2>領土ドロー <span id="draw-territory-count">0枚</span></h2><div id="draw-territory-list" class="draw-card-grid"></div></section>
+    <p id="draw-status" class="status-line"></p>
+  </section>
+
+  <section id="deck-analysis-screen" class="app-screen" hidden>
+    <div class="screen-title-row"><button class="back-button" type="button" data-back="preview" aria-label="デッキ確認へ戻る">‹</button><div><p class="eyebrow">DECK ANALYSIS</p><h1>デッキ分析</h1></div></div>
+    <div id="deck-analysis-content" class="deck-analysis-content"></div>
+  </section>
+
   <section id="chat-screen" class="app-screen" hidden>
     <div class="screen-title-row"><div><p class="eyebrow">COMMUNITY CHAT</p><h1>チャット</h1></div></div>
     <div class="chat-panel">
@@ -447,7 +460,7 @@
   <section id="deck-preview-screen" class="app-screen" hidden>
     <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><div class="preview-title-actions"><button id="share-deck-button" class="outline-button" type="button">共有</button><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div></div>
     <section class="deck-description-preview"><h2>デッキ説明</h2><p id="preview-deck-description"></p></section>
-    <div class="preview-toolbar toolbar-panel"><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><label class="preview-copy-toggle"><input id="preview-expand-copies" type="checkbox"> 枚数分カードを個別表示</label><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
+    <div class="preview-toolbar toolbar-panel"><button id="draw-hand-button" class="outline-button" type="button">手札確認</button><button id="analyze-deck-button" class="outline-button" type="button">デッキ分析</button><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><label class="preview-copy-toggle"><input id="preview-expand-copies" type="checkbox"> 枚数分カードを個別表示</label><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
     <p id="preview-updated-at" class="preview-meta"></p>
     <div class="preview-count"><span>デッキ合計（3領域）</span><strong id="preview-total-count"></strong></div>
     <div id="preview-card-sections" class="preview-card-sections">
