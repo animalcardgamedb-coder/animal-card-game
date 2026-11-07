@@ -27,138 +27,31 @@ function applyIconGrid() {
  * 用語リンクは「アニマルカードゲーム@ウィキ」の用語集に実際に掲載されている語のみ。
  * リンク先は各用語の個別ページ。定義をここで再記述せず、更新された記事を直接参照する。
  */
-const WIKI_GLOSSARY_URLS = {
-  "○○域": "https://w.atwiki.jp/animalcardgame/pages/242.html",
-  "ウェイク": "https://w.atwiki.jp/animalcardgame/pages/197.html",
-  "裏向き除外": "https://w.atwiki.jp/animalcardgame/pages/526.html",
-  "カウンター": "https://w.atwiki.jp/animalcardgame/pages/275.html",
-  "狩りフェイズ": "https://w.atwiki.jp/animalcardgame/pages/110.html",
-  "カードタイプ": "https://w.atwiki.jp/animalcardgame/pages/57.html",
-  "キーワード能力": "https://w.atwiki.jp/animalcardgame/pages/56.html",
-  "ゲーム": "https://w.atwiki.jp/animalcardgame/pages/104.html",
-  "効果": "https://w.atwiki.jp/animalcardgame/pages/169.html",
-  "攻撃": "https://w.atwiki.jp/animalcardgame/pages/119.html",
-  "攻撃ステップ": "https://w.atwiki.jp/animalcardgame/pages/116.html",
-  "行動待機": "https://w.atwiki.jp/animalcardgame/pages/183.html",
-  "コスト": "https://w.atwiki.jp/animalcardgame/pages/194.html",
-  "コントローラー": "https://w.atwiki.jp/animalcardgame/pages/203.html",
-  "山岳領土": "https://w.atwiki.jp/animalcardgame/pages/204.html",
-  "集団攻撃": "https://w.atwiki.jp/animalcardgame/pages/297.html",
-  "種族": "https://w.atwiki.jp/animalcardgame/pages/201.html",
-  "所有者": "https://w.atwiki.jp/animalcardgame/pages/202.html",
-  "種別": "https://w.atwiki.jp/animalcardgame/pages/59.html",
-  "種別のない領土": "https://w.atwiki.jp/animalcardgame/pages/195.html",
-  "マッチ": "https://w.atwiki.jp/animalcardgame/pages/181.html",
-  "準備フェイズ": "https://w.atwiki.jp/animalcardgame/pages/108.html",
-  "除外": "https://w.atwiki.jp/animalcardgame/pages/208.html",
-  "森林領土": "https://w.atwiki.jp/animalcardgame/pages/205.html",
-  "水生領土": "https://w.atwiki.jp/animalcardgame/pages/206.html",
-  "ステップ": "https://w.atwiki.jp/animalcardgame/pages/114.html",
-  "戦闘準備ステップ": "https://w.atwiki.jp/animalcardgame/pages/115.html",
-  "戦闘宣言": "https://w.atwiki.jp/animalcardgame/pages/239.html",
-  "戦闘フェイズ": "https://w.atwiki.jp/animalcardgame/pages/113.html",
-  "存在": "https://w.atwiki.jp/animalcardgame/pages/175.html",
-  "存在カード": "https://w.atwiki.jp/animalcardgame/pages/175.html",
-  "存在プレイ": "https://w.atwiki.jp/animalcardgame/pages/175.html",
-  "ターン": "https://w.atwiki.jp/animalcardgame/pages/58.html",
-  "起床フェイズ": "https://w.atwiki.jp/animalcardgame/pages/107.html",
-  "日没フェイズ": "https://w.atwiki.jp/animalcardgame/pages/111.html",
-  "夜警フェイズ": "https://w.atwiki.jp/animalcardgame/pages/112.html",
-  "ターンプレイヤー": "https://w.atwiki.jp/animalcardgame/pages/210.html",
-  "脱出カウンター": "https://w.atwiki.jp/animalcardgame/pages/96.html",
-  "ダメージ判定": "https://w.atwiki.jp/animalcardgame/pages/121.html",
-  "ダメージ判定ステップ": "https://w.atwiki.jp/animalcardgame/pages/118.html",
-  "デッキ": "https://w.atwiki.jp/animalcardgame/pages/91.html",
-  "手札": "https://w.atwiki.jp/animalcardgame/pages/209.html",
-  "道具": "https://w.atwiki.jp/animalcardgame/pages/189.html",
-  "動物": "https://w.atwiki.jp/animalcardgame/pages/191.html",
-  "トークン": "https://w.atwiki.jp/animalcardgame/pages/268.html",
-  "特技": "https://w.atwiki.jp/animalcardgame/pages/187.html",
-  "能力": "https://w.atwiki.jp/animalcardgame/pages/105.html",
-  "夜牢カウンター": "https://w.atwiki.jp/animalcardgame/pages/159.html",
-  "縄張り": "https://w.atwiki.jp/animalcardgame/pages/190.html",
-  "パイル": "https://w.atwiki.jp/animalcardgame/pages/199.html",
-  "場面": "https://w.atwiki.jp/animalcardgame/pages/188.html",
-  "場": "https://w.atwiki.jp/animalcardgame/pages/192.html",
-  "非存在": "https://w.atwiki.jp/animalcardgame/pages/176.html",
-  "非存在カード": "https://w.atwiki.jp/animalcardgame/pages/176.html",
-  "非存在プレイ": "https://w.atwiki.jp/animalcardgame/pages/176.html",
-  "プレイ": "https://w.atwiki.jp/animalcardgame/pages/140.html",
-  "フェイズ": "https://w.atwiki.jp/animalcardgame/pages/106.html",
-  "平野領土": "https://w.atwiki.jp/animalcardgame/pages/207.html",
-  "妨害": "https://w.atwiki.jp/animalcardgame/pages/99.html",
-  "防御": "https://w.atwiki.jp/animalcardgame/pages/120.html",
-  "防御ステップ": "https://w.atwiki.jp/animalcardgame/pages/117.html",
-  "補充フェイズ": "https://w.atwiki.jp/animalcardgame/pages/109.html",
-  "墓地": "https://w.atwiki.jp/animalcardgame/pages/193.html",
-  "ムーブ": "https://w.atwiki.jp/animalcardgame/pages/196.html",
-  "優先権": "https://w.atwiki.jp/animalcardgame/pages/200.html",
-  "予備デッキ": "https://w.atwiki.jp/animalcardgame/pages/92.html",
-  "夜状態": "https://w.atwiki.jp/animalcardgame/pages/180.html",
-  "夜領土": "https://w.atwiki.jp/animalcardgame/pages/182.html",
-  "ライフ": "https://w.atwiki.jp/animalcardgame/pages/211.html",
-  "領地": "https://w.atwiki.jp/animalcardgame/pages/100.html",
-  "領土カード": "https://w.atwiki.jp/animalcardgame/pages/101.html",
-  "領土条件": "https://w.atwiki.jp/animalcardgame/pages/98.html",
-  "領土デッキ": "https://w.atwiki.jp/animalcardgame/pages/93.html",
-  "ルール処理": "https://w.atwiki.jp/animalcardgame/pages/198.html",
-  "ATK": "https://w.atwiki.jp/animalcardgame/pages/212.html",
-  "BO1,BO3,ABO1": "https://w.atwiki.jp/animalcardgame/pages/511.html",
-  "DEF": "https://w.atwiki.jp/animalcardgame/pages/213.html"
-};
-
+const WIKI_GLOSSARY_URLS = {};
+let glossaryPopup = null;
+function showGlossaryPopup(term, description, element) {
+  if (!description) return; glossaryPopup?.remove();
+  glossaryPopup = document.createElement("div"); glossaryPopup.className = "glossary-popup"; glossaryPopup.textContent = term + "\n" + description; document.body.append(glossaryPopup);
+  const rect = element.getBoundingClientRect(); const left = Math.min(Math.max(8, rect.left), window.innerWidth - glossaryPopup.offsetWidth - 8);
+  const top = rect.bottom + 8 + glossaryPopup.offsetHeight > window.innerHeight ? Math.max(8, rect.top - glossaryPopup.offsetHeight - 8) : rect.bottom + 8;
+  glossaryPopup.style.left = left + "px"; glossaryPopup.style.top = top + "px";
+}
+function hideGlossaryPopup() { glossaryPopup?.remove(); glossaryPopup = null; }
+window.addEventListener("animaldeck:glossaryloaded", () => {
+  ["detail-condition", "detail-effect", "detail-keywords", "detail-effects"].forEach(id => applyRulesTooltips(document.getElementById(id)));
+});
 function applyRulesTooltips(element) {
-  if (!element) return;
-  const text = element.textContent || "";
-  if (!text) return;
-  const terms = Object.keys(WIKI_GLOSSARY_URLS).sort((a, b) => b.length - a.length);
-  const pattern = new RegExp("(" + terms.join("|") + ")", "g");
-  element.replaceChildren();
-  let textCursor = 0;
-  text.split(pattern).forEach(part => {
-    const partIndex = text.indexOf(part, textCursor);
-    textCursor = partIndex + part.length;
-    const url = WIKI_GLOSSARY_URLS[part];
-    if (!url) {
-      element.append(document.createTextNode(part));
-      return;
-    }
-
-    // 「場」は1文字なので「場合」「戦場」などの一部を用語と誤判定しない。
-    if (part === "場") {
-      const previous = text[partIndex - 1] || "";
-      const next = text[partIndex + part.length] || "";
-      const isKanji = character => /[一-龯々〆ヵヶ]/.test(character);
-      if (isKanji(previous) || isKanji(next)) {
-        element.append(document.createTextNode(part));
-        return;
-      }
-    }
-
-    const term = document.createElement("a");
-    term.className = "rules-term";
-    term.textContent = part;
-    term.href = url;
-    term.target = "_blank";
-    term.rel = "noopener noreferrer";
-    term.title = "アニマルカードゲーム@ウィキの「" + part + "」を開く";
-    term.setAttribute("aria-label", part + "：用語集ページを小窓で開く");
-    term.addEventListener("click", event => {
-      event.stopPropagation();
-      // Open the actual wiki article in a small window. If pop-ups are blocked,
-      // the anchor's normal target=_blank behavior remains as a fallback.
-      const popup = window.open(url, "animalCardGameWikiGlossary",
-        "popup=yes,width=760,height=720,resizable=yes,scrollbars=yes");
-      if (popup) event.preventDefault();
-    });
-    element.append(term);
-  });
+  if (!element) return; const text = element.textContent || ""; if (!text) return;
+  const glossary = window.animalGlossaryTerms || {}; const terms = Object.keys(glossary).filter(Boolean).sort((a,b)=>b.length-a.length); if (!terms.length) return;
+  const escapeRegExp = value => String(value).split("").map(ch => ".^$*+?()[]{}|\\ ".replace(" ","").includes(ch) ? "\\" + ch : ch).join("");
+  const pattern = new RegExp("(" + terms.map(escapeRegExp).join("|") + ")", "g"); element.replaceChildren(); let last = 0;
+  text.replace(pattern,(match,_group,offset)=>{
+    if(offset>last) element.append(document.createTextNode(text.slice(last,offset)));
+    const span=document.createElement("span"); span.className="rules-term"; span.textContent=match; span.tabIndex=0; span.setAttribute("role","button");
+    const show=event=>{event?.stopPropagation();showGlossaryPopup(match,glossary[match],span)}; span.addEventListener("mouseenter",show); span.addEventListener("focus",show); span.addEventListener("click",show); span.addEventListener("mouseleave",hideGlossaryPopup); span.addEventListener("blur",hideGlossaryPopup); element.append(span); last=offset+match.length; return match;
+  }); if(last<text.length) element.append(document.createTextNode(text.slice(last)));
 }
 
-
-/*
-  カード・領地一覧を表示する
-*/
 function displayCards(
   cards
 ) {

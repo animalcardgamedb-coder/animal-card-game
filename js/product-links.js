@@ -35,7 +35,8 @@
     { key: "cardlabo", label: "カードラボ", build: name => "https://www.c-labo-online.jp/product-list?keyword=" + name + "&Submit=" },
     { key: "gamers", label: "ゲーマーズ", build: name => "https://www.gamers.co.jp/products/list.php?mode=search&smt=" + name, affiliate: true },
     { key: "realize", label: "REALiZE", build: name => buildRealizeSearchUrl(name) },
-    { key: "surugaya", label: "駿河屋", build: (name, combined) => "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(combined).replace(/%20/g, "+"), affiliate: true }
+    { key: "surugaya", label: "駿河屋", build: (name, combined) => "https://www.suruga-ya.jp/search?category=&search_word=" + encodeURIComponent(combined).replace(/%20/g, "+"), affiliate: true },
+    { key: "cardshop_metal", label: "カードショップメタル", build: name => "https://cardshop-metal.com/products/list?name=" + name }
   ];
 
   function readValue(row, keys) {
@@ -57,6 +58,7 @@
     if (store.key === "gamers") keys.push("ゲーマーズリンク");
     if (store.key === "realize") keys.push("REALiZEリンク");
     if (store.key === "surugaya") keys.push("駿河屋リンク");
+    if (store.key === "cardshop_metal") keys.push("カードショップメタル", "cardshop-metal", "カードショップメタルリンク");
     return readValue(row, keys);
   }
 
@@ -275,8 +277,22 @@
       links.className = "detail-link-list";
       const official = makeAnchor("公式商品ページ", readValue(row, ["official_url", "公式商品URL", "公式URL"]));
       if (official) links.append(official);
+      const productName = readValue(row, ["product_name", "商品名", "パック名", "デッキ名"]);
+      const productNameQuery = encodeURIComponent(productName);
+      const productCombinedQuery = encodeURIComponent("アニマルカードゲーム " + productName);
       STORES.forEach(store => {
-        const anchor = makeAnchor(store.label, storeUrl(row, store));
+        const affiliateRaw = store.affiliate ? storeUrl(row, store) : "";
+        const affiliateCode = readHtmlAdCode(affiliateRaw);
+        if (affiliateCode) {
+          const block = makeAdCodeBlock(store, affiliateCode);
+          block.dataset.store = store.key;
+          block.dataset.linkType = "affiliate-code";
+          links.append(block);
+          return;
+        }
+        const affiliateUrl = store.affiliate ? safeHttpUrl(affiliateRaw) : "";
+        const searchHref = store.build(productNameQuery, productCombinedQuery);
+        const anchor = makeAnchor((affiliateUrl ? "【PR】" : "") + store.label, affiliateUrl || searchHref);
         if (anchor) links.append(anchor);
       });
 

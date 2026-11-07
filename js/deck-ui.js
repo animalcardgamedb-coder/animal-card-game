@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0 };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryEditingId: "", drawMain: [], drawTerritory: [] };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
   const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
@@ -129,6 +129,18 @@
   }
 
   const SCREEN_STATE_KEY = "animalCardGame.screenState";
+  const route = () => new URLSearchParams(window.location.search);
+  function syncRoute(screen = state.screen) {
+    const params = new URLSearchParams();
+    if (screen === "search") params.set("page", "search");
+    else if (screen === "decks") params.set("page", "decks");
+    else if (screen === "chat") params.set("page", "chat");
+    else if (screen === "glossary") params.set("page", "glossary");
+    if (state.deck?.id && (screen === "preview" || screen === "builder")) params.set("deck", state.deck.id);
+    const query = params.toString();
+    const nextSearch = query ? "?" + query : "";
+    if (window.location.search !== nextSearch) history.replaceState({ screen, deckId: state.deck?.id || "" }, "", window.location.pathname + nextSearch);
+  }
   function saveScreenState() {
     try {
       window.sessionStorage.setItem(SCREEN_STATE_KEY, JSON.stringify({
@@ -199,12 +211,17 @@
     }
     state.screen = name;
     if (persist) saveScreenState();
+    if (persist) syncRoute(name);
     window.animalDeckBuilderSearchActive = name === "builder";
     ["card-modal", "search-modal"].forEach(id => { if ($(id)) $(id).style.display = "none"; });
     $("card-search").hidden = name !== "search";
     $("deck-library-screen").hidden = name !== "decks";
     $("deck-builder-screen").hidden = name !== "builder";
     $("deck-preview-screen").hidden = name !== "preview";
+    $("deck-draw-screen").hidden = name !== "draw";
+    $("deck-analysis-screen").hidden = name !== "analysis";
+    $("chat-screen").hidden = name !== "chat";
+    $("glossary-screen").hidden = name !== "glossary";
     document.querySelectorAll("[data-screen]").forEach(button => button.classList.toggle("active", button.dataset.screen === (name === "search" ? "search" : "decks")));
     $("search-mode-button").classList.toggle("active", name === "search");
     $("deck-mode-button").classList.toggle("active", name !== "search");
@@ -212,6 +229,10 @@
     if (name === "decks") refreshDecks();
     if (name === "builder") { renderBuilder(); }
     if (name === "preview") renderPreview();
+    if (name === "draw") { resetDraw(); renderDraw(); }
+    if (name === "analysis") renderAnalysis();
+    if (name === "chat") void renderChat();
+    if (name === "glossary") void renderGlossary();
   }
   function setStatus(message) { $("deck-library-status").textContent = message || ""; }
   async function refreshDecks() {
@@ -625,10 +646,115 @@
     }
   }
 
+  function expandedPhysicalCards(cards) {
+    return (cards || []).flatMap(card => Array.from({ length: Math.max(1, Number(card.quantity) || 1) }, () => ({ ...card })));
+  }
+  function drawRandom(source, drawn) {
+    const sourceCards = expandedPhysicalCards(source);
+    const available = sourceCards.map((_, index) => index).filter(index => !drawn._used.has(index));
+    if (!available.length) return null;
+    const chosenIndex = available[Math.floor(Math.random() * available.length)];
+    drawn._used.add(chosenIndex);
+    return sourceCards[chosenIndex];
+  }
+  function resetDraw() {
+    const deck = state.deck; state.drawMain = []; state.drawTerritory = [];
+    if (!deck) return;
+    const main = { _used: new Set() }; for(let i=0;i<5;i++){const card=drawRandom(deckCards(deck),main); if(card) state.drawMain.push(card);}
+    state._drawMainUsed = main._used; state._drawTerritoryUsed = new Set();
+  }
+  function drawOneMain() {
+    const deck = state.deck; if (!deck) return;
+    const helper = { _used: state._drawMainUsed || new Set() }; const card=drawRandom(deckCards(deck),helper); state._drawMainUsed=helper._used; if(card) state.drawMain.push(card); else $("draw-status").textContent="メインデッキからこれ以上ドローできません。"; renderDraw();
+  }
+  function drawOneTerritory() {
+    const deck = state.deck; if (!deck) return;
+    const helper = { _used: state._drawTerritoryUsed || new Set() }; const card=drawRandom(territoryCards(deck),helper); state._drawTerritoryUsed=helper._used; if(card) state.drawTerritory.push(card); else $("draw-status").textContent="領土デッキからこれ以上ドローできません。"; renderDraw();
+  }
+  function renderDraw() {
+    const render = (rootId, cards) => { const root=$(rootId); root.replaceChildren(); cards.forEach(card=>{const item=byItemId(card.itemId); const el=document.createElement("div"); el.className="draw-card"; el.innerHTML=(item?.image_url?'<img src="'+escapeHTML(item.image_url)+'" alt="">':"")+"<span>"+escapeHTML(card.name||"カード")+"</span>"; root.append(el);}); };
+    render("draw-hand-list",state.drawMain); render("draw-territory-list",state.drawTerritory);
+    $("draw-hand-count").textContent=state.drawMain.length+"枚"; $("draw-territory-count").textContent=state.drawTerritory.length+"枚";
+  }
+  function renderAnalysis() {
+    const deck=state.deck; if(!deck) return; const all=[...expandedPhysicalCards(deck.cards),...expandedPhysicalCards(deck.territoryCards),...expandedPhysicalCards(deck.reserveCards)];
+    const types={}; const costs={};
+    all.forEach(card=>{const item=byItemId(card.itemId); const type=item?.card_type||item?.territory_type||"その他"; types[type]=(types[type]||0)+1; const cost=Number(item?.cost); if(Number.isFinite(cost)) costs[cost]=(costs[cost]||0)+1;});
+    const max=Math.max(1,...Object.values(costs)); const typeHtml=Object.entries(types).sort((a,b)=>b[1]-a[1]).map(([k,v])=>"<li>"+escapeHTML(k)+"："+v+"枚</li>").join("");
+    const costHtml=Object.entries(costs).sort((a,b)=>Number(a[0])-Number(b[0])).map(([k,v])=>"<li>"+escapeHTML(k)+"コスト："+v+"枚<div class=\"analysis-bar\"><i style=\"width:"+(v/max*100)+"%\"></i></div></li>").join("");
+    $("deck-analysis-content").innerHTML='<div class="analysis-grid"><div class="analysis-stat"><span>総枚数</span><strong>'+all.length+'枚</strong></div><div class="analysis-stat"><span>種類数</span><strong>'+new Set(all.map(c=>c.itemId)).size+'種類</strong></div></div><h2>カードタイプ</h2><ul class="analysis-list">'+(typeHtml||"<li>データなし</li>")+'</ul><h2>コスト分布</h2><ul class="analysis-list">'+(costHtml||"<li>コスト情報なし</li>")+'</ul>';
+  }
+  function publicDeckUrl(deck) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("deck", deck?.id || "");
+    return url.href;
+  }
+  async function shareCurrentDeck() {
+    if (!state.deck?.isPublic) { alert("公開デッキだけ共有できます。"); return; }
+    const url = publicDeckUrl(state.deck);
+    const text = state.deck.name ? "「" + state.deck.name + "」を共有します。" : "デッキを共有します。";
+    try {
+      if (navigator.share) await navigator.share({ title: state.deck.name || "公開デッキ", text, url });
+      else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); alert("共有URLをコピーしました。"); }
+      else window.prompt("共有URLをコピーしてください。", url);
+    } catch (error) { if (error?.name !== "AbortError") alert("共有できませんでした。"); }
+  }
+  async function loadGlossaryCache() {
+    try { state.glossary = await app().listGlossary(); window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description])); window.dispatchEvent(new CustomEvent("animaldeck:glossaryloaded")); return state.glossary; }
+    catch (_) { window.animalGlossaryTerms = {}; return []; }
+  }
+  async function renderGlossary() {
+    try { await loadGlossaryCache(); renderGlossaryList(); }
+    catch (error) { $("glossary-list").textContent = error.message || "用語集を読み込めませんでした。"; }
+  }
+  function renderGlossaryList() {
+    const root = $("glossary-list"); if (!root) return; const q = $("glossary-search").value.trim().toLocaleLowerCase("ja-JP");
+    root.replaceChildren();
+    state.glossary.filter(item => !q || String(item.term).toLocaleLowerCase("ja-JP").includes(q) || String(item.description).toLocaleLowerCase("ja-JP").includes(q)).forEach(item => {
+      const el = document.createElement("article"); el.className = "glossary-item";
+      el.innerHTML = "<h2>" + escapeHTML(item.term) + "</h2><p>" + escapeHTML(item.description) + "</p>";
+      const actions = document.createElement("div"); actions.className = "glossary-item-actions";
+      const edit = document.createElement("button"); edit.className = "outline-button"; edit.textContent = "編集"; edit.addEventListener("click", () => openGlossaryEditor(item));
+      const del = document.createElement("button"); del.className = "danger-button"; del.textContent = "削除"; del.addEventListener("click", async () => { if (!confirm("この用語を削除しますか？")) return; await app().deleteGlossary(item.id); await renderGlossary(); });
+      actions.append(edit, del); el.append(actions); root.append(el);
+    });
+  }
+  function openGlossaryEditor(item = null) {
+    state.glossaryEditingId = item?.id || ""; $("glossary-term-input").value = item?.term || ""; $("glossary-description-input").value = item?.description || ""; $("glossary-editor").hidden = false;
+  }
+  function closeGlossaryEditor() { state.glossaryEditingId = ""; $("glossary-editor").hidden = true; }
+  async function saveGlossaryEditor() {
+    try { await app().saveGlossary(state.glossaryEditingId, $("glossary-term-input").value, $("glossary-description-input").value); closeGlossaryEditor(); await renderGlossary(); } catch (error) { alert(error.message); }
+  }
+  async function renderChat() {
+    try {
+      const messages = await app().listChatMessages(); const root = $("chat-message-list"); root.replaceChildren();
+      messages.forEach(item => {
+        const el = document.createElement("article"); el.className = "chat-message";
+        const date = item.createdAt?.toDate?.(); const time = date ? date.toLocaleString("ja-JP") : "";
+        el.innerHTML = "<header><strong>" + escapeHTML(item.name || "名無し") + "</strong><span>" + escapeHTML(time) + "</span></header><p>" + escapeHTML(item.text || "") + "</p>";
+        root.append(el);
+      });
+    } catch (error) { $("chat-status").textContent = error.message || "チャットを読み込めませんでした。"; }
+  }
+  async function restoreUrlRoute() {
+    const params = route(); const deckId = params.get("deck");
+    if (deckId) {
+      try { const deck = await app().getPublicById(deckId); if (!deck) throw new Error("公開デッキが見つかりません。"); state.deck = app().viewPublic(deck); state.publicView = true; setScreen("preview", false); return; }
+      catch (_) { setStatus("共有された公開デッキが見つかりません。"); }
+    }
+    const page = params.get("page");
+    if (page === "decks") setScreen("decks", false);
+    else if (page === "chat") setScreen("chat", false);
+    else if (page === "glossary") setScreen("glossary", false);
+    else if (page === "search") setScreen("search", false);
+  }
   function renderPreview() {
     const deck = state.deck;
     if (!deck) return;
     $("preview-deck-name").textContent = deck.name || "デッキ";
+    $("preview-deck-description").textContent = deck.description || "説明はありません。";
     const mainCards = deckCards(deck);
     const territories = territoryCards(deck);
     const reserves = reserveCards(deck);
@@ -1080,7 +1206,7 @@
         setScreen("decks");
         return;
       }
-      setScreen(button.dataset.back === "builder" ? "builder" : "decks");
+      setScreen(button.dataset.back === "builder" ? "builder" : button.dataset.back === "preview" ? "preview" : "decks");
     }));
     const applyBuilderSearch = () => { state.builderQuery = $("builder-search").value; renderBuilderCards(); };
     $("builder-search").addEventListener("input", applyBuilderSearch);
@@ -1113,18 +1239,35 @@
     $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
     $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
     $("builder-apply-tags-button").addEventListener("click", () => { state.deck.tags = readTagChecks("builder-deck-tag-options"); renderDeckTagSummary(state.deck.tags); $("builder-deck-tag-editor").hidden = true; });
-    $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
-    $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags()); renderBuilder(); } catch (error) { alert(error.message); } });
-    $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags()); setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value); setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags(), $("builder-deck-description").value); renderBuilder(); } catch (error) { alert(error.message); } });
+    $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value); setScreen("decks"); } catch (error) { alert(error.message); } });
     $("delete-current-deck").addEventListener("click", async () => { if (!confirm(`「${state.deck?.name}」を削除します。この操作は取り消せません。`)) return; try { await app().deleteCurrent(); state.deck = null; setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-deck-description").addEventListener("input", event => { $("builder-description-count").textContent = String(event.target.value.length); });
     $("preview-deck-button").addEventListener("click", () => setScreen("preview")); $("print-deck-button").addEventListener("click", () => window.print());
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
+    $("share-deck-button").addEventListener("click", () => shareCurrentDeck());
+    $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
+    $("analyze-deck-button").addEventListener("click", () => setScreen("analysis"));
+    $("draw-reset-button").addEventListener("click", () => { resetDraw(); renderDraw(); });
+    $("draw-main-button").addEventListener("click", drawOneMain);
+    $("draw-territory-button").addEventListener("click", drawOneTerritory);
+    $("chat-mode-button").addEventListener("click", () => setScreen("chat"));
+    $("chat-menu-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("chat"); });
+    $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("glossary"); });
+    $("glossary-search").addEventListener("input", renderGlossaryList);
+    $("glossary-add-button").addEventListener("click", () => openGlossaryEditor());
+    $("glossary-cancel-button").addEventListener("click", closeGlossaryEditor);
+    $("glossary-save-button").addEventListener("click", saveGlossaryEditor);
+    $("chat-form").addEventListener("submit", async event => { event.preventDefault(); try { $("chat-status").textContent = "送信中…"; await app().addChatMessage($("chat-name").value, $("chat-text").value); $("chat-text").value = ""; await renderChat(); $("chat-status").textContent = ""; } catch (error) { $("chat-status").textContent = error.message || "送信できませんでした。"; } });
     window.addEventListener("animaldeck:authchange", () => {
       refreshTagOptions();
+      void loadGlossaryCache();
       if ($("deck-tag-filter-panel")?.dataset.loaded) void refreshPublicDeckTagFilters();
       if (pendingScreenRestore && !screenRestoreAttempted) void restoreScreenState();
+      void restoreUrlRoute();
       else if (state.screen === "decks") refreshDecks();
     });
     // Restore simple screens immediately; deck screens wait until Firebase resolves sign-in state.

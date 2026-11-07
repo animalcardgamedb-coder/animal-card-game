@@ -17,7 +17,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'ownerUid', 'ownerName', 'name', 'isPublic',
-          'cards', 'createdAt', 'updatedAt', 'tags', 'territoryCards',
+          'cards', 'createdAt', 'updatedAt', 'tags', 'description', 'territoryCards',
           'reserveCards', 'considerationCards'
         ])
         && data.ownerUid is string
@@ -35,7 +35,8 @@ service cloud.firestore {
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
-          || (data.tags is list && data.tags.size() <= 12));
+          || (data.tags is list && data.tags.size() <= 12))
+        && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 2000));
     }
 
     function validDeckUpdate(data) {
@@ -56,7 +57,8 @@ service cloud.firestore {
         && (!data.keys().hasAny(['considerationCards']) || (data.considerationCards is list && data.considerationCards.size() <= 200))
         && data.updatedAt is timestamp
         && (!data.keys().hasAny(['tags'])
-          || (data.tags is list && data.tags.size() <= 12));
+          || (data.tags is list && data.tags.size() <= 12))
+        && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 2000));
     }
 
     match /decks/{deckId} {
@@ -73,7 +75,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'isPublic', 'cards', 'territoryCards', 'reserveCards',
-          'considerationCards', 'tags', 'updatedAt'
+          'considerationCards', 'tags', 'description', 'updatedAt'
         ])
         && validDeckUpdate(request.resource.data);
 
@@ -101,6 +103,31 @@ service cloud.firestore {
         && (request.resource.data.deleted == true
           || (signedIn() && resource.data.deleted == true && request.resource.data.deleted == false));
       allow delete: if false;
+    }
+
+    match /glossary/{termId} {
+      allow get, list: if true;
+      allow create, update: if signedIn()
+        && request.resource.data.term is string
+        && request.resource.data.term.size() > 0
+        && request.resource.data.term.size() <= 80
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
+        && request.resource.data.description.size() <= 500;
+      allow delete: if signedIn();
+    }
+
+    match /chatMessages/{messageId} {
+      allow get, list: if true;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'text', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 30
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.createdAt is timestamp;
+      allow delete: if true;
+      allow update: if false;
     }
 
     match /users/{userId} {
