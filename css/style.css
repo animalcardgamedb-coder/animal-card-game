@@ -311,3 +311,7 @@
 .draw-card{overflow:hidden;border:1px solid var(--line);border-radius:7px;background:#fafafa}.draw-card img{display:block;width:100%;aspect-ratio:.72;object-fit:cover}.draw-card span{display:block;padding:5px;font-size:11px}
 .analysis-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.analysis-stat{padding:11px;border:1px solid var(--line);border-radius:7px}.analysis-stat strong{display:block;font-size:22px}.analysis-list{margin:10px 0 0;padding-left:20px}.analysis-bar{height:8px;background:#eee;border-radius:99px;overflow:hidden;margin-top:5px}.analysis-bar i{display:block;height:100%;background:#222}
 @media(max-width:760px){.draw-card-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.draw-zone,.deck-analysis-content{padding:11px}.analysis-grid{grid-template-columns:1fr}}
+
+.detail-pack-toggle{display:flex;width:100%;align-items:center;justify-content:space-between;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer}
+.detail-pack-toggle::after{content:"＋";font-size:18px;line-height:1}
+.detail-pack-toggle[aria-expanded="true"]::after{content:"−"}

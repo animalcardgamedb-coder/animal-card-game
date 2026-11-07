@@ -307,6 +307,14 @@
     });
   }
 
+  const packToggle = document.getElementById("detail-pack-toggle");
+  const packPanel = document.getElementById("detail-pack-links");
+  packToggle?.addEventListener("click", () => {
+    const expanded = packToggle.getAttribute("aria-expanded") === "true";
+    packToggle.setAttribute("aria-expanded", String(!expanded));
+    if (packPanel) packPanel.hidden = expanded;
+  });
+
   window.renderPurchaseLinks = renderPurchaseLinks;
   window.renderRelatedPackLinks = renderRelatedPackLinks;
 })();

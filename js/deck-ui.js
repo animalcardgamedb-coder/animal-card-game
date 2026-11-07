@@ -1267,8 +1267,8 @@
       void loadGlossaryCache();
       if ($("deck-tag-filter-panel")?.dataset.loaded) void refreshPublicDeckTagFilters();
       if (pendingScreenRestore && !screenRestoreAttempted) void restoreScreenState();
-      void restoreUrlRoute();
       else if (state.screen === "decks") refreshDecks();
+      void restoreUrlRoute();
     });
     // Restore simple screens immediately; deck screens wait until Firebase resolves sign-in state.
     if (pendingScreenRestore && ["search", "decks"].includes(pendingScreenRestore.screen)) {
