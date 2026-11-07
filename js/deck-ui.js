@@ -138,8 +138,8 @@
     else if (screen === "glossary") params.set("page", "glossary");
     if (state.deck?.id && (screen === "preview" || screen === "builder")) params.set("deck", state.deck.id);
     const query = params.toString();
-    const next = query ? "?" + query : window.location.pathname;
-    if (window.location.search !== next.slice(window.location.pathname.length)) history.replaceState({ screen, deckId: state.deck?.id || "" }, "", next);
+    const nextSearch = query ? "?" + query : "";
+    if (window.location.search !== nextSearch) history.replaceState({ screen, deckId: state.deck?.id || "" }, "", window.location.pathname + nextSearch);
   }
   function saveScreenState() {
     try {
@@ -658,8 +658,12 @@
       else window.prompt("共有URLをコピーしてください。", url);
     } catch (error) { if (error?.name !== "AbortError") alert("共有できませんでした。"); }
   }
+  async function loadGlossaryCache() {
+    try { state.glossary = await app().listGlossary(); window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description])); window.dispatchEvent(new CustomEvent("animaldeck:glossaryloaded")); return state.glossary; }
+    catch (_) { window.animalGlossaryTerms = {}; return []; }
+  }
   async function renderGlossary() {
-    try { state.glossary = await app().listGlossary(); window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description])); renderGlossaryList(); }
+    try { await loadGlossaryCache(); renderGlossaryList(); }
     catch (error) { $("glossary-list").textContent = error.message || "用語集を読み込めませんでした。"; }
   }
   function renderGlossaryList() {
@@ -1213,6 +1217,7 @@
     $("chat-form").addEventListener("submit", async event => { event.preventDefault(); try { $("chat-status").textContent = "送信中…"; await app().addChatMessage($("chat-name").value, $("chat-text").value); $("chat-text").value = ""; await renderChat(); $("chat-status").textContent = ""; } catch (error) { $("chat-status").textContent = error.message || "送信できませんでした。"; } });
     window.addEventListener("animaldeck:authchange", () => {
       refreshTagOptions();
+      void loadGlossaryCache();
       if ($("deck-tag-filter-panel")?.dataset.loaded) void refreshPublicDeckTagFilters();
       if (pendingScreenRestore && !screenRestoreAttempted) void restoreScreenState();
       void restoreUrlRoute();
