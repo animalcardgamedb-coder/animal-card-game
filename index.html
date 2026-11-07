@@ -21,7 +21,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261107-4"
+    href="css/style.css?v=20261107-6"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -160,7 +160,6 @@
     <nav class="header-actions" aria-label="メインメニュー">
       <button id="deck-mode-button" class="header-icon-button" type="button" aria-label="デッキ制作モード" title="デッキ制作モード"><span aria-hidden="true">▤</span><small>デッキ</small></button>
       <button id="search-mode-button" class="header-icon-button active" type="button" aria-label="カード検索モード" title="カード検索モード"><span aria-hidden="true">⌕</span><small>検索</small></button>
-      <button id="chat-mode-button" class="header-icon-button" type="button" aria-label="チャット" title="チャット"><span aria-hidden="true">☷</span><small>チャット</small></button>
       <button id="menu-open-button" class="header-icon-button" type="button" aria-label="メニューを開く" aria-expanded="false" title="メニュー"><span aria-hidden="true">☰</span><small>メニュー</small></button>
     </nav>
   </header>
@@ -179,7 +178,6 @@
     <button id="deck-tags-open-button" type="button">デッキタグ一覧</button>
     <button id="user-tags-open-button" type="button">ユーザータグ一覧</button>
     <button id="glossary-open-button" type="button">用語集</button>
-    <button id="chat-menu-open-button" type="button">チャット</button>
     <button id="refresh-card-data-button" type="button">カードデータを更新</button>
     <p id="data-refresh-status" role="status" aria-live="polite"></p>
     <p id="menu-account-status" role="status"></p>
@@ -436,29 +434,15 @@
     <div id="deck-analysis-content" class="deck-analysis-content"></div>
   </section>
 
-  <section id="chat-screen" class="app-screen" hidden>
-    <div class="screen-title-row"><div><p class="eyebrow">COMMUNITY CHAT</p><h1>チャット</h1></div></div>
-    <div class="chat-panel">
-      <p class="chat-help">名前を付けて投稿できます。ログインやユーザーIDとの紐付けはありません。最新200件だけを表示します。</p>
-      <div id="chat-message-list" class="chat-message-list"></div>
-      <form id="chat-form" class="chat-form">
-        <input id="chat-name" type="text" maxlength="30" placeholder="名前（未入力は名無し）">
-        <textarea id="chat-text" maxlength="500" rows="3" placeholder="メッセージ"></textarea>
-        <button class="primary-button" type="submit">送信</button>
-      </form>
-      <p id="chat-status" class="status-line" role="status"></p>
-    </div>
-  </section>
-
   <section id="glossary-screen" class="app-screen" hidden>
     <div class="screen-title-row"><div><p class="eyebrow">GLOSSARY</p><h1>用語集</h1></div></div>
-    <div class="toolbar-panel"><label class="search-field" for="glossary-search"><span aria-hidden="true">⌕</span><input id="glossary-search" type="search" placeholder="用語を検索"></label><button id="glossary-add-button" class="outline-button" type="button">＋用語を追加</button></div>
-    <div id="glossary-editor" class="glossary-editor" hidden><input id="glossary-term-input" maxlength="80" placeholder="用語"><textarea id="glossary-description-input" maxlength="500" rows="4" placeholder="用語の説明"></textarea><div><button id="glossary-save-button" class="primary-button" type="button">保存</button><button id="glossary-cancel-button" class="outline-button" type="button">キャンセル</button></div></div>
+    <div class="toolbar-panel"><label class="search-field" for="glossary-search"><span aria-hidden="true">⌕</span><input id="glossary-search" type="search" placeholder="用語を検索"></label></div>
+    <p class="glossary-management-note">用語はサイト共通のデータで管理しています。追加・修正はサイト更新後に反映されます。</p>
     <div id="glossary-list" class="glossary-list"></div>
   </section>
 
   <section id="deck-preview-screen" class="app-screen" hidden>
-    <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><div class="preview-title-actions"><button id="share-deck-button" class="outline-button" type="button">共有</button><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div></div>
+    <div class="screen-title-row"><button class="back-button" type="button" data-back="builder" aria-label="編集画面へ戻る">‹</button><div><p class="eyebrow">デッキ確認</p><h1 id="preview-deck-name"></h1></div><div class="preview-title-actions"><button id="print-deck-button" class="toolbar-icon-button" type="button" title="印刷">印刷</button></div></div>
     <section class="deck-description-preview"><h2>デッキ説明</h2><p id="preview-deck-description"></p></section>
     <div class="preview-toolbar toolbar-panel"><button id="draw-hand-button" class="outline-button" type="button">手札確認</button><button id="analyze-deck-button" class="outline-button" type="button">デッキ分析</button><button id="preview-view-toggle" class="toolbar-icon-button" type="button">文字一覧</button><label class="preview-copy-toggle"><input id="preview-expand-copies" type="checkbox"> 枚数分カードを個別表示</label><button id="preview-export-button" class="outline-button" type="button">書き出し</button></div>
     <p id="preview-updated-at" class="preview-meta"></p>
@@ -1026,9 +1010,9 @@
   <script src="js/display.js?v=20261107-1"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261107-3"></script>
+  <script src="js/deck-ui.js?v=20261107-5"></script>
 
-  <script type="module" src="firebase.js?v=20261107-3"></script>
+  <script type="module" src="firebase.js?v=20261107-5"></script>
 
 </body>
 

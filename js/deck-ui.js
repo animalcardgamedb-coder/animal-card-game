@@ -1,7 +1,7 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryEditingId: "", drawMain: [], drawTerritory: [] };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, drawMain: [], drawTerritory: [] };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
   const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
@@ -134,7 +134,6 @@
     const params = new URLSearchParams();
     if (screen === "search") params.set("page", "search");
     else if (screen === "decks") params.set("page", "decks");
-    else if (screen === "chat") params.set("page", "chat");
     else if (screen === "glossary") params.set("page", "glossary");
     if (state.deck?.id && (screen === "preview" || screen === "builder")) params.set("deck", state.deck.id);
     const query = params.toString();
@@ -220,7 +219,6 @@
     $("deck-preview-screen").hidden = name !== "preview";
     $("deck-draw-screen").hidden = name !== "draw";
     $("deck-analysis-screen").hidden = name !== "analysis";
-    $("chat-screen").hidden = name !== "chat";
     $("glossary-screen").hidden = name !== "glossary";
     document.querySelectorAll("[data-screen]").forEach(button => button.classList.toggle("active", button.dataset.screen === (name === "search" ? "search" : "decks")));
     $("search-mode-button").classList.toggle("active", name === "search");
@@ -231,7 +229,6 @@
     if (name === "preview") renderPreview();
     if (name === "draw") { resetDraw(); renderDraw(); }
     if (name === "analysis") renderAnalysis();
-    if (name === "chat") void renderChat();
     if (name === "glossary") void renderGlossary();
   }
   function setStatus(message) { $("deck-library-status").textContent = message || ""; }
@@ -684,32 +681,19 @@
     const costHtml=Object.entries(costs).sort((a,b)=>Number(a[0])-Number(b[0])).map(([k,v])=>"<li>"+escapeHTML(k)+"コスト："+v+"枚<div class=\"analysis-bar\"><i style=\"width:"+(v/max*100)+"%\"></i></div></li>").join("");
     $("deck-analysis-content").innerHTML='<div class="analysis-grid"><div class="analysis-stat"><span>総枚数</span><strong>'+all.length+'枚</strong></div><div class="analysis-stat"><span>種類数</span><strong>'+new Set(all.map(c=>c.itemId)).size+'種類</strong></div></div><h2>カードタイプ</h2><ul class="analysis-list">'+(typeHtml||"<li>データなし</li>")+'</ul><h2>コスト分布</h2><ul class="analysis-list">'+(costHtml||"<li>コスト情報なし</li>")+'</ul>';
   }
-  function publicDeckUrl(deck) {
-    const url = new URL(window.location.href);
-    url.search = "";
-    url.searchParams.set("deck", deck?.id || "");
-    return url.href;
-  }
-  async function shareCurrentDeck() {
-    if (!state.deck?.isPublic) { alert("このデッキは非公開です。共有するにはデッキ設定で公開してください。"); return; }
-    const url = publicDeckUrl(state.deck), title = state.deck.name || "公開デッキ";
-    const text = "「" + title + "」を共有します。";
-    if (navigator.share) {
-      try { await navigator.share({ title, text, url }); return; }
-      catch (error) { if (error?.name === "AbortError") return; }
-    }
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        alert("共有URLをコピーしました。\\n" + url);
-        return;
-      }
-    } catch (_) {}
-    window.prompt("共有URLをコピーしてください。", url);
-  }
   async function loadGlossaryCache() {
-    try { state.glossary = await app().listGlossary(); window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description])); window.dispatchEvent(new CustomEvent("animaldeck:glossaryloaded")); return state.glossary; }
-    catch (_) { window.animalGlossaryTerms = {}; return []; }
+    if (state.glossaryLoadedAt) return state.glossary;
+    const response = await fetch("./data/glossary.json", { cache: "no-cache" });
+    if (!response.ok) throw new Error("用語データを読み込めませんでした。");
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error("用語データの形式が正しくありません。");
+    state.glossary = data.filter(item => item && typeof item.term === "string" && typeof item.description === "string")
+      .map((item, index) => ({ id: String(item.id || index + 1), term: item.term, description: item.description }))
+      .sort((a, b) => a.term.localeCompare(b.term, "ja"));
+    state.glossaryLoadedAt = Date.now();
+    window.animalGlossaryTerms = Object.fromEntries(state.glossary.map(item => [item.term, item.description]));
+    window.dispatchEvent(new CustomEvent("animaldeck:glossaryloaded"));
+    return state.glossary;
   }
   async function renderGlossary() {
     try { await loadGlossaryCache(); renderGlossaryList(); }
@@ -718,32 +702,11 @@
   function renderGlossaryList() {
     const root = $("glossary-list"); if (!root) return; const q = $("glossary-search").value.trim().toLocaleLowerCase("ja-JP");
     root.replaceChildren();
-    state.glossary.filter(item => !q || String(item.term).toLocaleLowerCase("ja-JP").includes(q) || String(item.description).toLocaleLowerCase("ja-JP").includes(q)).forEach(item => {
+    state.glossary.filter(item => !q || item.term.toLocaleLowerCase("ja-JP").includes(q) || item.description.toLocaleLowerCase("ja-JP").includes(q)).forEach(item => {
       const el = document.createElement("article"); el.className = "glossary-item";
       el.innerHTML = "<h2>" + escapeHTML(item.term) + "</h2><p>" + escapeHTML(item.description) + "</p>";
-      const actions = document.createElement("div"); actions.className = "glossary-item-actions";
-      const edit = document.createElement("button"); edit.className = "outline-button"; edit.textContent = "編集"; edit.addEventListener("click", () => openGlossaryEditor(item));
-      const del = document.createElement("button"); del.className = "danger-button"; del.textContent = "削除"; del.addEventListener("click", async () => { if (!confirm("この用語を削除しますか？")) return; await app().deleteGlossary(item.id); await renderGlossary(); });
-      actions.append(edit, del); el.append(actions); root.append(el);
+      root.append(el);
     });
-  }
-  function openGlossaryEditor(item = null) {
-    state.glossaryEditingId = item?.id || ""; $("glossary-term-input").value = item?.term || ""; $("glossary-description-input").value = item?.description || ""; $("glossary-editor").hidden = false;
-  }
-  function closeGlossaryEditor() { state.glossaryEditingId = ""; $("glossary-editor").hidden = true; }
-  async function saveGlossaryEditor() {
-    try { await app().saveGlossary(state.glossaryEditingId, $("glossary-term-input").value, $("glossary-description-input").value); closeGlossaryEditor(); await renderGlossary(); } catch (error) { alert(error.message); }
-  }
-  async function renderChat() {
-    try {
-      const messages = await app().listChatMessages(); const root = $("chat-message-list"); root.replaceChildren();
-      messages.forEach(item => {
-        const el = document.createElement("article"); el.className = "chat-message";
-        const date = item.createdAt?.toDate?.(); const time = date ? date.toLocaleString("ja-JP") : "";
-        el.innerHTML = "<header><strong>" + escapeHTML(item.name || "名無し") + "</strong><span>" + escapeHTML(time) + "</span></header><p>" + escapeHTML(item.text || "") + "</p>";
-        root.append(el);
-      });
-    } catch (error) { $("chat-status").textContent = error.message || "チャットを読み込めませんでした。"; }
   }
   async function restoreUrlRoute() {
     const params = route(); const deckId = params.get("deck");
@@ -753,7 +716,6 @@
     }
     const page = params.get("page");
     if (page === "decks") setScreen("decks", false);
-    else if (page === "chat") setScreen("chat", false);
     else if (page === "glossary") setScreen("glossary", false);
     else if (page === "search") setScreen("search", false);
   }
@@ -1273,23 +1235,15 @@
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
-    $("share-deck-button").addEventListener("click", () => shareCurrentDeck());
     $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
     $("analyze-deck-button").addEventListener("click", () => setScreen("analysis"));
     $("draw-reset-button").addEventListener("click", () => { resetDraw(); renderDraw(); });
     $("draw-main-button").addEventListener("click", drawOneMain);
     $("draw-territory-button").addEventListener("click", drawOneTerritory);
-    $("chat-mode-button").addEventListener("click", () => setScreen("chat"));
-    $("chat-menu-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("chat"); });
     $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("glossary"); });
     $("glossary-search").addEventListener("input", renderGlossaryList);
-    $("glossary-add-button").addEventListener("click", () => openGlossaryEditor());
-    $("glossary-cancel-button").addEventListener("click", closeGlossaryEditor);
-    $("glossary-save-button").addEventListener("click", saveGlossaryEditor);
-    $("chat-form").addEventListener("submit", async event => { event.preventDefault(); try { $("chat-status").textContent = "送信中…"; await app().addChatMessage($("chat-name").value, $("chat-text").value); $("chat-text").value = ""; await renderChat(); $("chat-status").textContent = ""; } catch (error) { $("chat-status").textContent = error.message || "送信できませんでした。"; } });
     window.addEventListener("animaldeck:authchange", () => {
       refreshTagOptions();
-      void loadGlossaryCache();
       if ($("deck-tag-filter-panel")?.dataset.loaded) void refreshPublicDeckTagFilters();
       if (pendingScreenRestore && !screenRestoreAttempted) void restoreScreenState();
       else if (state.screen === "decks") refreshDecks();

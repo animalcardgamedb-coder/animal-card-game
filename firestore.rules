@@ -105,31 +105,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /glossary/{termId} {
-      allow get, list: if true;
-      allow create, update: if signedIn()
-        && request.resource.data.term is string
-        && request.resource.data.term.size() > 0
-        && request.resource.data.term.size() <= 80
-        && request.resource.data.description is string
-        && request.resource.data.description.size() > 0
-        && request.resource.data.description.size() <= 500;
-      allow delete: if signedIn();
-    }
-
-    match /chatMessages/{messageId} {
-      allow get, list: if true;
-      allow create: if request.resource.data.keys().hasOnly(['name', 'text', 'createdAt'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() <= 30
-        && request.resource.data.text is string
-        && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 500
-        && request.resource.data.createdAt is timestamp;
-      allow delete: if true;
-      allow update: if false;
-    }
-
     match /users/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create, update: if signedIn()

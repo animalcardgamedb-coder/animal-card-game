@@ -601,24 +601,6 @@ window.animalDeckApp = {
       publicDeckPromise = null;
     }
   },
-  async listGlossary() {
-    const snapshot = await getDocs(query(collection(db, "glossary"), orderBy("term")));
-    return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-  },
-  async saveGlossary(id, term, description) {
-    if (!signedInUser) throw new Error("用語を編集するにはログインしてください。");
-    const safeTerm = String(term || "").trim().slice(0, 80);
-    const safeDescription = String(description || "").trim().slice(0, 500);
-    if (!safeTerm || !safeDescription) throw new Error("用語と説明を入力してください。");
-    const ref = id ? doc(db, "glossary", String(id)) : doc(collection(db, "glossary"));
-    await setDoc(ref, { term: safeTerm, description: safeDescription, updatedAt: serverTimestamp(), updatedByUid: signedInUser.uid }, { merge: true });
-    return { id: ref.id, term: safeTerm, description: safeDescription };
-  },
-  async deleteGlossary(id) {
-    if (!signedInUser) throw new Error("用語を削除するにはログインしてください。");
-    if (!id) return;
-    await deleteDoc(doc(db, "glossary", String(id)));
-  },
   async listDeckTags() {
     const now = Date.now();
     if (deckTagCache && now - deckTagCacheAt < DECK_TAG_CACHE_TTL_MS) return [...deckTagCache];
@@ -654,18 +636,6 @@ window.animalDeckApp = {
     } finally {
       deckTagPromise = null;
     }
-  },
-  async listChatMessages() {
-    const snapshot = await getDocs(query(collection(db, "chatMessages"), orderBy("createdAt", "desc"), limit(200)));
-    const messages = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-    return messages;
-  },
-  async addChatMessage(name, text) {
-    const safeName = String(name || "").trim().slice(0, 30) || "名無し";
-    const safeText = String(text || "").trim().slice(0, 500);
-    if (!safeText) throw new Error("メッセージを入力してください。");
-    await addDoc(collection(db, "chatMessages"), { name: safeName, text: safeText, createdAt: serverTimestamp() });
-    return this.listChatMessages();
   },
   async addDeckTag(value) {
     if (!signedInUser) throw new Error("共通デッキタグを登録するにはログインしてください。");
