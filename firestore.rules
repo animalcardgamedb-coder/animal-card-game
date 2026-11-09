@@ -1,3 +1,4 @@
+/opt/homebrew/Library/Homebrew/cmd/shellenv.sh: line 18: /bin/ps: Operation not permitted
 rules_version = '2';
 
 service cloud.firestore {
@@ -29,7 +30,9 @@ service cloud.firestore {
         && data.isPublic is bool
         && data.cards is list
         && data.cards.size() <= 200
-        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 10))
+        // The builder no longer limits territory decks to ten entries. Keep
+        // the rules aligned with the 200-entry limit enforced by saveCards().
+        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 200))
         && (!data.keys().hasAny(['reserveCards']) || (data.reserveCards is list && data.reserveCards.size() <= 200))
         && (!data.keys().hasAny(['considerationCards']) || (data.considerationCards is list && data.considerationCards.size() <= 200))
         && data.createdAt is timestamp
@@ -52,7 +55,9 @@ service cloud.firestore {
         && data.isPublic is bool
         && data.cards is list
         && data.cards.size() <= 200
-        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 10))
+        // The builder no longer limits territory decks to ten entries. Keep
+        // the rules aligned with the 200-entry limit enforced by saveCards().
+        && (!data.keys().hasAny(['territoryCards']) || (data.territoryCards is list && data.territoryCards.size() <= 200))
         && (!data.keys().hasAny(['reserveCards']) || (data.reserveCards is list && data.reserveCards.size() <= 200))
         && (!data.keys().hasAny(['considerationCards']) || (data.considerationCards is list && data.considerationCards.size() <= 200))
         && data.updatedAt is timestamp
