@@ -1,0 +1,28 @@
+/opt/homebrew/Library/Homebrew/cmd/shellenv.sh: line 18: /bin/ps: Operation not permitted
+name: Firestore rule contract
+
+on:
+  pull_request:
+    paths:
+      - "firebase.js"
+      - "firestore.rules"
+      - "tests/test_firestore_rule_contract.py"
+      - ".github/workflows/firestore-rule-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "firebase.js"
+      - "firestore.rules"
+      - "tests/test_firestore_rule_contract.py"
+      - ".github/workflows/firestore-rule-contract.yml"
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Check client and Firestore rule contract
+        run: python -m unittest discover -s tests -v
