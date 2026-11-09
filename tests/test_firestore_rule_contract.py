@@ -1,4 +1,3 @@
-/opt/homebrew/Library/Homebrew/cmd/shellenv.sh: line 18: /bin/ps: Operation not permitted
 """Static contract checks for Firestore rules and deck-builder writes.
 
 These checks catch client/rules drift without contacting Firebase. Run with:
