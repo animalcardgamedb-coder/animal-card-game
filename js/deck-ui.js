@@ -1584,7 +1584,7 @@
       window.setTimeout(clearPrintMode, 60000);
       window.print();
     });
-    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => void exportDeckImage(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
+    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-image-export-button").addEventListener("click", () => void exportDeckImage(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
     $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
