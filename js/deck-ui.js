@@ -976,152 +976,181 @@
   }
   function openModal(id) { const modal = $(id); if (modal) modal.style.display = "block"; }
   function readTags(text) { return [...new Set(String(text || "").split(/[、,，]/).map(tag => tag.trim()).filter(Boolean))].slice(0, 12).map(tag => tag.slice(0, 24)); }
-  async function exportDeckImage(deck) {
-    if (!deck) return;
-    const sections = [
+  function getExportSections(deck) {
+    return [
       { title: "メインデッキ", cards: deckCards(deck) },
       { title: "領土デッキ", cards: territoryCards(deck) },
       { title: "予備デッキ", cards: reserveCards(deck) }
     ].filter(section => section.cards.length);
+  }
+
+  function getExportCardImageUrl(card) {
+    const item = byItemId(card.itemId);
+    return item?.image_url || item?.imageUrl || "";
+  }
+
+  function buildDeckExportSheet(deck) {
+    const sheet = $("preview-export-sheet");
+    if (!sheet || !deck) return false;
+    const sections = getExportSections(deck);
+    if (!sections.length) return false;
+
+    sheet.replaceChildren();
+    const title = document.createElement("h1");
+    title.textContent = deck.name || "デッキ";
+    sheet.append(title);
+
+    const summary = document.createElement("p");
+    const total = sections.reduce((sum, section) => sum + section.cards.reduce((n, card) => n + Math.max(1, Number(card.quantity) || 1), 0), 0);
+    summary.className = "export-deck-summary";
+    summary.textContent = total + "枚";
+    sheet.append(summary);
+
+    const zones = document.createElement("div");
+    zones.className = "export-deck-zones";
+
+    sections.forEach(section => {
+      const zone = document.createElement("section");
+      zone.className = "export-deck-zone";
+
+      const heading = document.createElement("h2");
+      const sectionTotal = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+      heading.textContent = section.title + "（" + sectionTotal + "枚）";
+      zone.append(heading);
+
+      const grid = document.createElement("div");
+      grid.className = "export-deck-card-grid";
+
+      section.cards.forEach(card => {
+        const item = byItemId(card.itemId);
+        const cardBox = document.createElement("div");
+        cardBox.className = "export-deck-card";
+
+        const imageUrl = getExportCardImageUrl(card);
+        if (imageUrl) {
+          const image = document.createElement("img");
+          image.src = imageUrl;
+          image.alt = "";
+          image.loading = "eager";
+          image.decoding = "sync";
+          image.draggable = false;
+          cardBox.append(image);
+        } else {
+          const missing = document.createElement("div");
+          missing.className = "export-deck-card-missing";
+          missing.textContent = card.name || cardName(item || {}) || "カード";
+          cardBox.append(missing);
+        }
+
+        const quantity = document.createElement("span");
+        quantity.className = "export-deck-quantity";
+        quantity.textContent = "×" + Math.max(1, Number(card.quantity) || 1);
+        cardBox.append(quantity);
+        grid.append(cardBox);
+      });
+
+      zone.append(grid);
+      zones.append(zone);
+    });
+
+    sheet.append(zones);
+    return true;
+  }
+
+  function startDeckPdfExport(deck) {
+    if (!buildDeckExportSheet(deck)) {
+      alert("PDFにするカードがありません。");
+      return;
+    }
+    document.body.classList.add("exporting-deck-pdf");
+    const clear = () => document.body.classList.remove("exporting-deck-pdf");
+    window.addEventListener("afterprint", clear, { once: true });
+    window.setTimeout(clear, 60000);
+    window.print();
+  }
+
+  function escapeSvgText(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;"
+    })[char]);
+  }
+
+  function startDeckSvgExport(deck) {
+    const sections = getExportSections(deck);
     if (!sections.length) {
-      alert("画像にするカードがありません。");
+      alert("SVGにするカードがありません。");
       return;
     }
 
-    const width = 1200;
-    const outer = 24;
+    const width = 1600;
+    const outer = 36;
     const gap = 18;
-    const sectionTitleHeight = 30;
-    const titleHeight = 34;
-    const cardGap = 8;
-    const cardRatio = 0.714;
-    const mainCount = sections[0]?.cards.length || 0;
-    const cardColumns = mainCount <= 40 ? 10 : mainCount <= 80 ? 12 : mainCount <= 150 ? 15 : 20;
-    const cardWidth = Math.max(42, Math.floor((width - outer * 2 - cardGap * (cardColumns - 1)) / cardColumns));
-    const cardHeight = Math.round(cardWidth / cardRatio);
-    const cardRows = cards => Math.max(1, Math.ceil(cards.length / cardColumns));
-
-    const expanded = sections.map(section => ({
-      ...section,
-      cards: section.cards.flatMap(card => Array.from(
-        { length: Math.max(1, Number(card.quantity) || 1) },
-        (_, copyIndex) => ({ ...card, copyIndex })
-      ))
-    }));
-    const compacted = sections.map(section => ({
-      ...section,
-      cards: section.cards
-    }));
-    // The export image uses one image per card type with a quantity badge,
-    // so even a 300-card main deck stays compact enough for X.
-    const exportSections = compacted;
-    const sectionHeights = exportSections.map(section =>
-      sectionTitleHeight + cardRows(section.cards) * cardHeight + Math.max(12, cardGap)
+    const titleHeight = 62;
+    const sectionTitleHeight = 42;
+    const cardGap = 12;
+    const columns = 10;
+    const cardWidth = Math.floor((width - outer * 2 - cardGap * (columns - 1)) / columns);
+    const cardHeight = Math.round(cardWidth / 0.714);
+    const rows = cards => Math.max(1, Math.ceil(cards.length / columns));
+    const sectionHeights = sections.map(section =>
+      sectionTitleHeight + rows(section.cards) * cardHeight + Math.max(18, cardGap)
     );
     const height = outer + titleHeight + gap + sectionHeights.reduce((sum, value) => sum + value, 0) + outer;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      alert("画像を作成できませんでした。");
-      return;
-    }
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = "#111";
-    ctx.font = "600 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    ctx.textBaseline = "middle";
-    ctx.fillText(String(deck.name || "デッキ"), outer, outer + titleHeight / 2);
-
-    const loadImage = src => new Promise(resolve => {
-      if (!src) return resolve(null);
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = src;
-    });
-
-    const imageCache = new Map();
-    const getImage = async src => {
-      if (!src) return null;
-      if (!imageCache.has(src)) imageCache.set(src, loadImage(src));
-      return imageCache.get(src);
-    };
+    const safeName = escapeSvgText(deck.name || "デッキ");
+    const parts = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">',
+      '<rect width="100%" height="100%" fill="#fff"/>',
+      '<text x="' + outer + '" y="' + (outer + 34) + '" font-family="Arial,sans-serif" font-size="30" font-weight="600" fill="#111">' + safeName + '</text>'
+    ];
 
     let y = outer + titleHeight + gap;
-    for (const section of exportSections) {
-      ctx.fillStyle = "#111";
-      ctx.fillRect(outer, y, width - outer * 2, sectionTitleHeight);
-      ctx.fillStyle = "#fff";
-      ctx.font = "600 15px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-      const count = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
-      ctx.fillText(section.title, outer + 10, y + sectionTitleHeight / 2);
-      const countText = count + "枚";
-      const countWidth = ctx.measureText(countText).width;
-      ctx.fillText(countText, width - outer - countWidth - 10, y + sectionTitleHeight / 2);
-
+    sections.forEach(section => {
+      const sectionTotal = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+      parts.push('<rect x="' + outer + '" y="' + y + '" width="' + (width - outer * 2) + '" height="' + sectionTitleHeight + '" fill="#111"/>');
+      parts.push('<text x="' + (outer + 12) + '" y="' + (y + 29) + '" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#fff">' + escapeSvgText(section.title) + '</text>');
+      parts.push('<text x="' + (width - outer - 12) + '" y="' + (y + 29) + '" text-anchor="end" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#fff">' + sectionTotal + '枚</text>');
       y += sectionTitleHeight;
-      for (let index = 0; index < section.cards.length; index++) {
-        const card = section.cards[index];
-        const col = index % cardColumns;
-        const row = Math.floor(index / cardColumns);
+
+      section.cards.forEach((card, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
         const x = outer + col * (cardWidth + cardGap);
         const cardY = y + row * (cardHeight + cardGap);
-        const item = byItemId(card.itemId);
-        const image = await getImage(item?.image_url);
-        ctx.save();
-        ctx.strokeStyle = "#111";
-        ctx.lineWidth = 1;
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(x, cardY, cardWidth, cardHeight);
-        if (image) {
-          ctx.drawImage(image, x, cardY, cardWidth, cardHeight);
+        const imageUrl = getExportCardImageUrl(card);
+        parts.push('<rect x="' + x + '" y="' + cardY + '" width="' + cardWidth + '" height="' + cardHeight + '" fill="#f7f7f7" stroke="#111" stroke-width="1"/>');
+        if (imageUrl) {
+          parts.push('<image href="' + escapeSvgText(imageUrl) + '" xlink:href="' + escapeSvgText(imageUrl) + '" x="' + x + '" y="' + cardY + '" width="' + cardWidth + '" height="' + cardHeight + '" preserveAspectRatio="xMidYMid slice"/>');
         } else {
-          ctx.fillStyle = "#f7f7f7";
-          ctx.fillRect(x, cardY, cardWidth, cardHeight);
-          ctx.fillStyle = "#111";
-          ctx.font = "500 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          const label = String(card.name || "カード").slice(0, 18);
-          ctx.fillText(label, x + cardWidth / 2, cardY + cardHeight / 2);
-          ctx.textAlign = "start";
+          const label = escapeSvgText(String(card.name || "カード").slice(0, 22));
+          parts.push('<text x="' + (x + cardWidth / 2) + '" y="' + (cardY + cardHeight / 2) + '" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="16" fill="#111">' + label + '</text>');
         }
-        ctx.strokeRect(x + 0.5, cardY + 0.5, cardWidth - 1, cardHeight - 1);
         const quantity = Math.max(1, Number(card.quantity) || 1);
-        ctx.font = "700 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-        const badge = "×" + quantity;
-        const badgeWidth = ctx.measureText(badge).width + 10;
-        const badgeHeight = 22;
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(x + cardWidth - badgeWidth - 3, cardY + cardHeight - badgeHeight - 3, badgeWidth, badgeHeight);
-        ctx.strokeStyle = "#111";
-        ctx.strokeRect(x + cardWidth - badgeWidth - 3.5, cardY + cardHeight - badgeHeight - 3.5, badgeWidth + 1, badgeHeight + 1);
-        ctx.fillStyle = "#111";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(badge, x + cardWidth - badgeWidth / 2 - 3, cardY + cardHeight - badgeHeight / 2 - 3);
-        ctx.textAlign = "start";
-        ctx.restore();
-      }
-      y += cardRows(section.cards) * cardHeight + gap;
-    }
+        parts.push('<rect x="' + (x + cardWidth - 58) + '" y="' + (cardY + cardHeight - 34) + '" width="52" height="28" fill="#fff" stroke="#111"/>');
+        parts.push('<text x="' + (x + cardWidth - 32) + '" y="' + (cardY + cardHeight - 14) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#111">×' + quantity + '</text>');
+      });
+      y += rows(section.cards) * cardHeight + gap;
+    });
 
-    canvas.toBlob(blob => {
-      if (!blob) {
-        alert("画像を書き出せませんでした。");
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = (String(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_") || "deck") + ".png";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }, "image/png");
+    parts.push('</svg>');
+    const blob = new Blob([parts.join("")], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = (String(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_") || "deck") + ".svg";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function openDeckImageExportChooser(deck) {
+    const modal = $("deck-export-format-modal");
+    if (!modal) {
+      startDeckPdfExport(deck);
+      return;
+    }
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
   }
 
   function exportDeck(deck) {
@@ -1585,7 +1614,10 @@
       window.setTimeout(clearPrintMode, 60000);
       window.print();
     });
-    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-image-export-button").addEventListener("click", () => void exportDeckImage(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
+    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-image-export-button").addEventListener("click", () => openDeckImageExportChooser(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
+    $("deck-export-format-close").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); });
+    $("deck-export-pdf-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); startDeckPdfExport(state.deck); });
+    $("deck-export-svg-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); startDeckSvgExport(state.deck); });
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
     $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
