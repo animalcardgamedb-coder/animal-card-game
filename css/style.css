@@ -367,12 +367,14 @@
     position:fixed!important;
     left:8mm!important;
     top:19.1667mm!important;
-    width:194mm!important;
-    height:258.6667mm!important;
+    width:1200px!important;
+    height:1600px!important;
     overflow:hidden!important;
     box-sizing:border-box!important;
     padding:0!important;
     margin:0!important;
+    transform:scale(.6116667)!important;
+    transform-origin:top left!important;
     background:#fff!important;
     color:#111!important;
     font-family:Arial,sans-serif!important;
