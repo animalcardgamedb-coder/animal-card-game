@@ -757,7 +757,8 @@
     if (!state.glossaryLoadedAt && stored?.items?.length) {
       try { applyGlossaryData({ success: true, glossary: stored.items }); } catch (_) {}
     }
-    const isFresh = stored && Date.now() - stored.savedAt < GLOSSARY_CACHE_TTL_MS;
+    const scheduledAt = typeof window.latestScheduledCardSyncAt === "function" ? window.latestScheduledCardSyncAt() : 0;
+    const isFresh = stored && stored.savedAt >= scheduledAt;
     if (!forceRefresh && state.glossaryLoadedAt && isFresh) return state.glossary;
     state.glossaryLoadPromise = new Promise((resolve, reject) => {
       const callbackName = "receiveGlossaryData_" + Date.now();
@@ -1592,7 +1593,7 @@
     $("draw-reset-button").addEventListener("click", () => { resetDraw(); renderDraw(); });
     $("draw-main-button").addEventListener("click", drawOneMain);
     $("draw-territory-button").addEventListener("click", drawOneTerritory);
-    $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; void loadGlossaryCache(true); setScreen("glossary"); });
+    $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; void loadGlossaryCache(); setScreen("glossary"); });
     $("glossary-search").addEventListener("input", renderGlossaryList);
     $("glossary-form").addEventListener("submit", saveGlossaryForm);
     $("glossary-cancel-button").addEventListener("click", () => { resetGlossaryForm(); setGlossaryStatus(""); });
