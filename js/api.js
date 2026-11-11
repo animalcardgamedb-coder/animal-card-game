@@ -88,6 +88,8 @@ function latestScheduledCardSyncAt_() {
   return scheduledAt;
 }
 
+window.latestScheduledCardSyncAt = latestScheduledCardSyncAt_;
+
 function applyCardData_(data) {
   appState.allCards = data.cards || [];
   appState.allTerritories = data.territories || [];
