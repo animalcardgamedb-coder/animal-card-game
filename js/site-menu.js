@@ -49,6 +49,7 @@
     refreshButton.disabled = true;
     if (refreshStatus) refreshStatus.textContent = "最新データを取得しています……";
     window.loadCards(true, result => {
+      void window.ensureAnimalGlossary?.(true).catch?.(() => {});
       refreshButton.disabled = false;
       if (!refreshStatus) return;
       refreshStatus.textContent = result?.success
