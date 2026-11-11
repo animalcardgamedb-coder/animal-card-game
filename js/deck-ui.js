@@ -1209,50 +1209,6 @@
     return true;
   }
 
-  function openDeckImagePreviewPage(deck) {
-    if (!buildDeckExportSheet(deck)) {
-      alert("画像表示するカードがありません。");
-      return;
-    }
-
-    const sheet = $("preview-export-sheet");
-    const popup = window.open("", "_blank");
-    if (!popup) {
-      alert("画像表示ページを開けませんでした。ポップアップを許可してください。");
-      return;
-    }
-
-    const safeTitle = String(deck.name || "デッキ").replace(/[&<>"']/g, char => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    })[char]);
-
-    popup.document.open();
-    popup.document.write("<!doctype html><html lang=\"ja\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + safeTitle + " - 画像表示</title>");
-    popup.document.write("<style>");
-    popup.document.write("html,body{margin:0;padding:0;background:#eee;color:#111;font-family:Arial,sans-serif}");
-    popup.document.write("body{min-height:100vh;display:flex;flex-direction:column;align-items:center}");
-    popup.document.write(".toolbar{position:sticky;top:0;z-index:10;width:100%;box-sizing:border-box;padding:10px 14px;background:#fff;border-bottom:1px solid #ccc;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}");
-    popup.document.write(".toolbar button{min-height:38px;padding:0 14px;border:1px solid #888;border-radius:7px;background:#fff;color:#111;font-weight:600;cursor:pointer}");
-    popup.document.write(".hint{font-size:12px;color:#555;margin-right:6px}");
-    popup.document.write(".export-deck-page{position:relative;width:" + sheet.style.getPropertyValue("--export-width") + ";height:" + sheet.style.getPropertyValue("--export-height") + ";margin:18px auto;box-sizing:border-box;background:#fff;overflow:hidden;flex:none}");
-    popup.document.write(".export-deck-card-grid{display:grid;align-content:start}");
-    popup.document.write(".export-deck-zone{position:absolute;box-sizing:border-box}");
-    popup.document.write(".export-deck-label{display:flex;align-items:center;justify-content:center;color:#111;font-family:Arial,sans-serif;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}");
-    popup.document.write(".export-deck-title{position:absolute;left:24px;right:24px;top:24px;height:24px}");
-    popup.document.write(".export-deck-zone-label{width:100%;box-sizing:border-box}");
-    popup.document.write(".export-deck-card{position:relative;box-sizing:border-box;min-width:0;background:#f7f7f7;border:1px solid #111;overflow:hidden}");
-    popup.document.write(".export-deck-card img{display:block;width:100%;height:100%;object-fit:cover}");
-    popup.document.write(".export-deck-card-missing{display:grid;place-items:center;width:100%;height:100%;padding:8px;box-sizing:border-box;text-align:center;font-size:11px;overflow-wrap:anywhere}");
-    popup.document.write(".export-deck-quantity{position:absolute;right:3px;bottom:3px;min-width:26px;padding:3px 5px;border:1px solid #111;background:#fff;color:#111;font-size:12px;font-weight:800;line-height:1;text-align:center}");
-    popup.document.write("@media(max-width:760px){.export-deck-page{transform:scale(calc((100vw - 24px)/1200));transform-origin:top center;margin:12px auto calc(12px + (1600px * (1 - min(1, (100vw - 24px)/1200))))}.toolbar{position:sticky}}");
-    popup.document.write("</style></head><body>");
-    popup.document.write("<div class=\"toolbar\"><span class=\"hint\">3:4の共有用画像です。画像保存はブラウザのスクリーンショット機能をご利用ください。</span><button type=\"button\" onclick=\"window.print()\">印刷 / PDF保存</button><button type=\"button\" onclick=\"window.close()\">閉じる</button></div>");
-    popup.document.write("<div class=\"export-deck-page\">" + sheet.innerHTML + "</div>");
-    popup.document.write("</body></html>");
-    popup.document.close();
-    popup.focus();
-  }
-
   function startDeckPdfExport(deck) {
     if (!buildDeckExportSheet(deck)) {
       alert("PDFにするカードがありません。");
@@ -1263,66 +1219,6 @@
     window.addEventListener("afterprint", clear, { once: true });
     window.setTimeout(clear, 60000);
     window.print();
-  }
-
-  function escapeSvgText(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;"
-    })[char]);
-  }
-
-  function startDeckSvgExport(deck) {
-    const sections = getExportSections(deck);
-    if (!sections.length) {
-      alert("SVGにするカードがありません。");
-      return;
-    }
-
-    const layout = calculateDeckExportLayout(sections);
-    if (!layout) {
-      alert("SVGのレイアウトを計算できませんでした。");
-      return;
-    }
-
-    const safeName = escapeSvgText(deck.name || "デッキ");
-    const parts = [
-      '<?xml version="1.0" encoding="UTF-8"?>',
-      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + layout.width + '" height="' + layout.height + '" viewBox="0 0 ' + layout.width + ' ' + layout.height + '">',
-      '<rect width="100%" height="100%" fill="#fff"/>',
-      '<text x="' + (layout.width / 2) + '" y="' + (layout.outer + layout.fontSize) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="' + layout.fontSize + '" font-weight="600" fill="#111">' + safeName + '</text>'
-    ];
-
-    layout.blocks.forEach(block => {
-      parts.push('<text x="' + (block.x + block.actualWidth / 2) + '" y="' + (block.labelY + layout.labelHeight - 6) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="' + layout.fontSize + '" font-weight="600" fill="#111">' + escapeSvgText(block.section.title) + '</text>');
-      block.section.cards.forEach((card, index) => {
-        const col = index % block.columns;
-        const row = Math.floor(index / block.columns);
-        const x = block.x + col * (block.cardWidth + layout.gap);
-        const cardY = block.gridY + row * (block.cardHeight + layout.gap);
-        const imageUrl = getExportCardImageUrl(card);
-        parts.push('<rect x="' + x + '" y="' + cardY + '" width="' + block.cardWidth + '" height="' + block.cardHeight + '" fill="#f7f7f7" stroke="#111" stroke-width="1"/>');
-        if (imageUrl) {
-          parts.push('<image href="' + escapeSvgText(imageUrl) + '" xlink:href="' + escapeSvgText(imageUrl) + '" x="' + x + '" y="' + cardY + '" width="' + block.cardWidth + '" height="' + block.cardHeight + '" preserveAspectRatio="xMidYMid slice"/>');
-        } else {
-          const label = escapeSvgText(String(card.name || "カード").slice(0, 22));
-          parts.push('<text x="' + (x + block.cardWidth / 2) + '" y="' + (cardY + block.cardHeight / 2) + '" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="' + Math.max(10, layout.fontSize - 2) + '" fill="#111">' + label + '</text>');
-        }
-        const quantity = Math.max(1, Number(card.quantity) || 1);
-        const badgeWidth = Math.max(34, layout.cardWidth * 0.28);
-        const badgeHeight = Math.max(18, layout.cardWidth * 0.14);
-        parts.push('<rect x="' + (x + block.cardWidth - badgeWidth - 4) + '" y="' + (cardY + block.cardHeight - badgeHeight - 4) + '" width="' + badgeWidth + '" height="' + badgeHeight + '" fill="#fff" stroke="#111"/>');
-        parts.push('<text x="' + (x + block.cardWidth - badgeWidth / 2 - 4) + '" y="' + (cardY + block.cardHeight - badgeHeight / 2 - 4) + '" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="' + Math.max(10, layout.fontSize - 2) + '" font-weight="700" fill="#111">×' + quantity + '</text>');
-      });
-    });
-
-    parts.push('</svg>');
-    const blob = new Blob([parts.join("")], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = (String(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_") || "deck") + ".svg";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function openDeckImageExportChooser(deck) {
@@ -1799,7 +1695,7 @@
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-image-export-button").addEventListener("click", () => openDeckImageExportChooser(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("deck-export-format-close").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); });
     $("deck-export-pdf-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); startDeckPdfExport(state.deck); });
-    $("deck-export-svg-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); startDeckSvgExport(state.deck); }); $("deck-export-image-page-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); openDeckImagePreviewPage(state.deck); });
+    $("deck-export-adobe-button").addEventListener("click", () => { window.open("https://www.adobe.com/jp/acrobat/online/pdf-to-jpg.html", "_blank", "noopener"); }); $("deck-export-image-page-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); openDeckImagePreviewPage(state.deck); });
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
     $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
