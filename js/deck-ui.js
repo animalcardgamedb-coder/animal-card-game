@@ -787,7 +787,7 @@
     });
     return state.glossaryLoadPromise;
   }
-  window.ensureAnimalGlossary = () => loadGlossaryCache();
+  window.ensureAnimalGlossary = (forceRefresh = false) => loadGlossaryCache(forceRefresh);
   async function postGlossaryAction(payload) {
     const response = await fetch(API_URL, {
       method: "POST",
