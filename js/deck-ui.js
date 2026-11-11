@@ -1228,12 +1228,32 @@
     context.textBaseline = "middle";
     context.fillText(deck.name || "デッキ", layout.width / 2, layout.outer + layout.titleHeight / 2);
 
-    const loadImage = url => new Promise((resolve, reject) => {
+    const loadImage = (url, width, height) => new Promise((resolve, reject) => {
       const image = new Image();
       image.crossOrigin = "anonymous";
       image.onload = () => resolve(image);
       image.onerror = () => reject(new Error("画像読み込み失敗"));
-      image.src = url;
+      if (/^data:image\\//i.test(url)) {
+        image.src = url;
+        return;
+      }
+      let source;
+      try {
+        source = new URL(url);
+      } catch (_) {
+        reject(new Error("画像URLが正しくありません"));
+        return;
+      }
+      if (source.protocol !== "https:" && source.protocol !== "http:") {
+        reject(new Error("対応していない画像URLです"));
+        return;
+      }
+      // 元画像サーバーのCORS設定に依存しないよう、PNG出力時だけ画像変換サービスを経由する。
+      const proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(source.href) +
+        "&w=" + Math.max(1, Math.round(width * 2)) +
+        "&h=" + Math.max(1, Math.round(height * 2)) +
+        "&fit=cover&output=png";
+      image.src = proxyUrl;
     });
 
     try {
@@ -1251,7 +1271,7 @@
           context.fillStyle = "#f7f7f7";
           context.fillRect(x, y, block.cardWidth, block.cardHeight);
           if (imageUrl) {
-            const image = await loadImage(imageUrl);
+            const image = await loadImage(imageUrl, block.cardWidth, block.cardHeight);
             context.save();
             context.beginPath();
             context.rect(x, y, block.cardWidth, block.cardHeight);
@@ -1297,7 +1317,7 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error("PNG export failed:", error);
-      alert("カード画像をPNGに合成できませんでした。画像配信元がブラウザからの画像合成（CORS）を許可していない可能性があります。今回はPDF保存をご利用ください。");
+      alert("PNGを生成できませんでした。画像中継サービスが画像を取得できない可能性があります。時間をおいて再試行するか、PDF保存をご利用ください。");
     }
   }
 
