@@ -1209,6 +1209,98 @@
     return true;
   }
 
+  async function startDeckPngExport(deck) {
+    const sections = getExportSections(deck);
+    if (!sections.length) { alert("PNGにするカードがありません。"); return; }
+    const layout = calculateDeckExportLayout(sections);
+    if (!layout) { alert("PNGのレイアウトを計算できませんでした。"); return; }
+    const canvas = document.createElement("canvas");
+    canvas.width = layout.width;
+    canvas.height = layout.height;
+    const context = canvas.getContext("2d");
+    if (!context) { alert("このブラウザではPNGを生成できません。"); return; }
+
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, layout.width, layout.height);
+    context.fillStyle = "#111";
+    context.font = "600 " + layout.fontSize + "px Arial, sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(deck.name || "デッキ", layout.width / 2, layout.outer + layout.titleHeight / 2);
+
+    const loadImage = url => new Promise((resolve, reject) => {
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("画像読み込み失敗"));
+      image.src = url;
+    });
+
+    try {
+      for (const block of layout.blocks) {
+        context.fillStyle = "#111";
+        context.font = "600 " + layout.fontSize + "px Arial, sans-serif";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(block.section.title, block.x + block.actualWidth / 2, block.labelY + layout.labelHeight / 2);
+        for (let index = 0; index < block.section.cards.length; index += 1) {
+          const card = block.section.cards[index];
+          const x = block.x + (index % block.columns) * (block.cardWidth + layout.gap);
+          const y = block.gridY + Math.floor(index / block.columns) * (block.cardHeight + layout.gap);
+          const imageUrl = getExportCardImageUrl(card);
+          context.fillStyle = "#f7f7f7";
+          context.fillRect(x, y, block.cardWidth, block.cardHeight);
+          if (imageUrl) {
+            const image = await loadImage(imageUrl);
+            context.save();
+            context.beginPath();
+            context.rect(x, y, block.cardWidth, block.cardHeight);
+            context.clip();
+            const scale = Math.max(block.cardWidth / image.naturalWidth, block.cardHeight / image.naturalHeight);
+            const w = image.naturalWidth * scale;
+            const h = image.naturalHeight * scale;
+            context.drawImage(image, x + (block.cardWidth - w) / 2, y + (block.cardHeight - h) / 2, w, h);
+            context.restore();
+          } else {
+            const item = byItemId(card.itemId);
+            context.fillStyle = "#111";
+            context.font = "12px Arial, sans-serif";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText(card.name || cardName(item || {}) || "カード", x + block.cardWidth / 2, y + block.cardHeight / 2, block.cardWidth - 12);
+          }
+          context.strokeStyle = "#111";
+          context.lineWidth = 1;
+          context.strokeRect(x + .5, y + .5, block.cardWidth - 1, block.cardHeight - 1);
+          const quantity = Math.max(1, Number(card.quantity) || 1);
+          const badgeWidth = Math.max(34, layout.cardWidth * .28);
+          const badgeHeight = Math.max(18, layout.cardWidth * .14);
+          const bx = x + block.cardWidth - badgeWidth - 4;
+          const by = y + block.cardHeight - badgeHeight - 4;
+          context.fillStyle = "#fff";
+          context.fillRect(bx, by, badgeWidth, badgeHeight);
+          context.strokeStyle = "#111";
+          context.strokeRect(bx + .5, by + .5, badgeWidth - 1, badgeHeight - 1);
+          context.fillStyle = "#111";
+          context.font = "700 " + Math.max(10, layout.fontSize - 2) + "px Arial, sans-serif";
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.fillText("×" + quantity, bx + badgeWidth / 2, by + badgeHeight / 2);
+        }
+      }
+      const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("PNG変換失敗")), "image/png"));
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = (String(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_") || "deck") + ".png";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("PNG export failed:", error);
+      alert("カード画像をPNGに合成できませんでした。画像配信元がブラウザからの画像合成（CORS）を許可していない可能性があります。今回はPDF保存をご利用ください。");
+    }
+  }
+
   function startDeckPdfExport(deck) {
     if (!buildDeckExportSheet(deck)) {
       alert("PDFにするカードがありません。");
@@ -1694,8 +1786,8 @@
     });
     $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-image-export-button").addEventListener("click", () => openDeckImageExportChooser(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("deck-export-format-close").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); });
-    $("deck-export-pdf-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); startDeckPdfExport(state.deck); });
-    $("deck-export-adobe-button").addEventListener("click", () => { window.open("https://www.adobe.com/jp/acrobat/online/pdf-to-jpg.html", "_blank", "noopener"); }); $("deck-export-image-page-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); openDeckImagePreviewPage(state.deck); });
+    $("deck-export-png-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); void startDeckPngExport(state.deck); }); $("deck-export-pdf-button").addEventListener("click", () => { $("deck-export-format-modal").hidden = true; $("deck-export-format-modal").setAttribute("aria-hidden", "true"); startDeckPdfExport(state.deck); });
+    
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
     $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
