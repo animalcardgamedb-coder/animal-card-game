@@ -830,7 +830,8 @@
         term,
         description
       });
-      applyGlossaryData(data);
+      const items = applyGlossaryData(data);
+      writeGlossaryStorage(items);
       resetGlossaryForm();
       renderGlossaryList();
       setGlossaryStatus("「" + term + "」を保存しました。");
@@ -866,7 +867,8 @@
         setGlossaryStatus("用語を削除しています……");
         try {
           const data = await postGlossaryAction({ action: "deleteGlossaryTerm", id: item.id });
-          applyGlossaryData(data);
+          const items = applyGlossaryData(data);
+          writeGlossaryStorage(items);
           if (state.editingGlossaryId === item.id) resetGlossaryForm();
           renderGlossaryList();
           setGlossaryStatus("「" + item.term + "」を削除しました。");
