@@ -975,6 +975,154 @@
   }
   function openModal(id) { const modal = $(id); if (modal) modal.style.display = "block"; }
   function readTags(text) { return [...new Set(String(text || "").split(/[、,，]/).map(tag => tag.trim()).filter(Boolean))].slice(0, 12).map(tag => tag.slice(0, 24)); }
+  async function exportDeckImage(deck) {
+    if (!deck) return;
+    const sections = [
+      { title: "メインデッキ", cards: deckCards(deck) },
+      { title: "領土デッキ", cards: territoryCards(deck) },
+      { title: "予備デッキ", cards: reserveCards(deck) }
+    ].filter(section => section.cards.length);
+    if (!sections.length) {
+      alert("画像にするカードがありません。");
+      return;
+    }
+
+    const width = 1200;
+    const outer = 24;
+    const gap = 18;
+    const sectionTitleHeight = 30;
+    const titleHeight = 34;
+    const cardGap = 8;
+    const cardRatio = 0.714;
+    const mainCount = sections[0]?.cards.length || 0;
+    const cardColumns = mainCount <= 40 ? 10 : mainCount <= 80 ? 12 : mainCount <= 150 ? 15 : 20;
+    const cardWidth = Math.max(42, Math.floor((width - outer * 2 - cardGap * (cardColumns - 1)) / cardColumns));
+    const cardHeight = Math.round(cardWidth / cardRatio);
+    const cardRows = cards => Math.max(1, Math.ceil(cards.length / cardColumns));
+
+    const expanded = sections.map(section => ({
+      ...section,
+      cards: section.cards.flatMap(card => Array.from(
+        { length: Math.max(1, Number(card.quantity) || 1) },
+        (_, copyIndex) => ({ ...card, copyIndex })
+      ))
+    }));
+    const compacted = sections.map(section => ({
+      ...section,
+      cards: section.cards
+    }));
+    // The export image uses one image per card type with a quantity badge,
+    // so even a 300-card main deck stays compact enough for X.
+    const exportSections = compacted;
+    const sectionHeights = exportSections.map(section =>
+      sectionTitleHeight + cardRows(section.cards) * cardHeight + Math.max(12, cardGap)
+    );
+    const height = outer + titleHeight + gap + sectionHeights.reduce((sum, value) => sum + value, 0) + outer;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      alert("画像を作成できませんでした。");
+      return;
+    }
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#111";
+    ctx.font = "600 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(deck.name || "デッキ"), outer, outer + titleHeight / 2);
+
+    const loadImage = src => new Promise(resolve => {
+      if (!src) return resolve(null);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+
+    const imageCache = new Map();
+    const getImage = async src => {
+      if (!src) return null;
+      if (!imageCache.has(src)) imageCache.set(src, loadImage(src));
+      return imageCache.get(src);
+    };
+
+    let y = outer + titleHeight + gap;
+    for (const section of exportSections) {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(outer, y, width - outer * 2, sectionTitleHeight);
+      ctx.fillStyle = "#fff";
+      ctx.font = "600 15px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      const count = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+      ctx.fillText(section.title, outer + 10, y + sectionTitleHeight / 2);
+      const countText = count + "枚";
+      const countWidth = ctx.measureText(countText).width;
+      ctx.fillText(countText, width - outer - countWidth - 10, y + sectionTitleHeight / 2);
+
+      y += sectionTitleHeight;
+      for (let index = 0; index < section.cards.length; index++) {
+        const card = section.cards[index];
+        const col = index % cardColumns;
+        const row = Math.floor(index / cardColumns);
+        const x = outer + col * (cardWidth + cardGap);
+        const cardY = y + row * (cardHeight + cardGap);
+        const item = byItemId(card.itemId);
+        const image = await getImage(item?.image_url);
+        ctx.save();
+        ctx.strokeStyle = "#111";
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x, cardY, cardWidth, cardHeight);
+        if (image) {
+          ctx.drawImage(image, x, cardY, cardWidth, cardHeight);
+        } else {
+          ctx.fillStyle = "#f7f7f7";
+          ctx.fillRect(x, cardY, cardWidth, cardHeight);
+          ctx.fillStyle = "#111";
+          ctx.font = "500 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const label = String(card.name || "カード").slice(0, 18);
+          ctx.fillText(label, x + cardWidth / 2, cardY + cardHeight / 2);
+          ctx.textAlign = "start";
+        }
+        ctx.strokeRect(x + 0.5, cardY + 0.5, cardWidth - 1, cardHeight - 1);
+        const quantity = Math.max(1, Number(card.quantity) || 1);
+        ctx.font = "700 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+        const badge = "×" + quantity;
+        const badgeWidth = ctx.measureText(badge).width + 10;
+        const badgeHeight = 22;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x + cardWidth - badgeWidth - 3, cardY + cardHeight - badgeHeight - 3, badgeWidth, badgeHeight);
+        ctx.strokeStyle = "#111";
+        ctx.strokeRect(x + cardWidth - badgeWidth - 3.5, cardY + cardHeight - badgeHeight - 3.5, badgeWidth + 1, badgeHeight + 1);
+        ctx.fillStyle = "#111";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(badge, x + cardWidth - badgeWidth / 2 - 3, cardY + cardHeight - badgeHeight / 2 - 3);
+        ctx.textAlign = "start";
+        ctx.restore();
+      }
+      y += cardRows(section.cards) * cardHeight + gap;
+    }
+
+    canvas.toBlob(blob => {
+      if (!blob) {
+        alert("画像を書き出せませんでした。");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = (String(deck.name || "deck").replace(/[\\/:*?"<>|]/g, "_") || "deck") + ".png";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "image/png");
+  }
+
   function exportDeck(deck) {
     const data = { format: "animal-card-game-deck", version: 1, name: deck.name || "デッキ", tags: deck.tags || [], exportedAt: new Date().toISOString(), mainCards: deckCards(deck).map(card => ({ itemId: String(card.itemId).startsWith("card:") ? String(card.itemId).slice(5) : String(card.itemId), name: card.name || "カード", quantity: Number(card.quantity || 1) })), territoryCards: territoryCards(deck).map(card => ({ itemId: String(card.itemId).startsWith("territory:") ? String(card.itemId).slice(10) : String(card.itemId), name: card.name || "領地", quantity: Number(card.quantity || 1) })) };
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }));
@@ -1436,7 +1584,7 @@
       window.setTimeout(clearPrintMode, 60000);
       window.print();
     });
-    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => exportDeck(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
+    $("export-deck-button").addEventListener("click", () => exportDeck(state.deck)); $("preview-export-button").addEventListener("click", () => void exportDeckImage(state.deck)); $("export-acg-builder-button")?.addEventListener("click", () => exportAcgBuilderDeck(state.deck));
     $("preview-view-toggle").addEventListener("click", () => { state.previewText = !state.previewText; $("preview-view-toggle").textContent = state.previewText ? "カード表示" : "文字一覧"; renderPreview(); });
     $("preview-expand-copies").addEventListener("change", renderPreview);
     $("draw-hand-button").addEventListener("click", () => { resetDraw(); setScreen("draw"); });
