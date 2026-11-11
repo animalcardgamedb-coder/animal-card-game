@@ -1,6 +1,9 @@
 /* Screen and deck-building interactions. Card search remains handled by the existing scripts. */
 (() => {
   const $ = id => document.getElementById(id);
+  const DECK_DRAFT_STORAGE_KEY = "animalDeckBuilderSettingsDraft:v1";
+  const GLOSSARY_STORAGE_KEY = "animalDeckGlossaryCache:v1";
+  const GLOSSARY_CACHE_TTL_MS = 5 * 60 * 1000;
   const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, glossaryLoadPromise: null, editingGlossaryId: null, drawMain: [], drawTerritory: [] };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
@@ -305,9 +308,51 @@
     }
     catch (error) { setStatus(error.message || "デッキを開けませんでした。"); }
   }
+  function readDeckSettingsDraft(deckId) {
+    if (!deckId) return null;
+    try {
+      const all = JSON.parse(localStorage.getItem(DECK_DRAFT_STORAGE_KEY) || "{}");
+      const draft = all[String(deckId)];
+      if (!draft || typeof draft !== "object") return null;
+      return {
+        description: typeof draft.description === "string" ? draft.description : "",
+        tags: Array.isArray(draft.tags) ? [...draft.tags] : null
+      };
+    } catch (_) { return null; }
+  }
+  function writeDeckSettingsDraft(deckId, description, tags) {
+    if (!deckId) return;
+    try {
+      const all = JSON.parse(localStorage.getItem(DECK_DRAFT_STORAGE_KEY) || "{}");
+      all[String(deckId)] = {
+        description: String(description || "").slice(0, 2000),
+        tags: Array.isArray(tags) ? [...tags].slice(0, 12) : []
+      };
+      localStorage.setItem(DECK_DRAFT_STORAGE_KEY, JSON.stringify(all));
+    } catch (_) {}
+  }
+  function clearDeckSettingsDraft(deckId) {
+    if (!deckId) return;
+    try {
+      const all = JSON.parse(localStorage.getItem(DECK_DRAFT_STORAGE_KEY) || "{}");
+      delete all[String(deckId)];
+      localStorage.setItem(DECK_DRAFT_STORAGE_KEY, JSON.stringify(all));
+    } catch (_) {}
+  }
+  function getBuilderSettings(deck) {
+    const draft = state.publicView ? null : readDeckSettingsDraft(deck?.id || app()?.current()?.id);
+    return {
+      description: draft?.description ?? String(deck?.description || ""),
+      tags: draft?.tags ?? (Array.isArray(deck?.tags) ? deck.tags : [])
+    };
+  }
   function renderBuilder() {
     const deck = state.deck || app()?.current(); if (!deck) { setScreen("decks"); return; }
-    state.deck = deck; $("builder-deck-name").value = deck.name || "";
+    state.deck = deck;
+    const settings = getBuilderSettings(deck);
+    $("builder-deck-name").value = deck.name || "";
+    $("builder-deck-description").value = settings.description;
+    $("builder-description-count").textContent = String(settings.description.length);
     $("deck-total-count").textContent = count(deck);
     $("deck-visibility-badge").textContent = deck.isPublic ? "公開" : "非公開";
     $("deck-visibility-badge").classList.toggle("public", !!deck.isPublic);
@@ -316,8 +361,8 @@
     $("delete-current-deck").hidden = state.publicView;
     $("save-deck-button").hidden = state.publicView;
     $("builder-deck-name").disabled = state.publicView;
-    renderTagOptions("builder-deck-tag-options", deck.tags || [], state.publicView);
-    renderDeckTagSummary(deck.tags || []);
+    renderTagOptions("builder-deck-tag-options", settings.tags, state.publicView);
+    renderDeckTagSummary(settings.tags);
     $("builder-edit-tags-button").hidden = state.publicView;
     if (state.publicView) $("builder-deck-tag-editor").hidden = true;
     $("public-deck-readonly-note").hidden = !state.publicView;
@@ -692,9 +737,28 @@
     window.dispatchEvent(new CustomEvent("animaldeck:glossaryloaded"));
     return state.glossary;
   }
-  async function loadGlossaryCache() {
-    if (state.glossaryLoadedAt) return state.glossary;
+  function readGlossaryStorage() {
+    try {
+      const raw = localStorage.getItem(GLOSSARY_STORAGE_KEY);
+      if (!raw) return null;
+      const saved = JSON.parse(raw);
+      if (!saved || !Array.isArray(saved.items)) return null;
+      return { savedAt: Number(saved.savedAt) || 0, items: saved.items };
+    } catch (_) { return null; }
+  }
+  function writeGlossaryStorage(items) {
+    try {
+      localStorage.setItem(GLOSSARY_STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), items }));
+    } catch (_) {}
+  }
+  async function loadGlossaryCache(forceRefresh = false) {
     if (state.glossaryLoadPromise) return state.glossaryLoadPromise;
+    const stored = readGlossaryStorage();
+    if (!state.glossaryLoadedAt && stored?.items?.length) {
+      try { applyGlossaryData({ success: true, glossary: stored.items }); } catch (_) {}
+    }
+    const isFresh = stored && Date.now() - stored.savedAt < GLOSSARY_CACHE_TTL_MS;
+    if (!forceRefresh && state.glossaryLoadedAt && isFresh) return state.glossary;
     state.glossaryLoadPromise = new Promise((resolve, reject) => {
       const callbackName = "receiveGlossaryData_" + Date.now();
       const script = document.createElement("script");
@@ -707,7 +771,11 @@
         delete window[callbackName];
         state.glossaryLoadPromise = null;
         if (error) { reject(error); return; }
-        try { resolve(applyGlossaryData(data)); } catch (validationError) { reject(validationError); }
+        try {
+          const items = applyGlossaryData(data);
+          writeGlossaryStorage(items);
+          resolve(items);
+        } catch (validationError) { reject(validationError); }
       };
       window[callbackName] = data => finish(null, data);
       script.onerror = () => finish(new Error("GASとの通信に失敗しました。"));
@@ -718,6 +786,7 @@
     });
     return state.glossaryLoadPromise;
   }
+  window.ensureAnimalGlossary = () => loadGlossaryCache();
   async function postGlossaryAction(payload) {
     const response = await fetch(API_URL, {
       method: "POST",
@@ -1176,6 +1245,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     prepareSearchPanel();
     applySharedIconColumns(readSavedIconColumns(), false);
+    void loadGlossaryCache().catch(() => {});
     document.querySelectorAll("[data-close-modal]").forEach(button => {
       button.addEventListener("click", () => {
         const modal = $(button.dataset.closeModal);
@@ -1322,12 +1392,40 @@
     $("reserve-pile-tab").addEventListener("click", () => setBuilderPile("reserve"));
     $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
     $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
-    $("builder-apply-tags-button").addEventListener("click", () => { state.deck.tags = readTagChecks("builder-deck-tag-options"); renderDeckTagSummary(state.deck.tags); $("builder-deck-tag-editor").hidden = true; });
-    $("builder-save-settings-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value); setScreen("decks"); } catch (error) { alert(error.message); } });
-    $("builder-visibility-button").addEventListener("click", async () => { const makePublic = !state.deck.isPublic; if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return; try { state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags(), $("builder-deck-description").value); renderBuilder(); } catch (error) { alert(error.message); } });
-    $("save-deck-button").addEventListener("click", async () => { try { state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value); setScreen("decks"); } catch (error) { alert(error.message); } });
+    $("builder-apply-tags-button").addEventListener("click", () => {
+      state.deck.tags = readTagChecks("builder-deck-tag-options");
+      writeDeckSettingsDraft(state.deck?.id, $("builder-deck-description").value, state.deck.tags);
+      renderDeckTagSummary(state.deck.tags);
+      $("builder-deck-tag-editor").hidden = true;
+    });
+    $("builder-save-settings-button").addEventListener("click", async () => {
+      try {
+        state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value);
+        clearDeckSettingsDraft(state.deck?.id);
+        setScreen("decks");
+      } catch (error) { alert(error.message); }
+    });
+    $("builder-visibility-button").addEventListener("click", async () => {
+      const makePublic = !state.deck.isPublic;
+      if (makePublic && !confirm("このデッキとカード一覧を、ほかの利用者に公開しますか？")) return;
+      try {
+        state.deck = await app().updateSettings($("builder-deck-name").value, makePublic, selectedDeckTags(), $("builder-deck-description").value);
+        clearDeckSettingsDraft(state.deck?.id);
+        renderBuilder();
+      } catch (error) { alert(error.message); }
+    });
+    $("save-deck-button").addEventListener("click", async () => {
+      try {
+        state.deck = await app().updateSettings($("builder-deck-name").value, state.deck.isPublic, selectedDeckTags(), $("builder-deck-description").value);
+        clearDeckSettingsDraft(state.deck?.id);
+        setScreen("decks");
+      } catch (error) { alert(error.message); }
+    });
     $("delete-current-deck").addEventListener("click", async () => { if (!confirm(`「${state.deck?.name}」を削除します。この操作は取り消せません。`)) return; try { await app().deleteCurrent(); state.deck = null; setScreen("decks"); } catch (error) { alert(error.message); } });
-    $("builder-deck-description").addEventListener("input", event => { $("builder-description-count").textContent = String(event.target.value.length); });
+    $("builder-deck-description").addEventListener("input", event => {
+      $("builder-description-count").textContent = String(event.target.value.length);
+      writeDeckSettingsDraft(state.deck?.id, event.target.value, selectedDeckTags());
+    });
     $("preview-deck-button").addEventListener("click", () => setScreen("preview"));
     $("print-deck-button").addEventListener("click", () => {
       document.body.classList.add("printing-deck-summary");
@@ -1344,7 +1442,7 @@
     $("draw-reset-button").addEventListener("click", () => { resetDraw(); renderDraw(); });
     $("draw-main-button").addEventListener("click", drawOneMain);
     $("draw-territory-button").addEventListener("click", drawOneTerritory);
-    $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; setScreen("glossary"); });
+    $("glossary-open-button").addEventListener("click", () => { $("menu-panel").hidden = true; void loadGlossaryCache(true); setScreen("glossary"); });
     $("glossary-search").addEventListener("input", renderGlossaryList);
     $("glossary-form").addEventListener("submit", saveGlossaryForm);
     $("glossary-cancel-button").addEventListener("click", () => { resetGlossaryForm(); setGlossaryStatus(""); });
