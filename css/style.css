@@ -335,16 +335,17 @@
 .glossary-item-actions .danger-button:hover{background:#fff2f2}
 
 
-/* Deck image export: reuse normal <img> rendering so external card images work without Canvas/CORS. */
+/* Deck image export: compact automatic 3:4 layout. */
 .preview-export-sheet{display:none}
-.export-deck-card-grid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:8px}
-.export-deck-card{position:relative;min-width:0;aspect-ratio:.714;background:#f7f7f7;border:1px solid #111;overflow:hidden}
+.export-deck-card-grid{display:grid;align-content:start}
+.export-deck-zone{position:absolute;box-sizing:border-box}
+.export-deck-label{display:flex;align-items:center;justify-content:center;color:#111;font-family:Arial,sans-serif;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.export-deck-title{position:absolute;left:24px;right:24px;top:24px;height:24px}
+.export-deck-zone-label{width:100%;box-sizing:border-box}
+.export-deck-card{position:relative;box-sizing:border-box;min-width:0;background:#f7f7f7;border:1px solid #111;overflow:hidden}
 .export-deck-card img{display:block;width:100%;height:100%;object-fit:cover}
 .export-deck-card-missing{display:grid;place-items:center;width:100%;height:100%;padding:8px;box-sizing:border-box;text-align:center;font-size:11px;overflow-wrap:anywhere}
 .export-deck-quantity{position:absolute;right:3px;bottom:3px;min-width:26px;padding:3px 5px;border:1px solid #111;background:#fff;color:#111;font-size:12px;font-weight:800;line-height:1;text-align:center}
-.export-deck-zones{display:grid;gap:18px}
-.export-deck-zone h2{margin:0 0 7px;padding:5px 9px;background:#111;color:#fff;font-size:14px;line-height:1.2}
-.export-deck-summary{margin:0 0 10px;font-size:12px;color:#555}
 .deck-export-format-modal{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;padding:20px;background:#0008}
 .deck-export-format-modal[hidden]{display:none}
 .deck-export-format-dialog{width:min(420px,calc(100vw - 32px));box-sizing:border-box;padding:18px;border:1px solid #aaa;border-radius:9px;background:#fff;box-shadow:0 16px 50px #0005}
@@ -361,15 +362,40 @@
   body.exporting-deck-pdf>*{visibility:hidden!important}
   body.exporting-deck-pdf #preview-export-sheet,
   body.exporting-deck-pdf #preview-export-sheet *{visibility:visible!important}
-  body.exporting-deck-pdf #preview-export-sheet{display:block!important;position:fixed!important;inset:8mm!important;width:194mm!important;height:281mm!important;overflow:hidden!important;box-sizing:border-box!important;padding:0!important;background:#fff!important;color:#111!important;font-family:Arial,sans-serif!important}
-  body.exporting-deck-pdf #preview-export-sheet>h1{margin:0 0 1.5mm!important;font-size:15pt!important;line-height:1.15!important}
-  body.exporting-deck-pdf .export-deck-summary{margin:0 0 2mm!important;font-size:8pt!important}
-  body.exporting-deck-pdf .export-deck-zones{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3mm!important;align-items:start!important}
-  body.exporting-deck-pdf .export-deck-zone{min-width:0!important;break-inside:avoid!important}
-  body.exporting-deck-pdf .export-deck-zone h2{margin:0 0 1mm!important;padding:1mm 1.5mm!important;font-size:7.5pt!important;line-height:1.1!important}
-  body.exporting-deck-pdf .export-deck-card-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:1mm!important}
-  body.exporting-deck-pdf .export-deck-card{aspect-ratio:.714!important}
-  body.exporting-deck-pdf .export-deck-quantity{right:1mm!important;bottom:1mm!important;min-width:5mm!important;padding:1mm!important;font-size:6pt!important}
+  body.exporting-deck-pdf #preview-export-sheet{
+    display:block!important;
+    position:fixed!important;
+    left:8mm!important;
+    top:19.1667mm!important;
+    width:194mm!important;
+    height:258.6667mm!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+    padding:0!important;
+    margin:0!important;
+    background:#fff!important;
+    color:#111!important;
+    font-family:Arial,sans-serif!important;
+  }
+  body.exporting-deck-pdf #preview-export-sheet .export-deck-title{
+    left:0!important;
+    right:0!important;
+    top:0!important;
+  }
+  body.exporting-deck-pdf #preview-export-sheet .export-deck-zone{
+    position:absolute!important;
+  }
+  body.exporting-deck-pdf #preview-export-sheet .export-deck-card-grid{
+    display:grid!important;
+  }
+  body.exporting-deck-pdf #preview-export-sheet .export-deck-card{
+    aspect-ratio:auto!important;
+  }
+  body.exporting-deck-pdf #preview-export-sheet .export-deck-quantity{
+    min-width:5mm!important;
+    padding:1mm!important;
+    font-size:6pt!important;
+  }
 }
 @media(max-width:760px){
   .deck-export-format-actions{grid-template-columns:1fr}
