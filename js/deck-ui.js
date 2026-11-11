@@ -978,9 +978,9 @@
   function readTags(text) { return [...new Set(String(text || "").split(/[、,，]/).map(tag => tag.trim()).filter(Boolean))].slice(0, 12).map(tag => tag.slice(0, 24)); }
   function getExportSections(deck) {
     return [
-      { title: "メインデッキ", cards: deckCards(deck) },
-      { title: "領土デッキ", cards: territoryCards(deck) },
-      { title: "予備デッキ", cards: reserveCards(deck) }
+      { key: "main", title: "メインデッキ", cards: deckCards(deck) },
+      { key: "territory", title: "領土デッキ", cards: territoryCards(deck) },
+      { key: "reserve", title: "予備デッキ", cards: reserveCards(deck) }
     ].filter(section => section.cards.length);
   }
 
@@ -989,42 +989,195 @@
     return item?.image_url || item?.imageUrl || "";
   }
 
+  /*
+   * Image export is designed around a fixed 3:4 canvas.
+   * The card ratio is kept constant and the largest possible card width is
+   * selected after comparing the resulting card-group geometry with the canvas.
+   * Labels are deliberately compact and use the same typography throughout.
+   */
+  function calculateDeckExportLayout(sections, options = {}) {
+    const width = Number(options.width) || 1200;
+    const height = Number(options.height) || 1600;
+    const outer = Number(options.outer) || 24;
+    const gap = Number(options.gap) || 6;
+    const sectionGap = Number(options.sectionGap) || 10;
+    const cardRatio = Number(options.cardRatio) || 0.714;
+    const labelHeight = Number(options.labelHeight) || 24;
+    const titleHeight = Number(options.titleHeight) || 24;
+    const contentWidth = width - outer * 2;
+    const contentHeight = height - outer * 2 - titleHeight;
+    const usableSections = sections.filter(section => section.cards.length);
+
+    const makeBlock = (section, availableWidth, cardWidth) => {
+      const columns = Math.max(1, Math.floor((availableWidth + gap) / (cardWidth + gap)));
+      const rows = Math.max(1, Math.ceil(section.cards.length / columns));
+      const actualWidth = columns * cardWidth + Math.max(0, columns - 1) * gap;
+      const cardHeight = cardWidth / cardRatio;
+      const actualHeight = labelHeight + rows * cardHeight + Math.max(0, rows - 1) * gap;
+      return {
+        section,
+        columns,
+        rows,
+        cardWidth,
+        cardHeight,
+        actualWidth,
+        actualHeight,
+        availableWidth
+      };
+    };
+
+    const arrangements = [];
+    if (usableSections.length) {
+      arrangements.push({
+        key: "stack",
+        build: cardWidth => usableSections.map(section => makeBlock(section, contentWidth, cardWidth))
+      });
+    }
+    if (usableSections.length >= 2) {
+      arrangements.push({
+        key: "main-plus-lower",
+        build: cardWidth => {
+          const blocks = [];
+          const main = usableSections.find(section => section.key === "main") || usableSections[0];
+          const lower = usableSections.filter(section => section !== main);
+          blocks.push(makeBlock(main, contentWidth, cardWidth));
+          if (lower.length === 1) {
+            blocks.push(makeBlock(lower[0], contentWidth, cardWidth));
+          } else {
+            const lowerWidth = (contentWidth - sectionGap) / 2;
+            lower.forEach(section => blocks.push(makeBlock(section, lowerWidth, cardWidth)));
+          }
+          return blocks;
+        }
+      });
+    }
+
+    let best = null;
+    for (const arrangement of arrangements) {
+      for (let cardWidth = 24; cardWidth <= contentWidth; cardWidth += 1) {
+        const blocks = arrangement.build(cardWidth);
+        let requiredHeight = 0;
+        let blockRows = [];
+        if (arrangement.key === "main-plus-lower" && blocks.length >= 3) {
+          requiredHeight = blocks[0].actualHeight + sectionGap +
+            Math.max(...blocks.slice(1).map(block => block.actualHeight));
+          blockRows = [blocks.slice(0, 1), blocks.slice(1)];
+        } else {
+          requiredHeight = blocks.reduce((sum, block) => sum + block.actualHeight, 0) +
+            sectionGap * Math.max(0, blocks.length - 1);
+          blockRows = blocks.map(block => [block]);
+        }
+
+        if (requiredHeight > contentHeight) continue;
+
+        const usedHeight = requiredHeight;
+        const usedArea = blocks.reduce((sum, block) =>
+          sum + block.section.cards.length * block.cardWidth * block.cardHeight, 0);
+        const emptyArea = Math.max(0, width * height - usedArea);
+        const score = cardWidth * 1000000 + usedArea - emptyArea * 0.0001;
+
+        if (!best || score > best.score) {
+          best = {
+            arrangement: arrangement.key,
+            cardWidth,
+            cardHeight: cardWidth / cardRatio,
+            requiredHeight: usedHeight,
+            blocks,
+            blockRows,
+            score,
+            width,
+            height,
+            outer,
+            gap,
+            sectionGap,
+            labelHeight,
+            titleHeight
+          };
+        }
+      }
+    }
+
+    if (!best) return null;
+
+    // Place each block row from the top, centering narrower grids inside the canvas.
+    let y = outer + titleHeight;
+    const positioned = [];
+    best.blockRows.forEach((row, rowIndex) => {
+      const rowHeight = Math.max(...row.map(block => block.actualHeight));
+      const totalRowWidth = row.reduce((sum, block) => sum + block.actualWidth, 0) +
+        sectionGap * Math.max(0, row.length - 1);
+      let x = (width - totalRowWidth) / 2;
+      row.forEach(block => {
+        positioned.push({
+          ...block,
+          x,
+          y,
+          labelY: y,
+          gridY: y + labelHeight
+        });
+        x += block.actualWidth + sectionGap;
+      });
+      y += rowHeight + sectionGap;
+      if (rowIndex === best.blockRows.length - 1) y -= sectionGap;
+    });
+
+    best.blocks = positioned;
+    best.usedBottom = y;
+    best.remainingBottom = Math.max(0, height - outer - y);
+    best.fontSize = Math.max(12, Math.min(20, Math.round(best.cardWidth * 0.11)));
+    return best;
+  }
+
   function buildDeckExportSheet(deck) {
     const sheet = $("preview-export-sheet");
     if (!sheet || !deck) return false;
     const sections = getExportSections(deck);
     if (!sections.length) return false;
 
+    const layout = calculateDeckExportLayout(sections);
+    if (!layout) return false;
+
     sheet.replaceChildren();
-    const title = document.createElement("h1");
+    sheet.style.setProperty("--export-width", layout.width + "px");
+    sheet.style.setProperty("--export-height", layout.height + "px");
+    sheet.style.setProperty("--export-font-size", layout.fontSize + "px");
+    sheet.dataset.exportLayout = layout.arrangement;
+
+    const title = document.createElement("div");
+    title.className = "export-deck-label export-deck-title";
     title.textContent = deck.name || "デッキ";
+    title.style.fontSize = layout.fontSize + "px";
     sheet.append(title);
 
-    const summary = document.createElement("p");
-    const total = sections.reduce((sum, section) => sum + section.cards.reduce((n, card) => n + Math.max(1, Number(card.quantity) || 1), 0), 0);
-    summary.className = "export-deck-summary";
-    summary.textContent = total + "枚";
-    sheet.append(summary);
-
-    const zones = document.createElement("div");
-    zones.className = "export-deck-zones";
-
-    sections.forEach(section => {
+    layout.blocks.forEach(block => {
       const zone = document.createElement("section");
       zone.className = "export-deck-zone";
+      zone.style.left = block.x + "px";
+      zone.style.top = block.y + "px";
+      zone.style.width = block.actualWidth + "px";
+      zone.style.height = block.actualHeight + "px";
 
-      const heading = document.createElement("h2");
-      const sectionTotal = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
-      heading.textContent = section.title + "（" + sectionTotal + "枚）";
+      const heading = document.createElement("div");
+      heading.className = "export-deck-label export-deck-zone-label";
+      heading.textContent = block.section.title;
+      heading.style.height = layout.labelHeight + "px";
+      heading.style.fontSize = layout.fontSize + "px";
       zone.append(heading);
 
       const grid = document.createElement("div");
       grid.className = "export-deck-card-grid";
+      grid.style.gridTemplateColumns = "repeat(" + block.columns + ", " + block.cardWidth + "px)";
+      grid.style.gridAutoRows = block.cardHeight + "px";
+      grid.style.gap = layout.gap + "px";
+      grid.style.width = block.actualWidth + "px";
 
-      section.cards.forEach(card => {
+      block.section.cards.forEach(card => {
         const item = byItemId(card.itemId);
         const cardBox = document.createElement("div");
         cardBox.className = "export-deck-card";
+        cardBox.style.width = block.cardWidth + "px";
+        cardBox.style.height = block.cardHeight + "px";
+        cardBox.style.aspectRatio = "auto";
 
         const imageUrl = getExportCardImageUrl(card);
         if (imageUrl) {
@@ -1050,10 +1203,9 @@
       });
 
       zone.append(grid);
-      zones.append(zone);
+      sheet.append(zone);
     });
 
-    sheet.append(zones);
     return true;
   }
 
@@ -1082,55 +1234,41 @@
       return;
     }
 
-    const width = 1600;
-    const outer = 36;
-    const gap = 18;
-    const titleHeight = 62;
-    const sectionTitleHeight = 42;
-    const cardGap = 12;
-    const columns = 10;
-    const cardWidth = Math.floor((width - outer * 2 - cardGap * (columns - 1)) / columns);
-    const cardHeight = Math.round(cardWidth / 0.714);
-    const rows = cards => Math.max(1, Math.ceil(cards.length / columns));
-    const sectionHeights = sections.map(section =>
-      sectionTitleHeight + rows(section.cards) * cardHeight + Math.max(18, cardGap)
-    );
-    const height = outer + titleHeight + gap + sectionHeights.reduce((sum, value) => sum + value, 0) + outer;
+    const layout = calculateDeckExportLayout(sections);
+    if (!layout) {
+      alert("SVGのレイアウトを計算できませんでした。");
+      return;
+    }
 
     const safeName = escapeSvgText(deck.name || "デッキ");
     const parts = [
       '<?xml version="1.0" encoding="UTF-8"?>',
-      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">',
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + layout.width + '" height="' + layout.height + '" viewBox="0 0 ' + layout.width + ' ' + layout.height + '">',
       '<rect width="100%" height="100%" fill="#fff"/>',
-      '<text x="' + outer + '" y="' + (outer + 34) + '" font-family="Arial,sans-serif" font-size="30" font-weight="600" fill="#111">' + safeName + '</text>'
+      '<text x="' + (layout.width / 2) + '" y="' + (layout.outer + layout.fontSize) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="' + layout.fontSize + '" font-weight="600" fill="#111">' + safeName + '</text>'
     ];
 
-    let y = outer + titleHeight + gap;
-    sections.forEach(section => {
-      const sectionTotal = section.cards.reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
-      parts.push('<rect x="' + outer + '" y="' + y + '" width="' + (width - outer * 2) + '" height="' + sectionTitleHeight + '" fill="#111"/>');
-      parts.push('<text x="' + (outer + 12) + '" y="' + (y + 29) + '" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#fff">' + escapeSvgText(section.title) + '</text>');
-      parts.push('<text x="' + (width - outer - 12) + '" y="' + (y + 29) + '" text-anchor="end" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#fff">' + sectionTotal + '枚</text>');
-      y += sectionTitleHeight;
-
-      section.cards.forEach((card, index) => {
-        const col = index % columns;
-        const row = Math.floor(index / columns);
-        const x = outer + col * (cardWidth + cardGap);
-        const cardY = y + row * (cardHeight + cardGap);
+    layout.blocks.forEach(block => {
+      parts.push('<text x="' + (block.x + block.actualWidth / 2) + '" y="' + (block.labelY + layout.labelHeight - 6) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="' + layout.fontSize + '" font-weight="600" fill="#111">' + escapeSvgText(block.section.title) + '</text>');
+      block.section.cards.forEach((card, index) => {
+        const col = index % block.columns;
+        const row = Math.floor(index / block.columns);
+        const x = block.x + col * (block.cardWidth + layout.gap);
+        const cardY = block.gridY + row * (block.cardHeight + layout.gap);
         const imageUrl = getExportCardImageUrl(card);
-        parts.push('<rect x="' + x + '" y="' + cardY + '" width="' + cardWidth + '" height="' + cardHeight + '" fill="#f7f7f7" stroke="#111" stroke-width="1"/>');
+        parts.push('<rect x="' + x + '" y="' + cardY + '" width="' + block.cardWidth + '" height="' + block.cardHeight + '" fill="#f7f7f7" stroke="#111" stroke-width="1"/>');
         if (imageUrl) {
-          parts.push('<image href="' + escapeSvgText(imageUrl) + '" xlink:href="' + escapeSvgText(imageUrl) + '" x="' + x + '" y="' + cardY + '" width="' + cardWidth + '" height="' + cardHeight + '" preserveAspectRatio="xMidYMid slice"/>');
+          parts.push('<image href="' + escapeSvgText(imageUrl) + '" xlink:href="' + escapeSvgText(imageUrl) + '" x="' + x + '" y="' + cardY + '" width="' + block.cardWidth + '" height="' + block.cardHeight + '" preserveAspectRatio="xMidYMid slice"/>');
         } else {
           const label = escapeSvgText(String(card.name || "カード").slice(0, 22));
-          parts.push('<text x="' + (x + cardWidth / 2) + '" y="' + (cardY + cardHeight / 2) + '" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="16" fill="#111">' + label + '</text>');
+          parts.push('<text x="' + (x + block.cardWidth / 2) + '" y="' + (cardY + block.cardHeight / 2) + '" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="' + Math.max(10, layout.fontSize - 2) + '" fill="#111">' + label + '</text>');
         }
         const quantity = Math.max(1, Number(card.quantity) || 1);
-        parts.push('<rect x="' + (x + cardWidth - 58) + '" y="' + (cardY + cardHeight - 34) + '" width="52" height="28" fill="#fff" stroke="#111"/>');
-        parts.push('<text x="' + (x + cardWidth - 32) + '" y="' + (cardY + cardHeight - 14) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#111">×' + quantity + '</text>');
+        const badgeWidth = Math.max(34, layout.cardWidth * 0.28);
+        const badgeHeight = Math.max(18, layout.cardWidth * 0.14);
+        parts.push('<rect x="' + (x + block.cardWidth - badgeWidth - 4) + '" y="' + (cardY + block.cardHeight - badgeHeight - 4) + '" width="' + badgeWidth + '" height="' + badgeHeight + '" fill="#fff" stroke="#111"/>');
+        parts.push('<text x="' + (x + block.cardWidth - badgeWidth / 2 - 4) + '" y="' + (cardY + block.cardHeight - badgeHeight / 2 - 4) + '" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="' + Math.max(10, layout.fontSize - 2) + '" font-weight="700" fill="#111">×' + quantity + '</text>');
       });
-      y += rows(section.cards) * cardHeight + gap;
     });
 
     parts.push('</svg>');
