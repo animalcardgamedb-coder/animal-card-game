@@ -1228,33 +1228,50 @@
     context.textBaseline = "middle";
     context.fillText(deck.name || "デッキ", layout.width / 2, layout.outer + layout.titleHeight / 2);
 
-    const loadImage = (url, width, height) => new Promise((resolve, reject) => {
-      const image = new Image();
-      image.crossOrigin = "anonymous";
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error("画像読み込み失敗"));
-      if (/^data:image\\//i.test(url)) {
-        image.src = url;
-        return;
-      }
+    const loadImage = async (url, width, height) => {
       let source;
       try {
         source = new URL(url);
       } catch (_) {
-        reject(new Error("画像URLが正しくありません"));
-        return;
+        throw new Error("画像URLが正しくありません");
       }
       if (source.protocol !== "https:" && source.protocol !== "http:") {
-        reject(new Error("対応していない画像URLです"));
-        return;
+        throw new Error("対応していない画像URLです");
       }
-      // 元画像サーバーのCORS設定に依存しないよう、PNG出力時だけ画像変換サービスを経由する。
-      const proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(source.href) +
-        "&w=" + Math.max(1, Math.round(width * 2)) +
-        "&h=" + Math.max(1, Math.round(height * 2)) +
-        "&fit=cover&output=png";
-      image.src = proxyUrl;
-    });
+
+      // First use a raw CORS relay. Unlike an image-resizing proxy, this returns
+      // the original image bytes so the existing canvas crop stays pixel-accurate.
+      const relayUrls = [
+        "https://proxy.cors.dev/" + source.href,
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(source.href)
+      ];
+      let lastError = null;
+      for (const relayUrl of relayUrls) {
+        try {
+          const response = await fetch(relayUrl, { method: "GET", mode: "cors", credentials: "omit" });
+          if (!response.ok) throw new Error("画像中継HTTP " + response.status);
+          const contentType = (response.headers.get("content-type") || "").toLowerCase();
+          if (!contentType.startsWith("image/")) throw new Error("画像以外の応答 (" + (contentType || "Content-Typeなし") + ")");
+          const blob = await response.blob();
+          if (!blob.size) throw new Error("画像データが空です");
+          const objectUrl = URL.createObjectURL(blob);
+          try {
+            const image = await new Promise((resolve, reject) => {
+              const element = new Image();
+              element.onload = () => resolve(element);
+              element.onerror = () => reject(new Error("画像デコード失敗"));
+              element.src = objectUrl;
+            });
+            return image;
+          } finally {
+            URL.revokeObjectURL(objectUrl);
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error("画像中継に失敗しました");
+    };
 
     try {
       for (const block of layout.blocks) {
@@ -1317,7 +1334,7 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error("PNG export failed:", error);
-      alert("PNGを生成できませんでした。画像中継サービスが画像を取得できない可能性があります。時間をおいて再試行するか、PDF保存をご利用ください。");
+      alert("PNGを生成できませんでした。画像中継サービスまたは画像配信元との通信に失敗しました。詳細は開発者コンソールをご確認ください。PDF保存は引き続き利用できます。");
     }
   }
 
