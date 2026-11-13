@@ -612,6 +612,7 @@ function showCardDetail(
   window.renderCardUserTagEditor?.(item);
   window.renderPurchaseLinks?.(item);
   window.renderRelatedPackLinks?.(item);
+  renderSameNameCards(item);
 
   /*
     モーダルを表示
@@ -623,6 +624,64 @@ function showCardDetail(
     "hidden";
 }
 
+
+/*
+  同名カードを表示
+*/
+function renderSameNameCards(item) {
+  const section = document.getElementById("detail-same-name-section");
+  const list = document.getElementById("detail-same-name-list");
+
+  if (!section || !list) return;
+
+  list.textContent = "";
+
+  if (!item || item.territory_id) {
+    section.hidden = true;
+    return;
+  }
+
+  const name = String(item.card_name || "").trim();
+  const currentId = String(item.card_id || "").trim();
+
+  if (!name) {
+    section.hidden = true;
+    return;
+  }
+
+  const sameNameCards = (window.appState?.allCards || []).filter(card => {
+    if (!card || card.territory_id) return false;
+    if (String(card.card_name || "").trim() !== name) return false;
+    if (currentId && String(card.card_id || "").trim() === currentId) return false;
+    return Boolean(card.image_url);
+  });
+
+  if (sameNameCards.length === 0) {
+    section.hidden = true;
+    return;
+  }
+
+  sameNameCards.forEach(card => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "detail-same-name-card";
+    button.title = card.card_id ? `${card.card_id}：${card.card_name || name}` : (card.card_name || name);
+
+    const image = document.createElement("img");
+    image.src = card.image_url;
+    image.alt = card.card_name || name;
+    image.loading = "lazy";
+
+    const label = document.createElement("span");
+    label.textContent = card.card_id || "";
+
+    button.append(image, label);
+    button.addEventListener("click", () => showCardDetail(card));
+    list.appendChild(button);
+  });
+
+  section.hidden = false;
+}
 
 /*
   詳細モーダルを閉じる
