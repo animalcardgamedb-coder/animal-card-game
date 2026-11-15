@@ -726,8 +726,6 @@ function searchCards(options = {}) {
     selectedTerritoryKeywords.length > 0 ||
     selectedTerritoryEffects.length > 0;
 
-  const hasPackFilter = selectedPackLinks.length > 0;
-
   const hasCategorySpecificFilters =
     hasCardSpecificFilters ||
     hasTerritorySpecificFilters;
