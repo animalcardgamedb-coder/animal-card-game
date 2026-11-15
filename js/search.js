@@ -106,6 +106,48 @@ function getUniqueValues(
 
 }
 
+
+function getUniquePackLinkNames() {
+  const rows = Array.isArray(window.appState && window.appState.packLinks)
+    ? window.appState.packLinks
+    : [];
+  const values = rows
+    .map(row => readPackLinkValue(row, ["product_name", "商品名", "パック名", "デッキ名"]))
+    .map(value => String(value || "").trim())
+    .filter(Boolean);
+  return [...new Set(values)].sort((a, b) => a.localeCompare(b, "ja", { numeric: true }));
+}
+
+function readPackLinkValue(row, keys) {
+  if (!row || !Array.isArray(keys)) return "";
+  for (const key of keys) {
+    if (row[key] != null && String(row[key]).trim() !== "") return row[key];
+  }
+  return "";
+}
+
+function getPackLinkCardIds(row) {
+  const text = readPackLinkValue(row, ["card_ids", "収録カードID", "収録カードID（カンマ区切り）", "カードID一覧"]);
+  return String(text || "")
+    .split(/[,，、;；\s]+/)
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
+function cardMatchesSelectedPackLinks(item, selectedPackNames) {
+  if (!selectedPackNames.length) return true;
+  if (isTerritory(item)) return false;
+  const rows = Array.isArray(window.appState && window.appState.packLinks)
+    ? window.appState.packLinks
+    : [];
+  const cardId = String(item.card_id || "").trim();
+  if (!cardId) return false;
+  return rows.some(row => {
+    const name = String(readPackLinkValue(row, ["product_name", "商品名", "パック名", "デッキ名"]) || "").trim();
+    return selectedPackNames.includes(name) && getPackLinkCardIds(row).includes(cardId);
+  });
+}
+
 function getConditionFilterValues(data) {
   const values = new Set();
   data.forEach(item => {
@@ -288,6 +330,8 @@ function createFilterOptions() {
   );
 
   createMultiFilter("condition-filter", getConditionFilterValues(allData));
+
+  createMultiFilter("pack-filter", getUniquePackLinkNames());
 
 
   /*
@@ -615,6 +659,7 @@ function searchCards(options = {}) {
     );
 
   const selectedConditions = getSelectedValues("condition-filter");
+  const selectedPackLinks = getSelectedValues("pack-filter");
   const conditionMatchMode = getFilterMatchMode("condition-match-mode");
   const keywordMatchMode = getFilterMatchMode("keyword-match-mode");
   const effectMatchMode = getFilterMatchMode("effect-match-mode");
@@ -1064,6 +1109,7 @@ function searchCards(options = {}) {
           matchesSpecies &&
           matchesCost &&
           matchesUserTags &&
+          cardMatchesSelectedPackLinks(item, selectedPackLinks) &&
           matchesCategorySpecificFilters &&
           matchesKeyword &&
           matchesEffect &&

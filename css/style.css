@@ -13,7 +13,7 @@
 #search-modal,#bulk-import-modal,#card-modal,.feature-modal{display:none;position:fixed;z-index:2000;inset:0;overflow-y:auto;box-sizing:border-box;padding:24px 14px;background:#0009}
 #search-modal-content,#bulk-import-modal-content,#card-modal-content,.feature-modal-content{position:relative;width:min(820px,100%);margin:0 auto;padding:24px;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 20px 70px #0004}
 #card-modal-content{width:min(720px,100%)}
-.filter{margin:8px 0;border:1px solid var(--line);border-radius:7px;background:#fff}
+.filter{margin:8px 0;border:1px solid var(--line);border-radius:7px;background:#fff}.filter .multi-select{display:flex;flex-wrap:wrap;gap:6px;padding:10px 13px}.filter .multi-select label{padding:6px 9px;border:1px solid var(--line);border-radius:5px;background:#fff}
 .filter-title{display:flex;align-items:center;min-height:45px;padding:10px 13px;background:#f4f4f2;font-weight:600;cursor:pointer;list-style:none}
 .filter-title::-webkit-details-marker{display:none}
 .filter-title::after{content:"＋";margin-left:auto;color:#777}
