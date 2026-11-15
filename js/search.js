@@ -114,7 +114,8 @@ function getUniquePackLinkNames() {
   const values = rows
     .map(row => readPackLinkValue(row, ["product_name", "商品名", "パック名", "デッキ名"]))
     .map(value => String(value || "").trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter(value => value !== "アニマルカードゲーム公式プレイマット" && value !== "領土セット");
   return [...new Set(values)].sort((a, b) => a.localeCompare(b, "ja", { numeric: true }));
 }
 
