@@ -1,3 +1,52 @@
+
+
+/*
+  カードタイプの固定順。
+  指定順は「タイプ順」の降順として扱います。
+  複合タイプ（&）は先頭タイプを基準に、その後ろに構成タイプを置きます。
+  まったく新しいタイプは「領土」の直前に入る扱いです。
+*/
+const CARD_TYPE_ORDER = [
+  "動物",
+  "動物&縄張り",
+  "動物&道具",
+  "縄張り",
+  "道具",
+  "場面",
+  "特技",
+  "領土"
+];
+
+function getCardTypeOrderKey(type) {
+  const normalized = String(type || "").replace(/\\s+/g, "");
+  if (!normalized) return 9999;
+  const exact = CARD_TYPE_ORDER.indexOf(normalized);
+  if (exact >= 0) return exact;
+
+  const parts = normalized.split("&").map(value => value.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    const base = CARD_TYPE_ORDER.indexOf(parts[0]);
+    if (base >= 0) {
+      const componentRanks = parts.slice(1).map(part => {
+        const rank = CARD_TYPE_ORDER.indexOf(part);
+        return rank >= 0 ? rank : 9998;
+      });
+      return base + componentRanks.reduce((value, rank, index) => value + (rank / Math.pow(100, index + 1)), 0);
+    }
+  }
+
+  // 未知の単独タイプ／未知の複合タイプは領土の直前。
+  return CARD_TYPE_ORDER.indexOf("領土") - 0.5;
+}
+
+window.getCardTypeOrderKey = getCardTypeOrderKey;
+window.compareCardTypes = function(first, second) {
+  const comparison = getCardTypeOrderKey(first) - getCardTypeOrderKey(second);
+  if (comparison !== 0) return comparison;
+  return String(first || "").localeCompare(String(second || ""), "ja", { numeric: true, sensitivity: "base" });
+};
+
+
 /*
   テキスト正規化
 
@@ -194,6 +243,10 @@ function sortCardResults(data, sortValue) {
       } else {
         comparison = Number(first) - Number(second);
       }
+    } else if (field === "type") {
+      comparison = window.compareCardTypes
+        ? window.compareCardTypes(first, second)
+        : String(first).localeCompare(String(second), "ja", { numeric: true, sensitivity: "base" });
     } else {
       comparison = String(first).localeCompare(String(second), "ja", { numeric: true, sensitivity: "base" });
     }
