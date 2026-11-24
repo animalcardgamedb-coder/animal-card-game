@@ -556,6 +556,10 @@
         const secondMissing=second===""||second==null||!Number.isFinite(Number(second));
         if (firstMissing||secondMissing) comparison=firstMissing===secondMissing?0:(firstMissing?1:-1);
         else comparison=Number(first)-Number(second);
+      } else if (field === "type") {
+        comparison = window.compareCardTypes
+          ? window.compareCardTypes(first, second)
+          : String(first).localeCompare(String(second), "ja", {numeric:true, sensitivity:"base"});
       } else {
         comparison=String(first).localeCompare(String(second),"ja",{numeric:true,sensitivity:"base"});
       }
@@ -1710,7 +1714,10 @@
       const button = event.target.closest("button[data-sort-field]");
       if (!button || state.publicView) return;
       const field = button.dataset.sortField;
-      const direction = state.lastSortField === field && state.lastSortDirection === "asc" ? "desc" : "asc";
+      // 「タイプ順」は指定されたゲーム上の固定順を降順で使う。
+      const direction = field === "type"
+        ? "desc"
+        : (state.lastSortField === field && state.lastSortDirection === "asc" ? "desc" : "asc");
       state.lastSortField = field;
       state.lastSortDirection = direction;
       button.textContent = ({id:"ID",name:"名前",type:"タイプ",species:"種族",cost:"コスト",atk:"ATK",def:"DEF"})[field] + (direction === "asc" ? "↑" : "↓");
