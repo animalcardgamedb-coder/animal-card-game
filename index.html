@@ -21,7 +21,7 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=20261124-5"
+    href="css/style.css?v=20261124-6"
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -400,7 +400,7 @@
     <div class="deck-summary-panel"><div><strong id="deck-total-count">0</strong><span>枚</span></div><div id="deck-visibility-badge" class="visibility-badge">非公開</div><button id="builder-visibility-button" type="button" class="outline-button">公開設定</button></div>
     <div id="deck-type-stats" class="deck-type-stats"></div>
     <div id="deck-pile-tabs" class="segmented-tabs deck-pile-tabs" role="tablist" aria-label="編集するデッキ"><button id="main-pile-tab" class="active" type="button" role="tab" aria-selected="true">メインデッキ</button><button id="territory-pile-tab" type="button" role="tab" aria-selected="false">領地デッキ</button><button id="reserve-pile-tab" type="button" role="tab" aria-selected="false">予備デッキ</button></div>
-    <p id="selected-pile-count" class="status-line"></p><div class="deck-order-toolbar"><span>デッキ内の並び替え</span><label class="card-sort-field" for="deck-order-select"><span class="sr-only">並び順</span><select id="deck-order-select"><option value="source">現在の順序</option><option value="id-asc">ID・昇順</option><option value="id-desc">ID・降順</option><option value="name-asc">名前・昇順</option><option value="name-desc">名前・降順</option><option value="type-asc">カードタイプ・昇順</option><option value="type-desc">カードタイプ・降順</option><option value="species-asc">種族・昇順</option><option value="species-desc">種族・降順</option><option value="cost-asc">コスト・昇順</option><option value="cost-desc">コスト・降順</option><option value="atk-asc">ATK・昇順</option><option value="atk-desc">ATK・降順</option><option value="def-asc">DEF・昇順</option><option value="def-desc">DEF・降順</option></select></label></div><p class="reorder-help">カード画像をドラッグ＆ドロップして並び替えできます。デッキ領域の選択部分へドロップすると、そのデッキへ移動・追加できます。</p><div id="builder-main-reserve-zones" hidden></div><div id="main-selected-cards-strip" hidden></div><div id="reserve-selected-cards-strip" hidden></div><div id="selected-cards-strip" class="selected-cards-strip territory-selected-cards-strip" aria-label="選択中のデッキに入っているカード"></div>
+    <div class="deck-pile-summary-row"><p id="selected-pile-count" class="status-line"></p><label class="deck-order-toolbar" for="deck-order-select"><span class="sr-only">並び順</span><select id="deck-order-select"><option value="source">現在の順序</option><option value="id-asc">ID・昇順</option><option value="id-desc">ID・降順</option><option value="name-asc">名前・昇順</option><option value="name-desc">名前・降順</option><option value="type-asc">カードタイプ・昇順</option><option value="type-desc">カードタイプ・降順</option><option value="species-asc">種族・昇順</option><option value="species-desc">種族・降順</option><option value="cost-asc">コスト・昇順</option><option value="cost-desc">コスト・降順</option><option value="atk-asc">ATK・昇順</option><option value="atk-desc">ATK・降順</option><option value="def-asc">DEF・昇順</option><option value="def-desc">DEF・降順</option></select></label></div><p class="reorder-help">カード画像をドラッグ＆ドロップして並び替えできます。デッキ領域の選択部分へドロップすると、そのデッキへ移動・追加できます。</p><div id="builder-main-reserve-zones" hidden></div><div id="main-selected-cards-strip" hidden></div><div id="reserve-selected-cards-strip" hidden></div><div id="selected-cards-strip" class="selected-cards-strip territory-selected-cards-strip" aria-label="選択中のデッキに入っているカード"></div>
     <div id="builder-tools" class="toolbar-panel">
       <button id="builder-filter-button" class="toolbar-icon-button" type="button" aria-label="検索条件を開く" title="カード種別などの条件">⌄</button>
       <label class="search-field" for="builder-search"><span aria-hidden="true">⌕</span><input type="search" id="builder-search" placeholder="カード名やテキストで検索" autocomplete="off"></label>
@@ -1057,7 +1057,7 @@
   <script src="js/display.js?v=20261107-1"></script>
 
   <script src="js/main.js"></script>
-  <script src="js/deck-ui.js?v=20261124-5"></script>
+  <script src="js/deck-ui.js?v=20261124-6"></script>
 
   <script type="module" src="firebase.js?v=20261124-1"></script>
 
