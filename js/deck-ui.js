@@ -373,9 +373,9 @@
     cards.forEach(card=>{
       const item=byItemId(card.itemId),mini=document.createElement("div"); mini.className="selected-card-mini"; mini.draggable=!state.publicView; mini.dataset.itemId=String(card.itemId); mini.dataset.pile=pile;
       mini.addEventListener("dragstart",e=>{state.dragItemId=String(card.itemId);state.dragPile=pile;state.dragSearchItem=null;state.dragKind="deck";mini.classList.add("is-dragging");e.dataTransfer?.setData("text/plain",String(card.itemId));if(e.dataTransfer)e.dataTransfer.effectAllowed="move";});
-      mini.addEventListener("dragover",e=>{if(state.publicView||state.dragKind!=="deck"||state.dragItemId==null||String(state.dragItemId)===String(card.itemId))return;e.preventDefault();mini.classList.add("is-drag-over");});
+      mini.addEventListener("dragover",e=>{if(state.publicView||state.dragKind!=="deck"||state.dragItemId==null||String(state.dragItemId)===String(card.itemId))return;e.preventDefault();e.stopPropagation();mini.classList.add("is-drag-over");});
       mini.addEventListener("dragleave",()=>mini.classList.remove("is-drag-over"));
-      mini.addEventListener("drop",e=>{if(state.publicView)return;e.preventDefault();mini.classList.remove("is-drag-over");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null||String(id)===String(card.itemId))return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,card.itemId,pile):void moveCardBetweenPiles(id,src,pile,card.itemId);});
+      mini.addEventListener("drop",e=>{if(state.publicView)return;e.preventDefault();e.stopPropagation();mini.classList.remove("is-drag-over");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null||String(id)===String(card.itemId))return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,card.itemId,pile):void moveCardBetweenPiles(id,src,pile,card.itemId);});
       mini.addEventListener("dragend",()=>{state.dragItemId=null;state.dragPile=null;state.dragSearchItem=null;state.dragKind=null;document.querySelectorAll(".is-dragging,.is-drag-over,.is-drag-target").forEach(el=>el.classList.remove("is-dragging","is-drag-over","is-drag-target"));});
       const image=document.createElement("button");image.type="button";image.className="selected-card-mini-image";image.innerHTML=item?.image_url?'<img src="'+escapeHTML(item.image_url)+'" alt="'+escapeHTML(card.name)+'">':'<span class="mini-empty">'+escapeHTML(card.name)+'</span>';image.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(Date.now()<state.ignoreRemoveUntil||!item)return;state.pendingCard=item;if(typeof window.showCardDetail==="function")window.showCardDetail(item,{deckBuilder:!state.publicView});});
       const q=document.createElement("span");q.className="selected-card-quantity";q.textContent="×"+Number(card.quantity||1);mini.append(image,q);
@@ -409,6 +409,9 @@
     strip.addEventListener("dragleave",e=>{if(!strip.contains(e.relatedTarget))strip.classList.remove("is-drag-target");});
     strip.addEventListener("drop",e=>{
       if (state.publicView) return;
+      // A card's own drop handler must win. Otherwise this parent handler
+      // receives the same event and sends the card to the end of the pile.
+      if (e.target?.closest?.(".selected-card-mini")) return;
       if (state.dragKind === "search" && canAcceptSearchItem(state.dragSearchItem)) {
         e.preventDefault();
         strip.classList.remove("is-drag-target");
@@ -1682,14 +1685,16 @@
         if (state.publicView || !canAccept()) return;
         e.preventDefault();
         tab.classList.add("is-drag-target");
+        tab.setAttribute("aria-dropeffect","move");
       };
       tab.addEventListener("dragenter",highlight);
       tab.addEventListener("dragover",highlight);
-      tab.addEventListener("dragleave",e=>{if(!tab.contains(e.relatedTarget))tab.classList.remove("is-drag-target");});
+      tab.addEventListener("dragleave",e=>{if(!tab.contains(e.relatedTarget)){tab.classList.remove("is-drag-target");tab.removeAttribute("aria-dropeffect");}});
       tab.addEventListener("drop",e=>{
         if (state.publicView || !canAccept()) return;
         e.preventDefault();
         tab.classList.remove("is-drag-target");
+        tab.removeAttribute("aria-dropeffect");
         if(state.dragKind==="search"&&state.dragSearchItem){
           state.ignoreRemoveUntil=Date.now()+500;
           void addCardToPile(state.dragSearchItem,pile);
@@ -1717,14 +1722,15 @@
         const source = state.dragPile || state.pile;
         valid = source === pile || (["main","reserve"].includes(source) && ["main","reserve"].includes(pile));
       }
-      if (valid) { event.preventDefault(); document.querySelectorAll(".deck-pile-tabs button.is-drag-target").forEach(el => { if (el !== tab) el.classList.remove("is-drag-target"); }); tab.classList.add("is-drag-target"); }
-    });
+      if (valid) { event.preventDefault(); document.querySelectorAll(".deck-pile-tabs button.is-drag-target").forEach(el => { if (el !== tab) { el.classList.remove("is-drag-target"); el.removeAttribute("aria-dropeffect"); } }); tab.classList.add("is-drag-target"); tab.setAttribute("aria-dropeffect","move"); }
+    }, true);
     document.addEventListener("drop", event => {
       const tab = event.target?.closest?.(".deck-pile-tabs button");
       if (!tab || state.publicView || !state.dragKind) return;
       const pile = tab.id === "main-pile-tab" ? "main" : tab.id === "territory-pile-tab" ? "territory" : tab.id === "reserve-pile-tab" ? "reserve" : null;
       if (!pile) return;
       tab.classList.remove("is-drag-target");
+      tab.removeAttribute("aria-dropeffect");
     });
     $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
     $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
