@@ -468,9 +468,12 @@
         }
       }
       if (pile === "territory") {
-        const limitMessage = territoryAddLimitMessage(item);
-        if (limitMessage) {
-          alert(limitMessage);
+        const limits = territoryLimitStatus(state.deck);
+        const name = String(item?.territory_name || item?.name || "").trim();
+        const species = String(item?.species || "");
+        const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
+        if (!isBasic && (limits.countsByName.get(name.toLocaleLowerCase("ja-JP"))?.quantity || 0) >= 4) {
+          alert("種属が「基礎」以外の同名領土カードは最大4枚です");
           return;
         }
       }
