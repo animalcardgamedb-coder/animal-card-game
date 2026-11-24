@@ -347,349 +347,71 @@
     };
   }
   function renderBuilder() {
-    const deck = state.deck || app()?.current(); if (!deck) { setScreen("decks"); return; }
-    state.deck = deck;
-    const settings = getBuilderSettings(deck);
-    $("builder-deck-name").value = deck.name || "";
-    $("builder-deck-description").value = settings.description;
-    $("builder-description-count").textContent = String(settings.description.length);
-    $("deck-total-count").textContent = count(deck);
-    $("deck-visibility-badge").textContent = deck.isPublic ? "公開" : "非公開";
-    $("deck-visibility-badge").classList.toggle("public", !!deck.isPublic);
-    $("builder-visibility-button").hidden = state.publicView;
-    $("builder-save-settings-button").hidden = state.publicView;
-    $("delete-current-deck").hidden = state.publicView;
-    $("save-deck-button").hidden = state.publicView;
-    $("builder-deck-name").disabled = state.publicView;
-    renderTagOptions("builder-deck-tag-options", settings.tags, state.publicView);
-    renderDeckTagSummary(settings.tags);
-    $("builder-edit-tags-button").hidden = state.publicView;
-    if (state.publicView) $("builder-deck-tag-editor").hidden = true;
-    $("public-deck-readonly-note").hidden = !state.publicView;
-    $("builder-tools").hidden = state.publicView;
-    $("builder-card-list").hidden = state.publicView;
-    $("builder-load-more").hidden = true;
-    const typeCounts = {};
-    allPileCards(deck).forEach(card => { const item = byItemId(card.itemId); const type = item?.card_type || item?.territory_type || "その他"; typeCounts[type] = (typeCounts[type] || 0) + Number(card.quantity || 1); });
-    $("deck-type-stats").innerHTML = Object.entries(typeCounts).map(([type, number]) => `<span class="stat-chip">${escapeHTML(type)}<strong>${number}</strong></span>`).join("");
-    const strip = $("selected-cards-strip"); strip.replaceChildren();
-    if (!strip.dataset.dropEndReady) {
-      strip.dataset.dropEndReady = "true";
-      strip.addEventListener("dragover", event => {
-        if (event.target === strip && state.dragItemId != null) event.preventDefault();
-      });
-      strip.addEventListener("drop", event => {
-        if (event.target !== strip || state.dragItemId == null) return;
-        event.preventDefault();
-        const sourceId = state.dragItemId;
-        const sourcePile = state.dragPile || state.pile;
-        state.ignoreRemoveUntil = Date.now() + 500;
-        void moveCardTo(sourceId, null, sourcePile);
-      });
-    }
-    const activeCards = pileCards(deck);
-    const activeTotal = activeCards.reduce((sum, card) => sum + Number(card.quantity || 1), 0);
-    const pileCount = $("selected-pile-count");
-    if (state.pile === "territory") {
-      const limits = territoryLimitStatus(deck);
-      pileCount.textContent = "領土デッキ：" + activeTotal + "枚";
-      pileCount.classList.remove("limit-reached", "over-limit");
-      pileCount.title = "";
-    } else if (state.pile === "reserve") {
-      pileCount.textContent = "予備デッキ：" + activeTotal + "/15枚";
-      pileCount.classList.toggle("limit-reached", activeTotal >= 15);
-      pileCount.classList.toggle("over-limit", activeTotal > 15);
-    } else {
-      pileCount.textContent = "メインデッキ：" + activeTotal + "枚";
-      pileCount.classList.remove("limit-reached", "over-limit");
-      pileCount.title = "";
-    }
-    if (!activeCards.length) strip.innerHTML = `<div class="empty-state">このデッキにはまだカードがありません。</div>`;
-    activeCards.forEach((card, index) => {
-      const item = byItemId(card.itemId);
-      const mini = document.createElement("div");
-      mini.className = "selected-card-mini";
-      if (!state.publicView) {
-        mini.draggable = true;
-        mini.title = `${card.name}：ドラッグして並び替え`;
-        mini.addEventListener("dragstart", event => {
-          state.dragItemId = card.itemId;
-          state.dragPile = state.pile;
-          mini.classList.add("is-dragging");
-          if (event.dataTransfer) {
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", String(card.itemId));
-          }
-        });
-        mini.addEventListener("dragover", event => {
-          if (state.dragItemId == null || String(state.dragItemId) === String(card.itemId) || state.dragPile !== state.pile) return;
-          event.preventDefault();
-          if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
-          mini.classList.add("is-drag-over");
-        });
-        mini.addEventListener("dragleave", event => {
-          if (!mini.contains(event.relatedTarget)) mini.classList.remove("is-drag-over");
-        });
-        mini.addEventListener("drop", event => {
-          event.preventDefault();
-          mini.classList.remove("is-drag-over");
-          const sourceId = state.dragItemId ?? event.dataTransfer?.getData("text/plain");
-          const sourcePile = state.dragPile || state.pile;
-          state.ignoreRemoveUntil = Date.now() + 500;
-          if (sourceId != null && String(sourceId) !== String(card.itemId)) {
-            void moveCardTo(sourceId, card.itemId, sourcePile);
-          }
-        });
-        mini.addEventListener("dragend", () => {
-          state.dragItemId = null;
-          state.dragPile = null;
-          strip.querySelectorAll(".is-dragging, .is-drag-over").forEach(element => element.classList.remove("is-dragging", "is-drag-over"));
-        });
-      }
-
-      const imageButton = document.createElement("button");
-      imageButton.type = "button";
-      imageButton.className = "selected-card-mini-image";
-      imageButton.title = String(card.name || "カード") + "：タップして詳細を表示";
-      imageButton.setAttribute("aria-label", String(card.name || "カード") + "の詳細を表示");
-      imageButton.draggable = false;
-      imageButton.innerHTML = item?.image_url
-        ? '<img src="' + escapeHTML(item.image_url) + '" alt="' + escapeHTML(card.name) + '">'
-        : '<span class="mini-empty">' + escapeHTML(card.name) + '</span>';
-      imageButton.addEventListener("click", event => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (Date.now() < state.ignoreRemoveUntil || !item) return;
-        state.pendingCard = item;
-        if (typeof window.showCardDetail === "function") {
-          window.showCardDetail(item, { deckBuilder: !state.publicView });
-        }
-      });
-
-      const quantityMark = document.createElement("span");
-      quantityMark.className = "selected-card-quantity";
-      quantityMark.textContent = "×" + Number(card.quantity || 1);
-      if (state.pile === "territory") {
-        const limits = territoryLimitStatus(deck);
-        const itemName = String(item?.territory_name || card.name || "").trim();
-        const species = String(item?.species ?? card.species ?? "");
-        const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
-        const sameNameCount = limits.countsByName.get(itemName.toLocaleLowerCase("ja-JP"))?.quantity || 0;
-        if (!isBasic && sameNameCount >= 4) {
-          quantityMark.classList.toggle("over-limit", sameNameCount > 4);
-          quantityMark.classList.toggle("limit-reached", sameNameCount === 4);
-          quantityMark.title = "種属が「基礎」以外の同名領土カード：最大4枚";
-        }
-      }
-      mini.append(imageButton, quantityMark);
-
-      if (!state.publicView) {
-        const actions = document.createElement("div");
-        actions.className = "selected-card-mini-actions";
-
-        const removeButton = document.createElement("button");
-        removeButton.type = "button";
-        removeButton.className = "selected-card-quantity-button";
-        removeButton.textContent = "−";
-        removeButton.title = String(card.name || "カード") + "を1枚減らす";
-        removeButton.setAttribute("aria-label", String(card.name || "カード") + "を1枚減らす");
-        removeButton.addEventListener("click", event => {
-          event.preventDefault();
-          event.stopPropagation();
-          void changeQty(card.itemId, -1);
-        });
-
-        const addButton = document.createElement("button");
-        addButton.type = "button";
-        addButton.className = "selected-card-quantity-button selected-card-quantity-add";
-        addButton.textContent = "＋";
-        addButton.title = String(card.name || "カード") + "を1枚増やす";
-        addButton.setAttribute("aria-label", String(card.name || "カード") + "を1枚増やす");
-        addButton.disabled = !canAddCurrentTerritoryItem(item);
-        const limitMessage = territoryAddLimitMessage(item);
-        if (limitMessage) addButton.title = limitMessage;
-        let addLongPressTimer = null;
-        let addLongPressTriggered = false;
-        const openAddChoice = event => {
-          if (!item || state.publicView) return;
-          event?.preventDefault?.();
-          event?.stopPropagation?.();
-          addLongPressTriggered = true;
-          const menu = document.createElement("div");
-          menu.className = "builder-add-choice-popover";
-          menu.setAttribute("role", "menu");
-          const makeChoice = (label, pile) => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.textContent = label;
-            button.setAttribute("role", "menuitem");
-            button.addEventListener("click", ev => {
-              ev.preventDefault();
-              ev.stopPropagation();
-              menu.remove();
-              document.removeEventListener("pointerdown", closeChoice, true);
-              void addCardToPile(item, pile);
-            });
-            return button;
-          };
-          menu.append(
-            makeChoice("メインデッキに追加", "main"),
-            makeChoice("予備デッキに追加", "reserve")
-          );
-          document.body.append(menu);
-          const rect = addButton.getBoundingClientRect();
-          const width = Math.min(220, window.innerWidth - 20);
-          menu.style.width = width + "px";
-          menu.style.left = Math.max(10, Math.min(window.innerWidth - width - 10, rect.left + rect.width / 2 - width / 2)) + "px";
-          menu.style.top = Math.min(window.innerHeight - menu.offsetHeight - 10, rect.bottom + 6) + "px";
-          const closeChoice = ev => {
-            if (!menu.contains(ev.target) && ev.target !== addButton) {
-              menu.remove();
-              document.removeEventListener("pointerdown", closeChoice, true);
-            }
-          };
-          setTimeout(() => document.addEventListener("pointerdown", closeChoice, true), 0);
-        };
-        const cancelAddLongPress = () => {
-          if (addLongPressTimer) clearTimeout(addLongPressTimer);
-          addLongPressTimer = null;
-        };
-        addButton.addEventListener("pointerdown", event => {
-          if (event.pointerType === "mouse" && event.button !== 0) return;
-          addLongPressTriggered = false;
-          cancelAddLongPress();
-          addLongPressTimer = setTimeout(() => openAddChoice(event), 550);
-        });
-        addButton.addEventListener("pointerup", cancelAddLongPress);
-        addButton.addEventListener("pointercancel", cancelAddLongPress);
-        addButton.addEventListener("pointerleave", event => {
-          if (event.pointerType === "mouse") cancelAddLongPress();
-        });
-        addButton.addEventListener("click", event => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (addLongPressTriggered) {
-            addLongPressTriggered = false;
-            return;
-          }
-          if (item) void addCard(item);
-        });
-
-        actions.append(removeButton, addButton);
-        mini.append(actions);
-      }
-
+    const deck=state.deck||app()?.current(); if(!deck){setScreen("decks");return;} state.deck=deck;
+    const settings=getBuilderSettings(deck); $("builder-deck-name").value=deck.name||""; $("builder-deck-description").value=settings.description; $("builder-description-count").textContent=String(settings.description.length);
+    $("deck-total-count").textContent=count(deck); $("deck-visibility-badge").textContent=deck.isPublic?"公開":"非公開"; $("deck-visibility-badge").classList.toggle("public",!!deck.isPublic);
+    $("builder-visibility-button").hidden=state.publicView; $("builder-save-settings-button").hidden=state.publicView; $("delete-current-deck").hidden=state.publicView; $("save-deck-button").hidden=state.publicView; $("builder-deck-name").disabled=state.publicView;
+    renderTagOptions("builder-deck-tag-options",settings.tags,state.publicView); renderDeckTagSummary(settings.tags); $("builder-edit-tags-button").hidden=state.publicView; if(state.publicView)$("builder-deck-tag-editor").hidden=true;
+    $("public-deck-readonly-note").hidden=!state.publicView; $("builder-tools").hidden=state.publicView; $("builder-card-list").hidden=state.publicView; $("builder-load-more").hidden=true;
+    const typeCounts={}; allPileCards(deck).forEach(card=>{const item=byItemId(card.itemId),type=item?.card_type||item?.territory_type||"その他";typeCounts[type]=(typeCounts[type]||0)+Number(card.quantity||1);});
+    $("deck-type-stats").innerHTML=Object.entries(typeCounts).map(([type,n])=>`<span class="stat-chip">${escapeHTML(type)}<strong>${n}</strong></span>`).join("");
+    const territory=state.pile==="territory"; $("builder-main-reserve-zones").hidden=territory; $("selected-cards-strip").hidden=!territory;
+    if(territory){renderPileStrip($("selected-cards-strip"),territoryCards(deck),"territory"); $("selected-pile-count").textContent="領土デッキ："+territoryCards(deck).reduce((a,c)=>a+Number(c.quantity||1),0)+"枚";}
+    else {renderPileStrip($("main-selected-cards-strip"),deckCards(deck),"main"); renderPileStrip($("reserve-selected-cards-strip"),reserveCards(deck),"reserve"); $("selected-pile-count").textContent="メイン・予備デッキを編集";}
+    const mainTotal=deckCards(deck).reduce((a,c)=>a+Number(c.quantity||1),0),reserveTotal=reserveCards(deck).reduce((a,c)=>a+Number(c.quantity||1),0);
+    $("main-pile-zone-count").textContent=mainTotal+"枚"; $("reserve-pile-zone-count").textContent=reserveTotal+"/15枚"; $("reserve-pile-zone-count").classList.toggle("limit-reached",reserveTotal>=15); $("reserve-pile-zone-count").classList.toggle("over-limit",reserveTotal>15);
+    if(!state.publicView)renderBuilderCards();
+  }
+  function renderPileStrip(strip,cards,pile){
+    strip.replaceChildren(); attachPileDropZone(strip,pile);
+    if(!cards.length){strip.innerHTML='<div class="empty-state">このデッキにはまだカードがありません。</div>';return;}
+    cards.forEach(card=>{
+      const item=byItemId(card.itemId),mini=document.createElement("div"); mini.className="selected-card-mini"; mini.draggable=!state.publicView; mini.dataset.itemId=String(card.itemId); mini.dataset.pile=pile;
+      mini.addEventListener("dragstart",e=>{state.dragItemId=String(card.itemId);state.dragPile=pile;mini.classList.add("is-dragging");e.dataTransfer?.setData("text/plain",String(card.itemId));if(e.dataTransfer)e.dataTransfer.effectAllowed="move";});
+      mini.addEventListener("dragover",e=>{if(state.publicView||state.dragItemId==null||String(state.dragItemId)===String(card.itemId))return;e.preventDefault();mini.classList.add("is-drag-over");});
+      mini.addEventListener("dragleave",()=>mini.classList.remove("is-drag-over"));
+      mini.addEventListener("drop",e=>{if(state.publicView)return;e.preventDefault();mini.classList.remove("is-drag-over");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null||String(id)===String(card.itemId))return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,card.itemId,pile):void moveCardBetweenPiles(id,src,pile,card.itemId);});
+      mini.addEventListener("dragend",()=>{state.dragItemId=null;state.dragPile=null;document.querySelectorAll(".is-dragging,.is-drag-over,.is-drag-target").forEach(el=>el.classList.remove("is-dragging","is-drag-over","is-drag-target"));});
+      const image=document.createElement("button");image.type="button";image.className="selected-card-mini-image";image.innerHTML=item?.image_url?'<img src="'+escapeHTML(item.image_url)+'" alt="'+escapeHTML(card.name)+'">':'<span class="mini-empty">'+escapeHTML(card.name)+'</span>';image.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(Date.now()<state.ignoreRemoveUntil||!item)return;state.pendingCard=item;if(typeof window.showCardDetail==="function")window.showCardDetail(item,{deckBuilder:!state.publicView});});
+      const q=document.createElement("span");q.className="selected-card-quantity";q.textContent="×"+Number(card.quantity||1);mini.append(image,q);
+      if(!state.publicView){const actions=document.createElement("div");actions.className="selected-card-mini-actions";const minus=document.createElement("button");minus.type="button";minus.className="selected-card-quantity-button";minus.textContent="−";minus.onclick=e=>{e.preventDefault();e.stopPropagation();void changeQty(card.itemId,-1,pile);};const plus=document.createElement("button");plus.type="button";plus.className="selected-card-quantity-button selected-card-quantity-add";plus.textContent="＋";plus.onclick=e=>{e.preventDefault();e.stopPropagation();void addCard(item,pile);};actions.append(minus,plus);mini.append(actions);}
       strip.append(mini);
     });
-    renderBuilderCards();
   }
-  function renderBuilderCards() {
-    applySharedIconColumns(window.appState?.currentIconColumns, false);
-    if (state.publicView) { $("builder-card-list").replaceChildren(); $("builder-load-more").hidden = true; return; }
-    const source = state.pile === "territory"
-      ? (window.appState?.allTerritories || [])
-      : (window.appState?.allCards || []);
-    const result = window.searchCards
-      ? (window.searchCards({
-          data: source,
-          keywordInputId: "builder-search",
-          sortSelectId: "builder-sort-select",
-          builderInternal: true
-        }) || [])
-      : source;
-    const list = $("builder-card-list"); list.classList.toggle("compact", state.compact); list.replaceChildren();
-    if (!result.length) { $("builder-load-more").hidden = true; list.innerHTML = `<div class="empty-state">該当するカードがありません。</div>`; return; }
-    const visible = result.slice(0, state.cardLimit);
-    const activeCards = pileCards(state.deck);
-    const itemKeyForCard = card => {
-      const raw = String(card.itemId || "");
-      if (raw.startsWith("card:") || raw.startsWith("territory:")) return raw;
-      return `${state.pile === "territory" ? "territory" : "card"}:${raw}`;
-    };
-    const selected = new Map(activeCards.map(card => [itemKeyForCard(card), card]));
-
-    visible.forEach(item => {
-      const territory = (window.appState?.allTerritories || []).includes(item) || Boolean(item.territory_id);
-      const id = territory ? `territory:${item.territory_id}` : `card:${item.card_id}`;
-      const name = cardName(item);
-      const selectedCard = selected.get(String(id));
-      const quantity = Number(selectedCard?.quantity || 0);
-      const tile = document.createElement("div");
-      tile.className = "builder-card";
-
-      const detailButton = document.createElement("button");
-      detailButton.type = "button";
-      detailButton.className = "builder-card-detail";
-      detailButton.title = `${name}の詳細を表示`;
-      detailButton.setAttribute("aria-label", `${name}の詳細を表示`);
-      detailButton.innerHTML = `${item.image_url ? `<img loading="lazy" src="${escapeHTML(item.image_url)}" alt="">` : `<div class="no-card-image">${escapeHTML(name)}</div>`}<div class="builder-card-name">${escapeHTML(name)}</div>`;
-      detailButton.addEventListener("click", () => {
-        state.pendingCard = item;
-        if (typeof window.showCardDetail === "function") {
-          window.showCardDetail(item, { deckBuilder: !state.publicView });
-        }
-      });
-
-      if (quantity > 0) {
-        const quantityMark = document.createElement("span");
-        quantityMark.className = "quantity-mark";
-        quantityMark.textContent = `×${quantity}`;
-        if (state.pile === "territory") {
-          const limits = territoryLimitStatus(state.deck);
-          const species = String(item?.species || "");
-          const isBasic = species.split(/[,、|｜]/).map(value => value.trim()).includes("基礎");
-          const sameNameCount = limits.countsByName.get(String(item?.territory_name || name).trim().toLocaleLowerCase("ja-JP"))?.quantity || 0;
-          if (!isBasic && sameNameCount >= 4) {
-            quantityMark.classList.toggle("over-limit", sameNameCount > 4);
-            quantityMark.classList.toggle("limit-reached", sameNameCount === 4);
-            quantityMark.title = "種属が「基礎」以外の同名領土カード：最大4枚";
-          }
-        }
-        tile.append(quantityMark);
-      }
-
-      const actions = document.createElement("div");
-      actions.className = "builder-card-actions";
-
-      const removeButton = document.createElement("button");
-      removeButton.type = "button";
-      removeButton.className = "builder-card-remove";
-      removeButton.textContent = "−";
-      removeButton.title = quantity > 0 ? `${name}を1枚減らす` : "デッキに入っていません";
-      removeButton.setAttribute("aria-label", `${name}を1枚減らす`);
-      removeButton.disabled = !selectedCard || state.publicView;
-      removeButton.addEventListener("click", event => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (selectedCard && !state.publicView) changeQty(selectedCard.itemId, -1);
-      });
-
-      const addButton = document.createElement("button");
-      addButton.type = "button";
-      addButton.className = "builder-card-add";
-      addButton.textContent = "＋";
-      addButton.title = `${name}をデッキに1枚追加`;
-      addButton.setAttribute("aria-label", `${name}をデッキに1枚追加`);
-      addButton.disabled = state.publicView || !canAddCurrentTerritoryItem(item);
-      const limitMessage = territoryAddLimitMessage(item);
-      if (limitMessage) addButton.title = limitMessage;
-      addButton.addEventListener("click", event => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!state.publicView) addCard(item);
-      });
-
-      actions.append(removeButton, addButton);
-      tile.append(detailButton, actions);
-      list.append(tile);
+  function attachPileDropZone(strip,pile){
+    if(strip.dataset.dropReady==="true")return; strip.dataset.dropReady="true";
+    strip.addEventListener("dragover",e=>{if(state.publicView||state.dragItemId==null)return;e.preventDefault();strip.classList.add("is-drag-target");});
+    strip.addEventListener("dragleave",e=>{if(!strip.contains(e.relatedTarget))strip.classList.remove("is-drag-target");});
+    strip.addEventListener("drop",e=>{if(state.publicView||state.dragItemId==null)return;e.preventDefault();strip.classList.remove("is-drag-target");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null)return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,null,pile):void moveCardBetweenPiles(id,src,pile,null);});
+  }
+  function renderBuilderCards(){
+    applySharedIconColumns(window.appState?.currentIconColumns,false); if(state.publicView){$("builder-card-list").replaceChildren();$("builder-load-more").hidden=true;return;}
+    const source=state.pile==="territory"?(window.appState?.allTerritories||[]):(window.appState?.allCards||[]);
+    const result=window.searchCards?(window.searchCards({data:source,keywordInputId:"builder-search",sortSelectId:"builder-sort-select",builderInternal:true})||[]):source;
+    const list=$("builder-card-list");list.classList.toggle("compact",state.compact);list.replaceChildren();if(!result.length){$("builder-load-more").hidden=true;list.innerHTML='<div class="empty-state">該当するカードがありません。</div>';return;}
+    const visible=result.slice(0,state.cardLimit),active=pileCards(state.deck),key=c=>{const raw=String(c.itemId||"");return raw.startsWith("card:")||raw.startsWith("territory:")?raw:(state.pile==="territory"?"territory:":"card:")+raw;},selected=new Map(active.map(c=>[key(c),c]));
+    visible.forEach(item=>{const territory=(window.appState?.allTerritories||[]).includes(item)||Boolean(item.territory_id),id=territory?"territory:"+item.territory_id:"card:"+item.card_id,name=cardName(item),sc=selected.get(id),qty=Number(sc?.quantity||0),tile=document.createElement("div");tile.className="builder-card";
+      const detail=document.createElement("button");detail.type="button";detail.className="builder-card-detail";detail.title=name+"の詳細を表示";detail.innerHTML=item.image_url?'<img loading="lazy" src="'+escapeHTML(item.image_url)+'" alt="">':'<div class="no-card-image">'+escapeHTML(name)+'</div>';detail.innerHTML+='<div class="builder-card-name">'+escapeHTML(name)+'</div>';detail.onclick=()=>{state.pendingCard=item;if(typeof window.showCardDetail==="function")window.showCardDetail(item,{deckBuilder:!state.publicView});};tile.append(detail);
+      if(qty>0){const mark=document.createElement("span");mark.className="quantity-mark";mark.textContent="×"+qty;tile.append(mark);}
+      const actions=document.createElement("div");actions.className="builder-card-actions";const remove=document.createElement("button");remove.type="button";remove.className="builder-card-remove";remove.textContent="−";remove.disabled=!sc||state.publicView;remove.onclick=e=>{e.preventDefault();e.stopPropagation();if(sc)void changeQty(sc.itemId,-1,state.pile);};
+      const add=document.createElement("button");add.type="button";add.className="builder-card-add";add.textContent="＋";add.title=name+"をデッキに1枚追加";add.disabled=state.publicView||!canAddCurrentTerritoryItem(item);attachAddChoice(add,item);actions.append(remove,add);tile.append(actions);list.append(tile);
     });
-    $("builder-load-more").hidden = result.length <= state.cardLimit;
-    $("builder-load-more").textContent = `さらに表示（残り ${result.length - state.cardLimit} 件）`;
+    $("builder-load-more").hidden=result.length<=state.cardLimit;$("builder-load-more").textContent="さらに表示（残り "+Math.max(0,result.length-state.cardLimit)+" 件）";
   }
   window.animalDeckBuilderSearch = () => {
     if (state.screen === "builder") renderBuilderCards();
   };
 
+  function attachAddChoice(addButton,item){
+    let timer=null,longPressed=false;
+    const cancel=()=>{if(timer)clearTimeout(timer);timer=null;};
+    const open=event=>{if(!item||state.publicView)return;event?.preventDefault?.();event?.stopPropagation?.();longPressed=true;const menu=document.createElement("div");menu.className="builder-add-choice-popover";menu.setAttribute("role","menu");
+      const close=()=>{menu.remove();document.removeEventListener("pointerdown",outside,true);};[["メインデッキに追加","main"],["予備デッキに追加","reserve"]].forEach(([label,pile])=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.onclick=e=>{e.preventDefault();e.stopPropagation();close();void addCardToPile(item,pile);};menu.append(b);});
+      document.body.append(menu);const r=addButton.getBoundingClientRect(),w=Math.min(220,window.innerWidth-20);menu.style.width=w+"px";menu.style.left=Math.max(10,Math.min(window.innerWidth-w-10,r.left+r.width/2-w/2))+"px";menu.style.top=Math.min(window.innerHeight-menu.offsetHeight-10,r.bottom+6)+"px";const outside=e=>{if(!menu.contains(e.target)&&e.target!==addButton)close();};setTimeout(()=>document.addEventListener("pointerdown",outside,true),0);
+    };
+    addButton.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;longPressed=false;cancel();timer=setTimeout(()=>open(e),550);});addButton.addEventListener("pointerup",cancel);addButton.addEventListener("pointercancel",cancel);addButton.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")cancel;});
+    addButton.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(longPressed){longPressed=false;return;}void addCard(item);});
+  }
   async function addCardToPile(item, pile) {
     if (state.publicView || !item || !["main", "reserve"].includes(pile)) return;
     try {
@@ -743,30 +465,11 @@
       alert(error.message || "カードの順番を変更できませんでした。");
     }
   }
-  async function moveCardTo(itemId, targetItemId, pile = state.pile) {
-    if (state.publicView) return;
-    try {
-      const field = pile === "territory" ? "territoryCards" : pile === "reserve" ? "reserveCards" : "cards";
-      const cards = [...(state.deck?.[field] || [])];
-      const fromIndex = cards.findIndex(card => String(card.itemId) === String(itemId));
-      const targetIndex = targetItemId == null
-        ? cards.length
-        : cards.findIndex(card => String(card.itemId) === String(targetItemId));
-      if (fromIndex < 0 || targetIndex < 0 || targetIndex > cards.length) return;
-      if (targetItemId == null && fromIndex === cards.length - 1) return;
-
-      const [moving] = cards.splice(fromIndex, 1);
-      const insertIndex = targetItemId == null ? cards.length : (fromIndex < targetIndex ? targetIndex - 1 : targetIndex);
-      cards.splice(insertIndex, 0, moving);
-      state.deck = await app().saveCards(cards, pile);
-      renderBuilder();
-    } catch (error) {
-      alert(error.message || "カードの順番を変更できませんでした。");
-    } finally {
-      state.dragItemId = null;
-      state.dragPile = null;
-      document.querySelectorAll(".is-dragging, .is-drag-over").forEach(element => element.classList.remove("is-dragging", "is-drag-over"));
-    }
+  async function moveCardTo(itemId,targetItemId,pile=state.pile){
+    if(state.publicView)return;try{const field=pile==="territory"?"territoryCards":pile==="reserve"?"reserveCards":"cards",cards=[...(state.deck?.[field]||[])],from=cards.findIndex(c=>String(c.itemId)===String(itemId));if(from<0)return;const ti=targetItemId==null?cards.length:cards.findIndex(c=>String(c.itemId)===String(targetItemId));if(targetItemId!=null&&ti<0)return;const [moving]=cards.splice(from,1);cards.splice(targetItemId==null?cards.length:(from<ti?ti-1:ti),0,moving);state.deck=await app().saveCards(cards,pile);renderBuilder();}catch(e){alert(e.message||"カードの順番を変更できませんでした。")}finally{state.dragItemId=null;state.dragPile=null;}
+  }
+  async function moveCardBetweenPiles(itemId,sourcePile,targetPile,targetItemId=null){
+    if(state.publicView||sourcePile===targetPile)return;try{const sf=sourcePile==="reserve"?"reserveCards":"cards",tf=targetPile==="reserve"?"reserveCards":"cards",source=[...(state.deck?.[sf]||[])],target=[...(state.deck?.[tf]||[])],from=source.findIndex(c=>String(c.itemId)===String(itemId));if(from<0)return;const moving=source[from],qty=Math.max(1,Number(moving.quantity)||1),total=target.reduce((a,c)=>a+Math.max(1,Number(c.quantity)||1),0),existing=target.find(c=>String(c.itemId)===String(moving.itemId));if(targetPile==="reserve"&&!existing&&total+qty>15)throw new Error("予備デッキは合計15枚までです。");source.splice(from,1);if(existing)existing.quantity=Math.min(99,Math.max(1,Number(existing.quantity)||1)+qty);else{const copy={...moving};const ti=targetItemId==null?-1:target.findIndex(c=>String(c.itemId)===String(targetItemId));target.splice(ti<0?target.length:ti,0,copy);}state.deck=await app().moveCardBetweenPiles(source,sourcePile,target,targetPile);renderBuilder();}catch(e){alert(e.message||"カードを移動できませんでした。")}finally{state.dragItemId=null;state.dragPile=null;}
   }
 
   function expandedPhysicalCards(cards) {
@@ -1784,7 +1487,7 @@
         ["google-signin-button", "email-signin-button", "email-signup-button"].forEach(id => { const button = $(id); if (button) button.disabled = true; });
       }
     });
-    $("new-deck-open-button").addEventListener("click", () => { if (!app()?.isSignedIn()) { $("menu-panel").hidden = false; openModal("account-modal"); if (location.protocol === "file:") { $("local-auth-notice").hidden = false; ["google-signin-button", "email-signin-button", "email-signup-button"].forEach(id => { const button = $(id); if (button) button.disabled = true; }); } return; } $("new-deck-panel").hidden = false; $("new-deck-screen-name").focus(); });
+    $("new-deck-open-button").addEventListener("click", async () => { if (!app()?.isSignedIn()) { $("menu-panel").hidden = false; openModal("account-modal"); return; } try { state.deck = await app().create("新しいデッキ"); state.publicView = false; $("new-deck-panel").hidden = true; setScreen("builder"); $("builder-deck-name").focus(); $("builder-deck-name").select(); } catch (error) { setStatus(error.message || "デッキを作成できませんでした。"); } });
     $("new-deck-cancel-button").addEventListener("click", () => { $("new-deck-panel").hidden = true; });
     $("new-deck-panel").addEventListener("submit", async event => { event.preventDefault(); try { state.deck = await app().create($("new-deck-screen-name").value); state.publicView = false; $("new-deck-screen-name").value = ""; $("new-deck-panel").hidden = true; setScreen("builder"); } catch (error) { setStatus(error.message || "デッキを作成できませんでした。"); } });
     $("deck-tags-open-button").addEventListener("click", async () => { $("menu-panel").hidden = true; openModal("deck-tags-modal"); await refreshTagOptions(); });
