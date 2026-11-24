@@ -568,7 +568,7 @@
     if (state.publicView || !state.deck || !sortValue) return;
     state.deckSort = "source";
     try {
-      const sorted = sortDeckCards(pileCards(state.deck, state.pile), state.deckSort);
+      const sorted = sortDeckCards(pileCards(state.deck, state.pile), sortValue);
       state.deck = await app().saveCards(sorted, state.pile);
       renderBuilder();
     } catch (error) {
