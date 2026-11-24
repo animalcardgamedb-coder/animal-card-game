@@ -409,7 +409,7 @@
       const close=()=>{menu.remove();document.removeEventListener("pointerdown",outside,true);};[["メインデッキに追加","main"],["予備デッキに追加","reserve"]].forEach(([label,pile])=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.onclick=e=>{e.preventDefault();e.stopPropagation();close();void addCardToPile(item,pile);};menu.append(b);});
       document.body.append(menu);const r=addButton.getBoundingClientRect(),w=Math.min(220,window.innerWidth-20);menu.style.width=w+"px";menu.style.left=Math.max(10,Math.min(window.innerWidth-w-10,r.left+r.width/2-w/2))+"px";menu.style.top=Math.min(window.innerHeight-menu.offsetHeight-10,r.bottom+6)+"px";const outside=e=>{if(!menu.contains(e.target)&&e.target!==addButton)close();};setTimeout(()=>document.addEventListener("pointerdown",outside,true),0);
     };
-    addButton.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;longPressed=false;cancel();timer=setTimeout(()=>open(e),550);});addButton.addEventListener("pointerup",cancel);addButton.addEventListener("pointercancel",cancel);addButton.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")cancel;});
+    addButton.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;longPressed=false;cancel();timer=setTimeout(()=>open(e),550);});addButton.addEventListener("pointerup",cancel);addButton.addEventListener("pointercancel",cancel);addButton.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")cancel();});
     addButton.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(longPressed){longPressed=false;return;}void addCard(item);});
   }
   async function addCardToPile(item, pile) {
