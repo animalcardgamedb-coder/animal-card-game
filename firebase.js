@@ -793,6 +793,15 @@ window.animalDeckApp = {
   canAddTerritoryCard(item) {
     return canAddTerritoryCardToList(item, selectedDeck?.territoryCards || []);
   },
+  async moveCardBetweenPiles(sourceCards, sourcePile, targetCards, targetPile) {
+    if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
+    const sf=sourcePile==="reserve"?"reserveCards":sourcePile==="territory"?"territoryCards":"cards";
+    const tf=targetPile==="reserve"?"reserveCards":targetPile==="territory"?"territoryCards":"cards";
+    if(sf===tf)return this.saveCards(sourceCards,sourcePile);
+    if(targetPile==="reserve"&&targetCards.reduce((a,c)=>a+Math.max(1,Number(c?.quantity)||1),0)>15)throw new Error("予備デッキは合計15枚までです。");
+    await updateDoc(doc(db,"decks",selectedDeckId),{[sf]:sourceCards,[tf]:targetCards,updatedAt:serverTimestamp()});
+    invalidatePublicDeckCache();selectedDeck={...selectedDeck,[sf]:sourceCards,[tf]:targetCards};return this.current();
+  },
   async saveCards(cards, pile = "main") {
     if (!signedInUser || !selectedDeckId || !selectedDeck) throw new Error("ログインしてデッキを選択してください。");
     if (!Array.isArray(cards) || cards.length > 200) throw new Error("デッキに登録できる種類数の上限を超えています。");
