@@ -4,7 +4,7 @@
   const DECK_DRAFT_STORAGE_KEY = "animalDeckBuilderSettingsDraft:v1";
   const GLOSSARY_STORAGE_KEY = "animalDeckGlossaryCache:v1";
   const GLOSSARY_CACHE_TTL_MS = 5 * 60 * 1000;
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, dragSearchItem: null, dragKind: null, ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, glossaryLoadPromise: null, editingGlossaryId: null, drawMain: [], drawTerritory: [] };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, dragSearchItem: null, dragKind: null, deckSort: "source", ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, glossaryLoadPromise: null, editingGlossaryId: null, drawMain: [], drawTerritory: [] };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
   const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
@@ -361,6 +361,8 @@
     $("selected-cards-strip").hidden=false;
     const selectedCards = pileCards(deck, state.pile);
     renderPileStrip($("selected-cards-strip"), selectedCards, state.pile);
+    const deckOrderSelect = $("deck-order-select");
+    if (deckOrderSelect) deckOrderSelect.value = state.deckSort || "source";
     const selectedCount = selectedCards.reduce((a,c)=>a+Number(c.quantity||1),0);
     $("selected-pile-count").textContent=(state.pile==="territory"?"領土デッキ：":state.pile==="reserve"?"予備デッキ：":"メインデッキ：")+selectedCount+"枚";
     if(!state.publicView)renderBuilderCards();
@@ -383,9 +385,46 @@
   }
   function attachPileDropZone(strip,pile){
     if(strip.dataset.dropReady==="true")return; strip.dataset.dropReady="true";
-    strip.addEventListener("dragover",e=>{if(state.publicView||state.dragKind!=="deck"||state.dragItemId==null)return;e.preventDefault();strip.classList.add("is-drag-target");});
+    const canAcceptSearchItem = item => {
+      if (!item) return false;
+      const isTerritory = Boolean(item.territory_id);
+      return isTerritory ? pile === "territory" : ["main", "reserve"].includes(pile);
+    };
+    const canAcceptDeckItem = () => {
+      if (state.dragItemId == null) return false;
+      const src = state.dragPile || state.pile;
+      return src === pile || (["main", "reserve"].includes(src) && ["main", "reserve"].includes(pile));
+    };
+    const updateHighlight = e => {
+      if (state.publicView) return;
+      let valid = false;
+      if (state.dragKind === "search") valid = canAcceptSearchItem(state.dragSearchItem);
+      else if (state.dragKind === "deck") valid = canAcceptDeckItem();
+      if (!valid) return;
+      e.preventDefault();
+      strip.classList.add("is-drag-target");
+    };
+    strip.addEventListener("dragenter", updateHighlight);
+    strip.addEventListener("dragover", updateHighlight);
     strip.addEventListener("dragleave",e=>{if(!strip.contains(e.relatedTarget))strip.classList.remove("is-drag-target");});
-    strip.addEventListener("drop",e=>{if(state.publicView||state.dragKind!=="deck"||state.dragItemId==null)return;e.preventDefault();strip.classList.remove("is-drag-target");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null)return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,null,pile):void moveCardBetweenPiles(id,src,pile,null);});
+    strip.addEventListener("drop",e=>{
+      if (state.publicView) return;
+      if (state.dragKind === "search" && canAcceptSearchItem(state.dragSearchItem)) {
+        e.preventDefault();
+        strip.classList.remove("is-drag-target");
+        state.ignoreRemoveUntil=Date.now()+500;
+        void addCardToPile(state.dragSearchItem,pile);
+        return;
+      }
+      if (state.dragKind === "deck" && canAcceptDeckItem()) {
+        e.preventDefault();
+        strip.classList.remove("is-drag-target");
+        const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;
+        if(id==null)return;
+        state.ignoreRemoveUntil=Date.now()+500;
+        src===pile?void moveCardTo(id,null,pile):void moveCardBetweenPiles(id,src,pile,null);
+      }
+    });
   }
   function renderBuilderCards(){
     applySharedIconColumns(window.appState?.currentIconColumns,false); if(state.publicView){$("builder-card-list").replaceChildren();$("builder-load-more").hidden=true;return;}
@@ -416,13 +455,22 @@
     addButton.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(longPressed){longPressed=false;return;}void addCard(item);});
   }
   async function addCardToPile(item, pile) {
-    if (state.publicView || !item || !["main", "reserve"].includes(pile)) return;
+    if (state.publicView || !item || !["main", "territory", "reserve"].includes(pile)) return;
     try {
+      const isTerritory = Boolean(item.territory_id);
+      if (isTerritory !== (pile === "territory")) return;
       if (pile === "reserve") {
         const total = reserveCards(state.deck).reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
         const existing = reserveCards(state.deck).find(card => String(card.itemId) === String(item.card_id ?? item.territory_id));
         if (total + (existing ? 0 : 1) > 15) {
           alert("予備デッキは合計15枚までです。");
+          return;
+        }
+      }
+      if (pile === "territory") {
+        const limitMessage = territoryAddLimitMessage(item);
+        if (limitMessage) {
+          alert(limitMessage);
           return;
         }
       }
@@ -473,6 +521,55 @@
   }
   async function moveCardBetweenPiles(itemId,sourcePile,targetPile,targetItemId=null){
     if(state.publicView||sourcePile===targetPile)return;try{const sf=sourcePile==="reserve"?"reserveCards":"cards",tf=targetPile==="reserve"?"reserveCards":"cards",source=[...(state.deck?.[sf]||[])],target=[...(state.deck?.[tf]||[])],from=source.findIndex(c=>String(c.itemId)===String(itemId));if(from<0)return;const moving=source[from],qty=Math.max(1,Number(moving.quantity)||1),total=target.reduce((a,c)=>a+Math.max(1,Number(c.quantity)||1),0),existing=target.find(c=>String(c.itemId)===String(moving.itemId));if(targetPile==="reserve"&&!existing&&total+qty>15)throw new Error("予備デッキは合計15枚までです。");source.splice(from,1);if(existing)existing.quantity=Math.min(99,Math.max(1,Number(existing.quantity)||1)+qty);else{const copy={...moving};const ti=targetItemId==null?-1:target.findIndex(c=>String(c.itemId)===String(targetItemId));target.splice(ti<0?target.length:ti,0,copy);}state.deck=await app().moveCardBetweenPiles(source,sourcePile,target,targetPile);renderBuilder();}catch(e){alert(e.message||"カードを移動できませんでした。")}finally{state.dragItemId=null;state.dragPile=null;}
+  }
+
+  function sortDeckCards(cards, sortValue) {
+    if (!sortValue || sortValue === "source") return [...cards];
+    const [field, direction] = String(sortValue).split("-");
+    const descending = direction === "desc";
+    const valueFor = card => {
+      const item = byItemId(card.itemId) || {};
+      switch (field) {
+        case "id": return item.card_id ?? item.territory_id ?? card.itemId ?? "";
+        case "name": return cardName(item);
+        case "type": return item.card_type ?? item.territory_type ?? "";
+        case "species": return item.species ?? card.species ?? "";
+        case "cost": return item.cost;
+        case "atk": return item.atk;
+        case "def": return item.def;
+        default: return "";
+      }
+    };
+    return cards.map((card,index)=>({card,index})).sort((a,b)=>{
+      const first=valueFor(a.card), second=valueFor(b.card);
+      let comparison=0;
+      if (["cost","atk","def"].includes(field)) {
+        const firstMissing=first===""||first==null||!Number.isFinite(Number(first));
+        const secondMissing=second===""||second==null||!Number.isFinite(Number(second));
+        if (firstMissing||secondMissing) comparison=firstMissing===secondMissing?0:(firstMissing?1:-1);
+        else comparison=Number(first)-Number(second);
+      } else {
+        comparison=String(first).localeCompare(String(second),"ja",{numeric:true,sensitivity:"base"});
+      }
+      if (comparison===0) comparison=a.index-b.index;
+      return descending?-comparison:comparison;
+    }).map(entry=>entry.card);
+  }
+
+  async function sortCurrentDeckPile(sortValue) {
+    if (state.publicView || !state.deck) return;
+    state.deckSort = sortValue || "source";
+    if (state.deckSort === "source") {
+      renderBuilder();
+      return;
+    }
+    try {
+      const sorted = sortDeckCards(pileCards(state.deck, state.pile), state.deckSort);
+      state.deck = await app().saveCards(sorted, state.pile);
+      renderBuilder();
+    } catch (error) {
+      alert(error.message || "デッキの並び順を変更できませんでした。");
+    }
   }
 
   function expandedPhysicalCards(cards) {
@@ -1566,13 +1663,44 @@
     $("reserve-pile-tab").addEventListener("click", () => setBuilderPile("reserve"));
     [["main-pile-tab","main"],["territory-pile-tab","territory"],["reserve-pile-tab","reserve"]].forEach(([id,pile]) => {
       const tab=$(id); if(!tab) return;
-      tab.addEventListener("dragover",e=>{if(state.publicView||!state.dragKind)return;if(state.dragKind==="deck"&&state.dragItemId!=null){e.preventDefault();tab.classList.add("is-drag-target");}else if(state.dragKind==="search"&&state.dragSearchItem){const isTerritory=Boolean(state.dragSearchItem.territory_id);if(isTerritory===(pile==="territory")){e.preventDefault();tab.classList.add("is-drag-target");}}});
-      tab.addEventListener("dragleave",()=>tab.classList.remove("is-drag-target"));
-      tab.addEventListener("drop",e=>{if(state.publicView)return;e.preventDefault();tab.classList.remove("is-drag-target");
-        if(state.dragKind==="search"&&state.dragSearchItem){const item=state.dragSearchItem;const isTerritory=Boolean(item.territory_id);if(isTerritory!==(pile==="territory"))return;state.ignoreRemoveUntil=Date.now()+500;void addCardToPile(item,pile);return;}
-        if(state.dragKind==="deck"&&state.dragItemId!=null){const src=state.dragPile||state.pile;const id=state.dragItemId;if(src===pile)return;state.ignoreRemoveUntil=Date.now()+500;void moveCardBetweenPiles(id,src,pile,null);}
+      const canAccept = () => {
+        if (!state.dragKind) return false;
+        if (state.dragKind === "search" && state.dragSearchItem) {
+          const isTerritory = Boolean(state.dragSearchItem.territory_id);
+          return isTerritory ? pile === "territory" : ["main","reserve"].includes(pile);
+        }
+        if (state.dragKind === "deck" && state.dragItemId != null) {
+          const src = state.dragPile || state.pile;
+          return src === pile || (["main","reserve"].includes(src) && ["main","reserve"].includes(pile));
+        }
+        return false;
+      };
+      const highlight = e => {
+        if (state.publicView || !canAccept()) return;
+        e.preventDefault();
+        tab.classList.add("is-drag-target");
+      };
+      tab.addEventListener("dragenter",highlight);
+      tab.addEventListener("dragover",highlight);
+      tab.addEventListener("dragleave",e=>{if(!tab.contains(e.relatedTarget))tab.classList.remove("is-drag-target");});
+      tab.addEventListener("drop",e=>{
+        if (state.publicView || !canAccept()) return;
+        e.preventDefault();
+        tab.classList.remove("is-drag-target");
+        if(state.dragKind==="search"&&state.dragSearchItem){
+          state.ignoreRemoveUntil=Date.now()+500;
+          void addCardToPile(state.dragSearchItem,pile);
+          return;
+        }
+        if(state.dragKind==="deck"&&state.dragItemId!=null){
+          const src=state.dragPile||state.pile,id=state.dragItemId;
+          if(src===pile)return;
+          state.ignoreRemoveUntil=Date.now()+500;
+          void moveCardBetweenPiles(id,src,pile,null);
+        }
       });
     });
+    $("deck-order-select").addEventListener("change", () => { void sortCurrentDeckPile($("deck-order-select").value); });
     $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
     $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
     $("builder-apply-tags-button").addEventListener("click", () => {
