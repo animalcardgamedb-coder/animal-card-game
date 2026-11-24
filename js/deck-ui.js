@@ -1704,6 +1704,28 @@
       });
     });
     $("deck-order-select").addEventListener("change", () => { void sortCurrentDeckPile($("deck-order-select").value); });
+    // Keep deck tabs responsive even when the dragged element is a nested child.
+    document.addEventListener("dragover", event => {
+      const tab = event.target?.closest?.(".deck-pile-tabs button");
+      if (!tab || state.publicView || !state.dragKind) return;
+      const pile = tab.id === "main-pile-tab" ? "main" : tab.id === "territory-pile-tab" ? "territory" : tab.id === "reserve-pile-tab" ? "reserve" : null;
+      if (!pile) return;
+      let valid = false;
+      if (state.dragKind === "search" && state.dragSearchItem) {
+        valid = Boolean(state.dragSearchItem.territory_id) ? pile === "territory" : ["main","reserve"].includes(pile);
+      } else if (state.dragKind === "deck" && state.dragItemId != null) {
+        const source = state.dragPile || state.pile;
+        valid = source === pile || (["main","reserve"].includes(source) && ["main","reserve"].includes(pile));
+      }
+      if (valid) { event.preventDefault(); document.querySelectorAll(".deck-pile-tabs button.is-drag-target").forEach(el => { if (el !== tab) el.classList.remove("is-drag-target"); }); tab.classList.add("is-drag-target"); }
+    });
+    document.addEventListener("drop", event => {
+      const tab = event.target?.closest?.(".deck-pile-tabs button");
+      if (!tab || state.publicView || !state.dragKind) return;
+      const pile = tab.id === "main-pile-tab" ? "main" : tab.id === "territory-pile-tab" ? "territory" : tab.id === "reserve-pile-tab" ? "reserve" : null;
+      if (!pile) return;
+      tab.classList.remove("is-drag-target");
+    });
     $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
     $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
     $("builder-apply-tags-button").addEventListener("click", () => {
