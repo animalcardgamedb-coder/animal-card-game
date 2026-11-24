@@ -4,7 +4,7 @@
   const DECK_DRAFT_STORAGE_KEY = "animalDeckBuilderSettingsDraft:v1";
   const GLOSSARY_STORAGE_KEY = "animalDeckGlossaryCache:v1";
   const GLOSSARY_CACHE_TTL_MS = 5 * 60 * 1000;
-  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, glossaryLoadPromise: null, editingGlossaryId: null, drawMain: [], drawTerritory: [] };
+  const state = { screen: "search", tab: "mine", decks: [], deck: null, builderQuery: "", publicView: false, previewText: false, compact: false, addItem: null, pendingCard: null, cardLimit: 120, pile: "main", registeredTags: [], normalFilterState: null, builderFilterState: null, dragItemId: null, dragPile: null, dragSearchItem: null, dragKind: null, ignoreRemoveUntil: 0, glossary: [], glossaryLoadedAt: 0, glossaryLoadPromise: null, editingGlossaryId: null, drawMain: [], drawTerritory: [] };
   const app = () => window.animalDeckApp;
   const ICON_COLUMNS_STORAGE_KEY = "animalCardGame.iconColumns";
   const clampIconColumns = value => Math.max(1, Math.min(12, Math.trunc(Number(value) || 5)));
@@ -355,11 +355,14 @@
     $("public-deck-readonly-note").hidden=!state.publicView; $("builder-tools").hidden=state.publicView; $("builder-card-list").hidden=state.publicView; $("builder-load-more").hidden=true;
     const typeCounts={}; allPileCards(deck).forEach(card=>{const item=byItemId(card.itemId),type=item?.card_type||item?.territory_type||"その他";typeCounts[type]=(typeCounts[type]||0)+Number(card.quantity||1);});
     $("deck-type-stats").innerHTML=Object.entries(typeCounts).map(([type,n])=>`<span class="stat-chip">${escapeHTML(type)}<strong>${n}</strong></span>`).join("");
-    const territory=state.pile==="territory"; $("builder-main-reserve-zones").hidden=territory; $("selected-cards-strip").hidden=!territory;
-    if(territory){renderPileStrip($("selected-cards-strip"),territoryCards(deck),"territory"); $("selected-pile-count").textContent="領土デッキ："+territoryCards(deck).reduce((a,c)=>a+Number(c.quantity||1),0)+"枚";}
-    else {renderPileStrip($("main-selected-cards-strip"),deckCards(deck),"main"); renderPileStrip($("reserve-selected-cards-strip"),reserveCards(deck),"reserve"); $("selected-pile-count").textContent="メイン・予備デッキを編集";}
-    const mainTotal=deckCards(deck).reduce((a,c)=>a+Number(c.quantity||1),0),reserveTotal=reserveCards(deck).reduce((a,c)=>a+Number(c.quantity||1),0);
-    $("main-pile-zone-count").textContent=mainTotal+"枚"; $("reserve-pile-zone-count").textContent=reserveTotal+"/15枚"; $("reserve-pile-zone-count").classList.toggle("limit-reached",reserveTotal>=15); $("reserve-pile-zone-count").classList.toggle("over-limit",reserveTotal>15);
+    $("builder-main-reserve-zones").hidden=true;
+    $("main-selected-cards-strip").hidden=true;
+    $("reserve-selected-cards-strip").hidden=true;
+    $("selected-cards-strip").hidden=false;
+    const selectedCards = pileCards(deck, state.pile);
+    renderPileStrip($("selected-cards-strip"), selectedCards, state.pile);
+    const selectedCount = selectedCards.reduce((a,c)=>a+Number(c.quantity||1),0);
+    $("selected-pile-count").textContent=(state.pile==="territory"?"領土デッキ：":state.pile==="reserve"?"予備デッキ：":"メインデッキ：")+selectedCount+"枚";
     if(!state.publicView)renderBuilderCards();
   }
   function renderPileStrip(strip,cards,pile){
@@ -367,11 +370,11 @@
     if(!cards.length){strip.innerHTML='<div class="empty-state">このデッキにはまだカードがありません。</div>';return;}
     cards.forEach(card=>{
       const item=byItemId(card.itemId),mini=document.createElement("div"); mini.className="selected-card-mini"; mini.draggable=!state.publicView; mini.dataset.itemId=String(card.itemId); mini.dataset.pile=pile;
-      mini.addEventListener("dragstart",e=>{state.dragItemId=String(card.itemId);state.dragPile=pile;mini.classList.add("is-dragging");e.dataTransfer?.setData("text/plain",String(card.itemId));if(e.dataTransfer)e.dataTransfer.effectAllowed="move";});
-      mini.addEventListener("dragover",e=>{if(state.publicView||state.dragItemId==null||String(state.dragItemId)===String(card.itemId))return;e.preventDefault();mini.classList.add("is-drag-over");});
+      mini.addEventListener("dragstart",e=>{state.dragItemId=String(card.itemId);state.dragPile=pile;state.dragSearchItem=null;state.dragKind="deck";mini.classList.add("is-dragging");e.dataTransfer?.setData("text/plain",String(card.itemId));if(e.dataTransfer)e.dataTransfer.effectAllowed="move";});
+      mini.addEventListener("dragover",e=>{if(state.publicView||state.dragKind!=="deck"||state.dragItemId==null||String(state.dragItemId)===String(card.itemId))return;e.preventDefault();mini.classList.add("is-drag-over");});
       mini.addEventListener("dragleave",()=>mini.classList.remove("is-drag-over"));
       mini.addEventListener("drop",e=>{if(state.publicView)return;e.preventDefault();mini.classList.remove("is-drag-over");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null||String(id)===String(card.itemId))return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,card.itemId,pile):void moveCardBetweenPiles(id,src,pile,card.itemId);});
-      mini.addEventListener("dragend",()=>{state.dragItemId=null;state.dragPile=null;document.querySelectorAll(".is-dragging,.is-drag-over,.is-drag-target").forEach(el=>el.classList.remove("is-dragging","is-drag-over","is-drag-target"));});
+      mini.addEventListener("dragend",()=>{state.dragItemId=null;state.dragPile=null;state.dragSearchItem=null;state.dragKind=null;document.querySelectorAll(".is-dragging,.is-drag-over,.is-drag-target").forEach(el=>el.classList.remove("is-dragging","is-drag-over","is-drag-target"));});
       const image=document.createElement("button");image.type="button";image.className="selected-card-mini-image";image.innerHTML=item?.image_url?'<img src="'+escapeHTML(item.image_url)+'" alt="'+escapeHTML(card.name)+'">':'<span class="mini-empty">'+escapeHTML(card.name)+'</span>';image.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(Date.now()<state.ignoreRemoveUntil||!item)return;state.pendingCard=item;if(typeof window.showCardDetail==="function")window.showCardDetail(item,{deckBuilder:!state.publicView});});
       const q=document.createElement("span");q.className="selected-card-quantity";q.textContent="×"+Number(card.quantity||1);mini.append(image,q);
       if(!state.publicView){const actions=document.createElement("div");actions.className="selected-card-mini-actions";const minus=document.createElement("button");minus.type="button";minus.className="selected-card-quantity-button";minus.textContent="−";minus.onclick=e=>{e.preventDefault();e.stopPropagation();void changeQty(card.itemId,-1,pile);};const plus=document.createElement("button");plus.type="button";plus.className="selected-card-quantity-button selected-card-quantity-add";plus.textContent="＋";plus.onclick=e=>{e.preventDefault();e.stopPropagation();void addCard(item,pile);};actions.append(minus,plus);mini.append(actions);}
@@ -380,9 +383,9 @@
   }
   function attachPileDropZone(strip,pile){
     if(strip.dataset.dropReady==="true")return; strip.dataset.dropReady="true";
-    strip.addEventListener("dragover",e=>{if(state.publicView||state.dragItemId==null)return;e.preventDefault();strip.classList.add("is-drag-target");});
+    strip.addEventListener("dragover",e=>{if(state.publicView||state.dragKind!=="deck"||state.dragItemId==null)return;e.preventDefault();strip.classList.add("is-drag-target");});
     strip.addEventListener("dragleave",e=>{if(!strip.contains(e.relatedTarget))strip.classList.remove("is-drag-target");});
-    strip.addEventListener("drop",e=>{if(state.publicView||state.dragItemId==null)return;e.preventDefault();strip.classList.remove("is-drag-target");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null)return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,null,pile):void moveCardBetweenPiles(id,src,pile,null);});
+    strip.addEventListener("drop",e=>{if(state.publicView||state.dragKind!=="deck"||state.dragItemId==null)return;e.preventDefault();strip.classList.remove("is-drag-target");const id=state.dragItemId??e.dataTransfer?.getData("text/plain"),src=state.dragPile||pile;if(id==null)return;state.ignoreRemoveUntil=Date.now()+500;src===pile?void moveCardTo(id,null,pile):void moveCardBetweenPiles(id,src,pile,null);});
   }
   function renderBuilderCards(){
     applySharedIconColumns(window.appState?.currentIconColumns,false); if(state.publicView){$("builder-card-list").replaceChildren();$("builder-load-more").hidden=true;return;}
@@ -391,7 +394,7 @@
     const list=$("builder-card-list");list.classList.toggle("compact",state.compact);list.replaceChildren();if(!result.length){$("builder-load-more").hidden=true;list.innerHTML='<div class="empty-state">該当するカードがありません。</div>';return;}
     const visible=result.slice(0,state.cardLimit),active=pileCards(state.deck),key=c=>{const raw=String(c.itemId||"");return raw.startsWith("card:")||raw.startsWith("territory:")?raw:(state.pile==="territory"?"territory:":"card:")+raw;},selected=new Map(active.map(c=>[key(c),c]));
     visible.forEach(item=>{const territory=(window.appState?.allTerritories||[]).includes(item)||Boolean(item.territory_id),id=territory?"territory:"+item.territory_id:"card:"+item.card_id,name=cardName(item),sc=selected.get(id),qty=Number(sc?.quantity||0),tile=document.createElement("div");tile.className="builder-card";
-      const detail=document.createElement("button");detail.type="button";detail.className="builder-card-detail";detail.title=name+"の詳細を表示";detail.innerHTML=item.image_url?'<img loading="lazy" src="'+escapeHTML(item.image_url)+'" alt="">':'<div class="no-card-image">'+escapeHTML(name)+'</div>';detail.innerHTML+='<div class="builder-card-name">'+escapeHTML(name)+'</div>';detail.onclick=()=>{state.pendingCard=item;if(typeof window.showCardDetail==="function")window.showCardDetail(item,{deckBuilder:!state.publicView});};tile.append(detail);
+      const detail=document.createElement("button");detail.type="button";detail.className="builder-card-detail";detail.title=name+"の詳細を表示";detail.innerHTML=item.image_url?'<img loading="lazy" src="'+escapeHTML(item.image_url)+'" alt="">':'<div class="no-card-image">'+escapeHTML(name)+'</div>';detail.innerHTML+='<div class="builder-card-name">'+escapeHTML(name)+'</div>';detail.onclick=()=>{state.pendingCard=item;if(typeof window.showCardDetail==="function")window.showCardDetail(item,{deckBuilder:!state.publicView});};detail.draggable=!state.publicView;detail.addEventListener("dragstart",e=>{if(state.publicView)return;state.dragKind="search";state.dragSearchItem=item;state.dragItemId=null;state.dragPile=null;e.dataTransfer?.setData("text/plain",String(item.card_id||item.territory_id||""));if(e.dataTransfer)e.dataTransfer.effectAllowed="copy";tile.classList.add("is-dragging");});detail.addEventListener("dragend",()=>{state.dragSearchItem=null;state.dragKind=null;tile.classList.remove("is-dragging");document.querySelectorAll(".is-drag-target").forEach(el=>el.classList.remove("is-drag-target"));});tile.append(detail);
       if(qty>0){const mark=document.createElement("span");mark.className="quantity-mark";mark.textContent="×"+qty;tile.append(mark);}
       const actions=document.createElement("div");actions.className="builder-card-actions";const remove=document.createElement("button");remove.type="button";remove.className="builder-card-remove";remove.textContent="−";remove.disabled=!sc||state.publicView;remove.onclick=e=>{e.preventDefault();e.stopPropagation();if(sc)void changeQty(sc.itemId,-1,state.pile);};
       const add=document.createElement("button");add.type="button";add.className="builder-card-add";add.textContent="＋";add.title=name+"をデッキに1枚追加";add.disabled=state.publicView||!canAddCurrentTerritoryItem(item);attachAddChoice(add,item);actions.append(remove,add);tile.append(actions);list.append(tile);
@@ -466,7 +469,7 @@
     }
   }
   async function moveCardTo(itemId,targetItemId,pile=state.pile){
-    if(state.publicView)return;try{const field=pile==="territory"?"territoryCards":pile==="reserve"?"reserveCards":"cards",cards=[...(state.deck?.[field]||[])],from=cards.findIndex(c=>String(c.itemId)===String(itemId));if(from<0)return;const ti=targetItemId==null?cards.length:cards.findIndex(c=>String(c.itemId)===String(targetItemId));if(targetItemId!=null&&ti<0)return;const [moving]=cards.splice(from,1);cards.splice(targetItemId==null?cards.length:(from<ti?ti-1:ti),0,moving);state.deck=await app().saveCards(cards,pile);renderBuilder();}catch(e){alert(e.message||"カードの順番を変更できませんでした。")}finally{state.dragItemId=null;state.dragPile=null;}
+    if(state.publicView)return;try{const field=pile==="territory"?"territoryCards":pile==="reserve"?"reserveCards":"cards",cards=[...(state.deck?.[field]||[])],from=cards.findIndex(c=>String(c.itemId)===String(itemId));if(from<0)return;const ti=targetItemId==null?cards.length:cards.findIndex(c=>String(c.itemId)===String(targetItemId));if(targetItemId!=null&&ti<0)return;const [moving]=cards.splice(from,1);cards.splice(targetItemId==null?cards.length:(from<ti?ti-1:ti),0,moving);state.deck=await app().saveCards(cards,pile);renderBuilder();}catch(e){alert(e.message||"カードの順番を変更できませんでした。")}finally{state.dragItemId=null;state.dragPile=null;state.dragSearchItem=null;state.dragKind=null;}
   }
   async function moveCardBetweenPiles(itemId,sourcePile,targetPile,targetItemId=null){
     if(state.publicView||sourcePile===targetPile)return;try{const sf=sourcePile==="reserve"?"reserveCards":"cards",tf=targetPile==="reserve"?"reserveCards":"cards",source=[...(state.deck?.[sf]||[])],target=[...(state.deck?.[tf]||[])],from=source.findIndex(c=>String(c.itemId)===String(itemId));if(from<0)return;const moving=source[from],qty=Math.max(1,Number(moving.quantity)||1),total=target.reduce((a,c)=>a+Math.max(1,Number(c.quantity)||1),0),existing=target.find(c=>String(c.itemId)===String(moving.itemId));if(targetPile==="reserve"&&!existing&&total+qty>15)throw new Error("予備デッキは合計15枚までです。");source.splice(from,1);if(existing)existing.quantity=Math.min(99,Math.max(1,Number(existing.quantity)||1)+qty);else{const copy={...moving};const ti=targetItemId==null?-1:target.findIndex(c=>String(c.itemId)===String(targetItemId));target.splice(ti<0?target.length:ti,0,copy);}state.deck=await app().moveCardBetweenPiles(source,sourcePile,target,targetPile);renderBuilder();}catch(e){alert(e.message||"カードを移動できませんでした。")}finally{state.dragItemId=null;state.dragPile=null;}
@@ -1561,6 +1564,15 @@
     $("main-pile-tab").addEventListener("click", () => setBuilderPile("main"));
     $("territory-pile-tab").addEventListener("click", () => setBuilderPile("territory"));
     $("reserve-pile-tab").addEventListener("click", () => setBuilderPile("reserve"));
+    [["main-pile-tab","main"],["territory-pile-tab","territory"],["reserve-pile-tab","reserve"]].forEach(([id,pile]) => {
+      const tab=$(id); if(!tab) return;
+      tab.addEventListener("dragover",e=>{if(state.publicView||!state.dragKind)return;if(state.dragKind==="deck"&&state.dragItemId!=null){e.preventDefault();tab.classList.add("is-drag-target");}else if(state.dragKind==="search"&&state.dragSearchItem){const isTerritory=Boolean(state.dragSearchItem.territory_id);if(isTerritory===(pile==="territory")){e.preventDefault();tab.classList.add("is-drag-target");}}});
+      tab.addEventListener("dragleave",()=>tab.classList.remove("is-drag-target"));
+      tab.addEventListener("drop",e=>{if(state.publicView)return;e.preventDefault();tab.classList.remove("is-drag-target");
+        if(state.dragKind==="search"&&state.dragSearchItem){const item=state.dragSearchItem;const isTerritory=Boolean(item.territory_id);if(isTerritory!==(pile==="territory"))return;state.ignoreRemoveUntil=Date.now()+500;void addCardToPile(item,pile);return;}
+        if(state.dragKind==="deck"&&state.dragItemId!=null){const src=state.dragPile||state.pile;const id=state.dragItemId;if(src===pile)return;state.ignoreRemoveUntil=Date.now()+500;void moveCardBetweenPiles(id,src,pile,null);}
+      });
+    });
     $("builder-edit-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = false; });
     $("builder-cancel-tags-button").addEventListener("click", () => { renderTagOptions("builder-deck-tag-options", state.deck?.tags || [], state.publicView); $("builder-deck-tag-editor").hidden = true; });
     $("builder-apply-tags-button").addEventListener("click", () => {
