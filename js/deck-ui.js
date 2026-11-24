@@ -508,9 +508,70 @@
         addButton.disabled = !canAddCurrentTerritoryItem(item);
         const limitMessage = territoryAddLimitMessage(item);
         if (limitMessage) addButton.title = limitMessage;
+        let addLongPressTimer = null;
+        let addLongPressTriggered = false;
+        const openAddChoice = event => {
+          if (!item || state.publicView) return;
+          event?.preventDefault?.();
+          event?.stopPropagation?.();
+          addLongPressTriggered = true;
+          const menu = document.createElement("div");
+          menu.className = "builder-add-choice-popover";
+          menu.setAttribute("role", "menu");
+          const makeChoice = (label, pile) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            button.setAttribute("role", "menuitem");
+            button.addEventListener("click", ev => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              menu.remove();
+              document.removeEventListener("pointerdown", closeChoice, true);
+              void addCardToPile(item, pile);
+            });
+            return button;
+          };
+          menu.append(
+            makeChoice("メインデッキに追加", "main"),
+            makeChoice("予備デッキに追加", "reserve")
+          );
+          document.body.append(menu);
+          const rect = addButton.getBoundingClientRect();
+          const width = Math.min(220, window.innerWidth - 20);
+          menu.style.width = width + "px";
+          menu.style.left = Math.max(10, Math.min(window.innerWidth - width - 10, rect.left + rect.width / 2 - width / 2)) + "px";
+          menu.style.top = Math.min(window.innerHeight - menu.offsetHeight - 10, rect.bottom + 6) + "px";
+          const closeChoice = ev => {
+            if (!menu.contains(ev.target) && ev.target !== addButton) {
+              menu.remove();
+              document.removeEventListener("pointerdown", closeChoice, true);
+            }
+          };
+          setTimeout(() => document.addEventListener("pointerdown", closeChoice, true), 0);
+        };
+        const cancelAddLongPress = () => {
+          if (addLongPressTimer) clearTimeout(addLongPressTimer);
+          addLongPressTimer = null;
+        };
+        addButton.addEventListener("pointerdown", event => {
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          addLongPressTriggered = false;
+          cancelAddLongPress();
+          addLongPressTimer = setTimeout(() => openAddChoice(event), 550);
+        });
+        addButton.addEventListener("pointerup", cancelAddLongPress);
+        addButton.addEventListener("pointercancel", cancelAddLongPress);
+        addButton.addEventListener("pointerleave", event => {
+          if (event.pointerType === "mouse") cancelAddLongPress();
+        });
         addButton.addEventListener("click", event => {
           event.preventDefault();
           event.stopPropagation();
+          if (addLongPressTriggered) {
+            addLongPressTriggered = false;
+            return;
+          }
           if (item) void addCard(item);
         });
 
@@ -628,6 +689,26 @@
   window.animalDeckBuilderSearch = () => {
     if (state.screen === "builder") renderBuilderCards();
   };
+
+  async function addCardToPile(item, pile) {
+    if (state.publicView || !item || !["main", "reserve"].includes(pile)) return;
+    try {
+      if (pile === "reserve") {
+        const total = reserveCards(state.deck).reduce((sum, card) => sum + Math.max(1, Number(card.quantity) || 1), 0);
+        const existing = reserveCards(state.deck).find(card => String(card.itemId) === String(item.card_id ?? item.territory_id));
+        if (total + (existing ? 0 : 1) > 15) {
+          alert("予備デッキは合計15枚までです。");
+          return;
+        }
+      }
+      state.deck = await app().addCard(item, pile);
+      state.pendingCard = null;
+      if (typeof window.closeCardDetail === "function") window.closeCardDetail();
+      renderBuilder();
+    } catch (error) {
+      alert(error.message || "カードを追加できませんでした。");
+    }
+  }
 
   async function addCard(item) {
     if (state.publicView || !item) return;

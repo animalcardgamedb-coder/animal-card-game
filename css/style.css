@@ -415,3 +415,5 @@
 @media(max-width:760px){
   .deck-export-format-actions{grid-template-columns:1fr}
 }
+
+.builder-add-choice-popover{position:fixed;z-index:10050;padding:5px;border:1px solid var(--border-color,#d7dce2);border-radius:10px;background:var(--surface,#fff);box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:3px}.builder-add-choice-popover button{appearance:none;border:0;border-radius:7px;background:transparent;padding:9px 10px;text-align:left;white-space:nowrap;cursor:pointer;font:inherit}.builder-add-choice-popover button:hover,.builder-add-choice-popover button:focus-visible{background:#eef4fb;outline:none}
