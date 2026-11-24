@@ -564,7 +564,9 @@
         comparison=String(first).localeCompare(String(second),"ja",{numeric:true,sensitivity:"base"});
       }
       if (comparison===0) comparison=a.index-b.index;
-      return descending?-comparison:comparison;
+      // タイプ順は指定された固定順そのものを「降順」として扱う。
+      // 通常の降順反転は行わない。
+      return field === "type" ? comparison : (descending ? -comparison : comparison);
     }).map(entry=>entry.card);
   }
 
