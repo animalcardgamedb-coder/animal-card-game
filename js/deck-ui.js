@@ -361,8 +361,10 @@
     $("selected-cards-strip").hidden=false;
     const selectedCards = pileCards(deck, state.pile);
     renderPileStrip($("selected-cards-strip"), selectedCards, state.pile);
-    const deckOrderSelect = $("deck-order-select");
-    if (deckOrderSelect) deckOrderSelect.value = state.deckSort || "source";
+    const deckOrderButtons = $("deck-order-buttons");
+    if (deckOrderButtons) deckOrderButtons.querySelectorAll("button").forEach(button => {
+      button.textContent = button.dataset.sortField === state.lastSortField ? button.dataset.sortLabel || button.textContent : button.dataset.sortField === "id" ? "ID順" : button.dataset.sortField === "name" ? "名前順" : button.dataset.sortField === "type" ? "タイプ順" : button.dataset.sortField === "species" ? "種族順" : button.dataset.sortField === "cost" ? "コスト順" : button.dataset.sortField === "atk" ? "ATK順" : "DEF順";
+    });
     const selectedCount = selectedCards.reduce((a,c)=>a+Number(c.quantity||1),0);
     $("selected-pile-count").textContent=(state.pile==="territory"?"領土デッキ：":state.pile==="reserve"?"予備デッキ：":"メインデッキ：")+selectedCount+"枚";
     if(!state.publicView)renderBuilderCards();
@@ -563,12 +565,8 @@
   }
 
   async function sortCurrentDeckPile(sortValue) {
-    if (state.publicView || !state.deck) return;
-    state.deckSort = sortValue || "source";
-    if (state.deckSort === "source") {
-      renderBuilder();
-      return;
-    }
+    if (state.publicView || !state.deck || !sortValue) return;
+    state.deckSort = "source";
     try {
       const sorted = sortDeckCards(pileCards(state.deck, state.pile), state.deckSort);
       state.deck = await app().saveCards(sorted, state.pile);
@@ -1708,7 +1706,16 @@
         }
       });
     });
-    $("deck-order-select").addEventListener("change", () => { void sortCurrentDeckPile($("deck-order-select").value); });
+    $("deck-order-buttons").addEventListener("click", event => {
+      const button = event.target.closest("button[data-sort-field]");
+      if (!button || state.publicView) return;
+      const field = button.dataset.sortField;
+      const direction = state.lastSortField === field && state.lastSortDirection === "asc" ? "desc" : "asc";
+      state.lastSortField = field;
+      state.lastSortDirection = direction;
+      button.textContent = ({id:"ID",name:"名前",type:"タイプ",species:"種族",cost:"コスト",atk:"ATK",def:"DEF"})[field] + (direction === "asc" ? "↑" : "↓");
+      void sortCurrentDeckPile(field + "-" + direction);
+    });
     // Keep deck tabs responsive even when the dragged element is a nested child.
     document.addEventListener("dragover", event => {
       const tab = event.target?.closest?.(".deck-pile-tabs button");
