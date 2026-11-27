@@ -260,7 +260,7 @@ function opiParseReleaseDateSortTimestamp_(value) {
 
 
 /**
- * 商品一覧から products_数字.html のリンクを抽出。
+ * 商品一覧から products_*.html のリンクを抽出。
  */
 function opiExtractProductUrls_(html) {
   const source = String(html || "");
@@ -273,7 +273,7 @@ function opiExtractProductUrls_(html) {
     const url = opiAbsoluteUrl_(href);
 
     if (!url) continue;
-    if (!/^https:\/\/acgtcg\.com\/products_\d+\.html$/i.test(url)) continue;
+    // 通常の数字ページに加えて、構築済みTDの products_TD1.html などにも対応。\n    if (!/^https:\/\/acgtcg\.com\/products_[A-Za-z0-9-]+\.html$/i.test(url)) continue;
 
     if (urls.indexOf(url) === -1) urls.push(url);
   }
@@ -345,7 +345,7 @@ function opiExtractProductName_(html, url) {
     if (value && !skip.test(value)) return value;
   }
 
-  const fileMatch = String(url || "").match(/products_(\d+)\.html/i);
+  const fileMatch = String(url || "").match(/products_([A-Za-z0-9-]+)\.html/i);
   return fileMatch ? "公式商品（ページ番号 " + fileMatch[1] + "）" : "";
 }
 
