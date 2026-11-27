@@ -273,7 +273,8 @@ function opiExtractProductUrls_(html) {
     const url = opiAbsoluteUrl_(href);
 
     if (!url) continue;
-    // 通常の数字ページに加えて、構築済みTDの products_TD1.html などにも対応。\n    if (!/^https:\/\/acgtcg\.com\/products_[A-Za-z0-9-]+\.html$/i.test(url)) continue;
+    // 通常の数字ページに加えて、構築済みTDの products_TD1.html などにも対応。
+    if (!/^https:\/\/acgtcg\.com\/products_[A-Za-z0-9-]+\.html$/i.test(url)) continue;
 
     if (urls.indexOf(url) === -1) urls.push(url);
   }
