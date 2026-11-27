@@ -161,7 +161,9 @@ function executeMonthlyOfficialSync_() {
   const summary = {
     startedAt: startedAt,
     cardListUrlsFound: 0,
+    cardListPagesFetched: 0,
     cardListPagesImported: 0,
+    cardListPagesWithNoCards: 0,
     parsedCardsAndTerritories: 0,
     addedCards: 0,
     updatedCards: 0,
@@ -210,18 +212,21 @@ function executeMonthlyOfficialSync_() {
           return;
         }
 
+        summary.cardListPagesFetched++;
         const html = response.getContentText("UTF-8");
         const parsed = parseOfficialHtml(html);
 
         // 404テンプレートや、カードがないページは取り込まない。
         if (!parsed || !Array.isArray(parsed.items) || parsed.items.length === 0) {
+          summary.cardListPagesWithNoCards++;
+          summary.cardPageFailures.push(url + "：カードデータを0件検出");
           return;
         }
 
         // importBulkHtml 内でカードIDに基づく追加・更新を行う。
         const importResult = importBulkHtml(html);
 
-        if (!importResult || importResult.success !== true) {
+        if (!importResult || importResult.success !== true || Number(importResult.parsed || 0) <= 0) {
           summary.cardPageFailures.push(url + "：一括登録が成功しませんでした。");
           return;
         }
@@ -478,6 +483,8 @@ function writeMonthlyOfficialSyncLog_(summary) {
     "終了日時",
     "状態",
     "検出したカードリスト候補数",
+    "取得できたカードリスト数",
+    "カードデータ0件のページ数",
     "取り込んだカードリスト数",
     "解析したカード・領土数",
     "カード追加数",
@@ -517,6 +524,8 @@ function writeMonthlyOfficialSyncLog_(summary) {
     summary.finishedAt || "",
     summary.status || "",
     Number(summary.cardListUrlsFound || 0),
+    Number(summary.cardListPagesFetched || 0),
+    Number(summary.cardListPagesWithNoCards || 0),
     Number(summary.cardListPagesImported || 0),
     Number(summary.parsedCardsAndTerritories || 0),
     Number(summary.addedCards || 0),
