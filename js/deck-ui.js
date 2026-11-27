@@ -794,6 +794,7 @@
     if (!deck) return;
     $("preview-deck-name").textContent = deck.name || "デッキ";
     $("preview-deck-description").textContent = deck.description || "説明はありません。";
+    $("preview-copy-button").hidden = !state.publicView || deck.isPublic !== true;
     const mainCards = deckCards(deck);
     const territories = territoryCards(deck);
     const reserves = reserveCards(deck);
@@ -1785,6 +1786,33 @@
       writeDeckSettingsDraft(state.deck?.id, event.target.value, selectedDeckTags());
     });
     $("preview-deck-button").addEventListener("click", () => setScreen("preview"));
+     $("preview-copy-button").addEventListener("click", async () => {
+       if (!app()?.isSignedIn()) {
+         $("menu-panel").hidden = false;
+         openModal("account-modal");
+         return;
+       }
+       if (!state.publicView || state.deck?.isPublic !== true) {
+         alert("公開デッキの確認画面からコピーしてください。");
+         return;
+       }
+       const button = $("preview-copy-button");
+       button.disabled = true;
+       try {
+         const copied = await app().copyPublicDeck();
+         state.deck = copied;
+         state.publicView = false;
+         state.tab = "mine";
+         setScreen("builder");
+         $("builder-deck-name").focus();
+         $("builder-deck-name").select();
+         setStatus("デッキをコピーしました。マイデッキとして編集できます。");
+       } catch (error) {
+         alert(error.message || "デッキをコピーできませんでした。");
+       } finally {
+         button.disabled = false;
+       }
+     });
     $("print-deck-button").addEventListener("click", () => {
       document.body.classList.add("printing-deck-summary");
       const clearPrintMode = () => document.body.classList.remove("printing-deck-summary");
