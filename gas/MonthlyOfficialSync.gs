@@ -20,24 +20,34 @@ const ACG_AUTO_SYNC_HOME_URL_ = "https://acgtcg.com/";
 const ACG_AUTO_SYNC_LOG_SHEET_ = "自動同期ログ";
 const ACG_AUTO_SYNC_TRIGGER_ = "runMonthlyOfficialSyncIfFourthFriday";
 const ACG_AUTO_SYNC_MAX_BP_PROBE_ = 50;
-const ACG_AUTO_SYNC_RETRY_HOURS_ = [4, 6];
+const ACG_AUTO_SYNC_TRIGGER_HOURS_ = [
+  { weekday: "THURSDAY", hour: 19 },
+  { weekday: "FRIDAY", hour: 0 }
+];
 
 
 /**
- * 毎週金曜日のトリガーから呼び出される。
- * 第4金曜日以外は外部ページにアクセスせず終了する。
+ * 第4木曜日19時台／第4金曜日0時台のトリガーから呼び出される。
+ * 第4木曜日または、その直後の第4金曜日以外は外部ページにアクセスせず終了する。
  */
 function runMonthlyOfficialSyncIfFourthFriday() {
   const tz = Session.getScriptTimeZone() || "Asia/Tokyo";
   const now = new Date();
-  const weekday = Utilities.formatDate(now, tz, "u"); // 月=1 ... 金=5
+  const weekday = Utilities.formatDate(now, tz, "u"); // 月=1 ... 木=4、金=5
   const day = Number(Utilities.formatDate(now, tz, "d"));
   const monthKey = Utilities.formatDate(now, tz, "yyyy-MM");
+  const weekdayNumber = Number(weekday);
 
-  if (weekday !== "5" || Math.ceil(day / 7) !== 4) {
+  // 第4木曜日19時台、または第4金曜日0時台だけ実行する。
+  // 木曜19時と金曜0時の両方で起動するため、どちらか一方が失敗しても
+  // もう一方で再試行できる。
+  const isFourthThursday = weekdayNumber === 4 && Math.ceil(day / 7) === 4;
+  const isFourthFridayMidnight = weekdayNumber === 5 && day <= 28;
+
+  if (!isFourthThursday && !isFourthFridayMidnight) {
     return {
       skipped: true,
-      message: "第4金曜日ではないため、今回は処理を実行しません。"
+      message: "第4木曜日19時台または第4金曜日0時台ではないため、今回は処理を実行しません。"
     };
   }
 
@@ -90,17 +100,21 @@ function installMonthlyOfficialSyncTrigger() {
     }
   });
 
-  // GASの時間主導トリガーは指定時刻ちょうどではなく、その時間帯のどこかで実行される。
-  // 4時台に失敗・タイムアウトした場合でも6時台に再試行できるよう、2本用意する。
-  ACG_AUTO_SYNC_RETRY_HOURS_.forEach(hour => {
+  // GASの時間主導トリガーは指定時刻ちょうどではなく、その時間帯に実行される。
+  // 第4木曜日19時台と、その直後の第4金曜日0時台の2本を設定する。
+  ACG_AUTO_SYNC_TRIGGER_HOURS_.forEach(config => {
+    const weekday = config.weekday === "THURSDAY"
+      ? ScriptApp.WeekDay.THURSDAY
+      : ScriptApp.WeekDay.FRIDAY;
+
     ScriptApp.newTrigger(ACG_AUTO_SYNC_TRIGGER_)
       .timeBased()
-      .onWeekDay(ScriptApp.WeekDay.FRIDAY)
-      .atHour(hour)
+      .onWeekDay(weekday)
+      .atHour(config.hour)
       .create();
   });
 
-  return "トリガーを設定しました。プロジェクトのタイムゾーンがAsia/Tokyoなら、毎月第4金曜日の午前4時台と6時台に同期を試行します。4時台に失敗した場合は6時台に自動再試行します。";
+  return "トリガーを設定しました。プロジェクトのタイムゾーンがAsia/Tokyoなら、第4木曜日の19時台と第4金曜日の0時台に同期を試行します。木曜日の処理に失敗した場合は金曜日0時台に自動再試行します。";
 }
 
 
