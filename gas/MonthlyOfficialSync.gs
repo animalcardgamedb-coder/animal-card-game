@@ -42,7 +42,9 @@ function runMonthlyOfficialSyncIfFourthFriday() {
   }
 
   const props = PropertiesService.getScriptProperties();
-  const key = "ACG_MONTHLY_AUTO_SYNC_DONE_" + monthKey;
+  // 同期ロジックを更新した際、旧版が残した「同期済み」フラグで
+  // 新版の再試行を止めないよう、フラグの世代を分ける。
+  const key = "ACG_MONTHLY_AUTO_SYNC_DONE_v2_" + monthKey;
 
   if (props.getProperty(key)) {
     return {
