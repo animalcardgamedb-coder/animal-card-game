@@ -701,6 +701,36 @@ window.animalDeckApp = {
     await loadSelectedDeck(deckRef.id);
     return this.current();
   },
+  async copyPublicDeck() {
+    if (!signedInUser) throw new Error("ログインしてください。");
+    if (!selectedDeck || selectedDeck.isPublic !== true) throw new Error("公開デッキのみコピーできます。");
+
+    const copyArray = value => Array.isArray(value)
+      ? value.map(card => ({ ...card }))
+      : [];
+
+    const safeBaseName = String(selectedDeck.name || "デッキ").trim().slice(0, 50);
+    const copyName = String(safeBaseName + " のコピー").slice(0, 50);
+
+    const deckRef = await addDoc(collection(db, "decks"), {
+      ownerUid: signedInUser.uid,
+      ownerName: String(signedInUser.displayName || "プレイヤー").slice(0, 50),
+      name: copyName,
+      tags: normalizeTags(selectedDeck.tags),
+      description: String(selectedDeck.description || "").slice(0, 2000),
+      isPublic: false,
+      cards: copyArray(selectedDeck.cards),
+      territoryCards: copyArray(selectedDeck.territoryCards),
+      reserveCards: copyArray(selectedDeck.reserveCards),
+      considerationCards: copyArray(selectedDeck.considerationCards),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    invalidatePublicDeckCache();
+    await loadSelectedDeck(deckRef.id);
+    return this.current();
+  },
   async importDeck(data) {
     const compat = window.acgBuilderJsonCompat;
     const isAcgBuilder = data && typeof data === "object" &&
