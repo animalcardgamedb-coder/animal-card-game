@@ -19,7 +19,8 @@
 const ACG_AUTO_SYNC_HOME_URL_ = "https://acgtcg.com/";
 const ACG_AUTO_SYNC_LOG_SHEET_ = "自動同期ログ";
 const ACG_AUTO_SYNC_TRIGGER_ = "runMonthlyOfficialSyncIfFourthFriday";
-const ACG_AUTO_SYNC_MAX_BP_PROBE_ = 30;
+const ACG_AUTO_SYNC_MAX_BP_PROBE_ = 50;
+const ACG_AUTO_SYNC_RETRY_HOURS_ = [4, 6];
 
 
 /**
@@ -52,8 +53,11 @@ function runMonthlyOfficialSyncIfFourthFriday() {
 
   const result = executeMonthlyOfficialSync_();
 
-  // 完走したら、同じ月に重複実行しないよう記録する。
-  props.setProperty(key, new Date().toISOString());
+  // 「一部失敗」でも同期済みにしてしまうと、その月の再試行が永久に止まる。
+  // 完全成功した場合だけ同期済みとして記録し、失敗時は次のリトライに回す。
+  if (result && result.status === "成功") {
+    props.setProperty(key, new Date().toISOString());
+  }
   return result;
 }
 
@@ -84,13 +88,17 @@ function installMonthlyOfficialSyncTrigger() {
     }
   });
 
-  ScriptApp.newTrigger(ACG_AUTO_SYNC_TRIGGER_)
-    .timeBased()
-    .onWeekDay(ScriptApp.WeekDay.FRIDAY)
-    .atHour(4)
-    .create();
+  // GASの時間主導トリガーは指定時刻ちょうどではなく、その時間帯のどこかで実行される。
+  // 4時台に失敗・タイムアウトした場合でも6時台に再試行できるよう、2本用意する。
+  ACG_AUTO_SYNC_RETRY_HOURS_.forEach(hour => {
+    ScriptApp.newTrigger(ACG_AUTO_SYNC_TRIGGER_)
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.FRIDAY)
+      .atHour(hour)
+      .create();
+  });
 
-  return "トリガーを設定しました。プロジェクトのタイムゾーンがAsia/Tokyoなら、毎月第4金曜日の午前4時〜5時ごろに同期します。";
+  return "トリガーを設定しました。プロジェクトのタイムゾーンがAsia/Tokyoなら、毎月第4金曜日の午前4時台と6時台に同期を試行します。4時台に失敗した場合は6時台に自動再試行します。";
 }
 
 
@@ -294,7 +302,7 @@ function executeMonthlyOfficialSync_() {
 
 /**
  * 公式トップページからカードリストURLを発見し、
- * 念のため既知のSD1 / RYO / PR / BP1〜BP30も候補に含める。
+ * 念のため既知のSD1 / RYO / PR / TD / BP1〜BP50も候補に含める。
  * 実際にカードデータが解析できるページだけを取り込む。
  */
 function discoverOfficialCardListUrls_() {
@@ -333,6 +341,9 @@ function discoverOfficialCardListUrls_() {
   addUrl("https://acgtcg.com/cardlist_SD1.html");
   addUrl("https://acgtcg.com/cardlist_RYO.html");
   addUrl("https://acgtcg.com/cardlist_PR.html");
+  // 2026年11月に公開された「構築済みトライアルデッキ」のカードリスト。
+  // トップページのHTMLからリンクを拾えない場合でも同期対象にする。
+  addUrl("https://acgtcg.com/cardlist_TD.html");
 
   for (let number = 1; number <= ACG_AUTO_SYNC_MAX_BP_PROBE_; number++) {
     addUrl("https://acgtcg.com/cardlist_BP" + number + ".html");
